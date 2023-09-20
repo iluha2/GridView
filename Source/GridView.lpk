@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CONFIG>
+  <Package Version="5">
+    <PathDelim Value="\"/>
+    <Name Value="GridView"/>
+    <Type Value="RunAndDesignTime"/>
+    <Author Value="iluha"/>
+    <CompilerOptions>
+      <Version Value="11"/>
+      <PathDelim Value="\"/>
+      <SearchPaths>
+        <UnitOutputDirectory Value="..\zOut\$(PkgName)-$(TargetCPU)-$(TargetOS)"/>
+      </SearchPaths>
+      <Parsing>
+        <SyntaxOptions>
+          <SyntaxMode Value="Delphi"/>
+          <CStyleOperator Value="False"/>
+          <AllowLabel Value="False"/>
+          <CPPInline Value="False"/>
+        </SyntaxOptions>
+      </Parsing>
+      <CodeGeneration>
+        <Checks>
+          <IOChecks Value="True"/>
+          <RangeChecks Value="True"/>
+          <OverflowChecks Value="True"/>
+          <StackChecks Value="True"/>
+        </Checks>
+      </CodeGeneration>
+      <Linking>
+        <Debugging>
+          <GenerateDebugInfo Value="False"/>
+          <UseLineInfoUnit Value="False"/>
+        </Debugging>
+      </Linking>
+      <Other>
+        <WriteFPCLogo Value="False"/>
+      </Other>
+    </CompilerOptions>
+    <Description Value="GridView Component"/>
+    <Version Major="1"/>
+    <Files>
+      <Item>
+        <Filename Value="Ex_RegGrid.pas"/>
+        <HasRegisterProc Value="True"/>
+        <UnitName Value="Ex_RegGrid"/>
+      </Item>
+    </Files>
+    <RequiredPkgs>
+      <Item>
+        <PackageName Value="IDEIntf"/>
+      </Item>
+      <Item>
+        <PackageName Value="LCL"/>
+      </Item>
+    </RequiredPkgs>
+    <UsageOptions>
+      <UnitPath Value="$(PkgOutDir)"/>
+    </UsageOptions>
+    <PublishOptions>
+      <Version Value="2"/>
+      <UseFileFilters Value="True"/>
+    </PublishOptions>
+  </Package>
+</CONFIG>

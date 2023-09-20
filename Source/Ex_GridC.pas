@@ -1,21 +1,22 @@
 {
   TGridView component (grid)
-
   (C) Roman M. Mochalov, 1997-2019
-  E-mail: checker@mail.ru
-
+  (C) Iluha Companets  , 2002-2023
   License: MIT
 }
 
 unit Ex_GridC;
-                                        
+
 interface
 
 uses
-  Windows, SysUtils, Classes, Controls, Forms, Graphics, StdCtrls, ComCtrls,
+  LCLIntf, LCLType, SysUtils, Classes, Controls, Forms, Graphics, StdCtrls, ComCtrls,
   Ex_Grid;
 
 type
+
+{ TColumnsEditorForm }
+
   TColumnsEditorForm = class(TForm)
     ColumnsGroup: TGroupBox;
     ColumnsList: TListView;
@@ -70,7 +71,6 @@ type
     procedure AddColumn;
     procedure DeleteAllColumns;
     procedure DeleteColumn;
-    procedure CheckColumn;
     procedure GetColumn;
     procedure GetParams;
     procedure MoveColumnDown;
@@ -86,42 +86,50 @@ function EditGridColumns(Grid: TCustomGridView): Boolean;
 
 implementation
 
-{$R *.DFM}
+{$R *.lfm}
 
 function EditGridColumns(Grid: TCustomGridView): Boolean;
 begin
   with TColumnsEditorForm.Create(nil) do
   try
+    { показываем диалог }
     Execute(Grid);
+    { результат }
     Result := FChangeCount > 0;
   finally
     Free;
   end;
 end;
 
-type
-  EColumnError = class(Exception);
-
 { TColumnsEditorForm }
 
 procedure TColumnsEditorForm.AddColumn;
 begin
+  { добавляем колонку }
   FColumns.Add;
+  { обновляем список столбцов }
   RefreshView;
+  { фокус на строку с заголовком }
   CaptionEdit.SetFocus;
+  { доступ к кнопке "Применить" }
   EnableApply(nil);
 end;
 
 procedure TColumnsEditorForm.DeleteAllColumns;
 const
-  Message = 'Delete all columns?';
+  Message = 'Удалить все столбцы?';
   Flags = MB_YESNO or MB_ICONQUESTION;
 begin
+  { есть ли столбцы }
   if ColumnsList.Items.Count > 0 then
+    { спрашиваем разрешение на удаление }
     if Application.MessageBox(Message, PChar(Caption), Flags) = IDYES then
     begin
+      { удаляем все столбцы }
       FColumns.Clear;
+      { обновляем список столбцов }
       RefreshView;
+      { доступ к кнопке "Применить" }
       EnableApply(nil);
     end;
 end;
@@ -132,62 +140,22 @@ var
 begin
   with ColumnsList do
   begin
+    { есть ли выделенный столбец }
     I := Items.IndexOf(ItemFocused);
     if I <> -1 then
     begin
+      { удаляем его }
       FColumns[I].Free;
+      { обновляем список столбцов }
       RefreshView;
       ColumnsList.SetFocus;
+      { доступ к кнопке "Применить" }
       EnableApply(nil);
     end;
   end;
 end;
 
-procedure TColumnsEditorForm.CheckColumn;
-var
-  I: Integer;
-begin
-  if PropertiesGroup.Enabled then
-  begin
-    with IndexEdit do
-    try
-      I := StrToIntDef(Text, -1);
-      if (I < 0) or (I > FColumns.Count - 1) then
-        raise EColumnError.CreateFmt('Invalid index (%s)', [Text]);
-    except
-      SetFocus;
-      raise;
-    end;
-    with WidthEdit do
-    try
-      StrToInt(Text);
-    except
-      SetFocus;
-      raise;
-    end;
-    with MinWidthEdit do
-    try
-      StrToInt(Text);
-    except
-      SetFocus;
-      raise;
-    end;
-    with MaxWidthEdit do
-    try
-      StrToInt(Text);
-    except
-      SetFocus;
-      raise;
-    end;
-    with MaxLengthEdit do
-    try
-      StrToInt(Text);
-    except
-      SetFocus;
-      raise;
-    end;
-  end;
-end;
+
 
 procedure TColumnsEditorForm.GetColumn;
 var
@@ -195,9 +163,11 @@ var
 begin
   with ColumnsList do
   begin
+    { есть ли выделенный столбец }
     I := Items.IndexOf(ItemFocused);
     if I <> -1 then
     begin
+      { обновляем параметры }
       IndexEdit.Text := IntToStr(I);
       CaptionEdit.Text := FColumns[I].Caption;
       WidthEdit.Text := IntToStr(FColumns[I].DefWidth);
@@ -219,7 +189,9 @@ end;
 
 procedure TColumnsEditorForm.GetParams;
 begin
+  { считываем список стобцов таблицы }
   FColumns.Assign(FGrid.Columns);
+  { обновляем список столбцов }
   RefreshView
 end;
 
@@ -229,15 +201,21 @@ var
 begin
   with ColumnsList do
   begin
+    { есть ли выделенный столбец }
     I := Items.IndexOf(ItemFocused);
+    { можно ли двигать его вниз }
     if I < Items.Count - 1 then
     begin
+      { смещаем вниз }
       FColumns[I].Index := I + 1;
+      { обновляем список столбцов }
       RefreshView;
+      { подправляем выделенную строку }
       ItemFocused.Selected := False;
       ItemFocused := Items[I + 1];
       ItemFocused.Selected := True;
       ItemFocused.MakeVisible(True);
+      { доступ к кнопке "Применить" }
       EnableApply(nil);
     end;
   end;
@@ -249,15 +227,21 @@ var
 begin
   with ColumnsList do
   begin
+    { есть ли выделенный столбец }
     I := Items.IndexOf(ItemFocused);
+    { можно ли двигать его вверх }
     if I > 0 then
     begin
+      { смещаем вверх }
       FColumns[I].Index := I - 1;
+      { обновляем список столбцов }
       RefreshView;
+      { подправляем выделенную строку }
       ItemFocused.Selected := False;
       ItemFocused := Items[I - 1];
       ItemFocused.Selected := True;
       ItemFocused.MakeVisible(True);
+      { доступ к кнопке "Применить" }
       EnableApply(nil);
     end;
   end;
@@ -269,17 +253,19 @@ var
 begin
   with ColumnsList do
   begin
+    { есть ли выделенный столбец }
     I := Items.IndexOf(ItemFocused);
     if I <> -1 then
       with FColumns[I] do
       begin
-        Index := StrToInt(IndexEdit.Text);
+        { считываем параметры столбца }
+        Index := StrToIntDef(IndexEdit.Text, Index);
         Caption := CaptionEdit.Text;
-        DefWidth := StrToInt(WidthEdit.Text);
-        MinWidth := StrToInt(MinWidthEdit.Text);
-        MaxWidth := StrToInt(MaxWidthEdit.Text);
+        DefWidth := StrToIntDef(WidthEdit.Text, DefWidth);
+        MinWidth := StrToIntDef(MinWidthEdit.Text, MinWidth);
+        MaxWidth := StrToIntDef(MaxWidthEdit.Text, MaxWidth);
         Alignment := TAlignment(AlignmentCombo.ItemIndex);
-        MaxLength := StrToInt(MaxLengthEdit.Text);
+        MaxLength := StrToIntDef(MaxLengthEdit.Text, MaxLength);
         FColumns[I].EditStyle := TGridEditStyle(EditStyleCombo.ItemIndex);
         CheckKind := TGridCheckKind(CheckKindCombo.ItemIndex);
         FixedSize := FixedSizeCheck.Checked;
@@ -288,6 +274,7 @@ begin
         WordWrap := WordWrapCheck.Checked;
         TabStop := not TabStopCheck.Checked;
         Visible := not VisibleCheck.Checked;
+        { обновляем список столбцов }
         RefreshView;
       end;
   end;
@@ -303,7 +290,6 @@ procedure TColumnsEditorForm.RefreshView;
   procedure BeginRefresh;
   begin
     ColumnsList.OnChange := nil;
-    ColumnsList.OnChanging := nil;
     IndexEdit.OnChange := nil;
     CaptionEdit.OnChange := nil;
     WidthEdit.OnChange := nil;
@@ -324,7 +310,7 @@ procedure TColumnsEditorForm.RefreshView;
   procedure EndRefresh;
   begin
     ColumnsList.OnChange := ColumnsListChange;
-    ColumnsList.OnChanging := ColumnsListChanging;
+    //ColumnsList.OnChanging := ColumnsListChanging;
     IndexEdit.OnChange := EnableApply;
     CaptionEdit.OnChange := EnableApply;
     WidthEdit.OnChange := EnableApply;
@@ -380,6 +366,7 @@ procedure TColumnsEditorForm.RefreshView;
   begin
     with ColumnsList do
     begin
+      { уравниваем количество столбцов и строк в списке }
       if Items.Count > FColumns.Count then
       begin
         I := Items.Count;
@@ -408,6 +395,7 @@ procedure TColumnsEditorForm.RefreshView;
         end;
       end;
     end;
+    { обновляем строки списка }
     with FColumns do
     begin
       for I := 0 to Count - 1 do
@@ -427,14 +415,18 @@ procedure TColumnsEditorForm.RefreshView;
   begin
     with ColumnsList do
     begin
+      { есть ли выделенный столбец }
       if Items.IndexOf(ItemFocused) <> -1 then
       begin
+        { разрешаем изменение параметров }
         PropertiesGroup.Enabled := True;
         DeleteButton.Enabled := True;
+        { считываем параметры столца }
         GetColumn;
       end
       else
       begin
+        { очищаем компоненты параметров }
         VisibleCheck.Checked := False;
         TabStopCheck.Checked := False;
         WantReturnsCheck.Checked := False;
@@ -450,6 +442,7 @@ procedure TColumnsEditorForm.RefreshView;
         WidthEdit.Text := '';
         CaptionEdit.Text := '';
         IndexEdit.Text := '';
+        { запрещаем изменение параметров }
         DeleteButton.Enabled := False;
         PropertiesGroup.Enabled := False;
       end;
@@ -468,8 +461,11 @@ end;
 
 function TColumnsEditorForm.Execute(Grid: TCustomGridView): Boolean;
 begin
+  { запоминаем таблицу }
   FGrid := Grid;
+  { считываем список столбцов }
   GetParams;
+  { показываем диалог }
   Result := ShowModal = mrOK;
 end;
 
@@ -489,7 +485,7 @@ end;
 
 procedure TColumnsEditorForm.FormCreate(Sender: TObject);
 const
-  LVM_SETEXTSTYLE = $1000 + 54;
+  LVM_SETEXTSTYLE      = $1000 + 54;
   LVS_EX_FULLROWSELECT = $00000020;
 begin
   SendMessage(ColumnsList.Handle, LVM_SETEXTSTYLE, 0, LVS_EX_FULLROWSELECT);
@@ -511,7 +507,6 @@ begin
   if not (csDestroying in ComponentState) then
   begin
     try
-      CheckColumn;
       PutColumn;
       RefreshView;
     except
@@ -551,14 +546,12 @@ begin
         end;
       VK_UP:
         begin
-          CheckColumn;
           PutColumn;
           MoveColumnUp;
           Key := 0;
         end;
       VK_DOWN:
         begin
-          CheckColumn;
           PutColumn;
           MoveColumnDown;
           Key := 0;
@@ -568,9 +561,9 @@ end;
 
 procedure TColumnsEditorForm.IndexEditKeyPress(Sender: TObject; var Key: Char);
 begin
-  if not CharInSet(Key, [#8, '0'..'9']) then
+  if not (Key in [#8, '0'..'9']) then
   begin
-    MessageBeep(0);
+    Beep;
     Key := #0;
   end;
 end;
@@ -583,24 +576,24 @@ end;
 
 procedure TColumnsEditorForm.ApplyButtonClick(Sender: TObject);
 begin
-  CheckColumn;
+  { проверяем и вставляем параметры }
   PutColumn;
   PutParams;
+  { обновлем компоненты }
   GetParams;
   DisableApply(nil);
+  { увеличиваем счетчик изменений }
   Inc(FChangeCount);
 end;
 
 procedure TColumnsEditorForm.AddButtonClick(Sender: TObject);
 begin
-  CheckColumn;
   PutColumn;
   AddColumn;
 end;
 
 procedure TColumnsEditorForm.DeleteButtonClick(Sender: TObject);
 begin
-  CheckColumn;
   PutColumn;
   DeleteColumn;
 end;

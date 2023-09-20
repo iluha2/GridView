@@ -1,9 +1,7 @@
 {
   TGridView component (grid)
-
   (C) Roman M. Mochalov, 1997-2019
-  E-mail: checker@mail.ru
-
+  (C) Iluha Companets  , 2002-2023
   License: MIT
 }
 
@@ -11,2367 +9,13 @@ unit Ex_Grid;
 
 interface
 
-uses
-  Windows, Messages, SysUtils, CommCtrl, Classes, Forms, Controls, Graphics,
-  Dialogs, StdCtrls, Math, Mask, ImgList, Types, Menus, StrUtils, UITypes;
-
-const
-  CN_THEMECHANGED = CN_BASE + WM_THEMECHANGED;
-
-var
-  crHeaderSplit: TCursor = crHSplit;
-
-type
-  TGridHeaderSections = class;
-  TCustomGridHeader = class;
-  TCustomGridColumn = class;
-  TGridColumns = class;
-  TCustomGridRows = class;
-  TCustomGridFixed = class;
-  TCustomGridView = class;
-
-  TGridEditStyle = (geSimple, geEllipsis, gePickList, geDataList, geUserDefine);
-
-  TGridCheckKind = (gcNone, gcCheckBox, gcRadioButton, gcUserDefine);
-  TGridCheckStyle = (csFlat, cs3D, csWin95);
-
-{ TGridHeaderSection }
-
-  {
-    Public Properties:
-
-    BoundsRect -        Returns the section bounds.
-    ColumnIndex -       The index of the corresponding column. For a multilevel
-                        section, this is the index corresponding to the column
-                        index of the rightmost subsection.
-    FirstColumnIndex -  Returns the index of the leftmost column of a section.
-    FixedColumn -       Specifies whether the section is sizeable.
-    Header -            Indicates the header to which the section instance
-                        belongs.
-    Level -             Indicates section level. The top level section is level 0.
-    Parent -            Refers the section one level up that contains the section.
-                        The top level section has no parent section.
-    ResizeColumnIndex - Returns the index of the column whose size is changed
-                        when the width of the section is changed with the mouse.
-                        For a multilevel section, this corresponds to the index
-                        of the rightmost subsection.
-    Visible -           Indicates the section is visible. A section is visible
-                        if at least one of the subsections is visible or if the
-                        corresponding column is visible.
-    Width -             The width of the section. Equal to the sum of the width
-                        of the subsections or the width of the corresponding
-                        column.
-
-    Published Properties:
-
-    Alignment -         Determines how the text is aligned within the section.
-    Caption -           Specified the title of the section. If not specified,
-                        the column caption is used.
-    Sections -          Lists the subsections.
-    WordWrap -          Determines whether the section inserts soft carriage
-                        returns so text wraps at the right margin of the section.
-  }
-
-  TGridHeaderSection = class(TCollectionItem)
-  private
-    FSections: TGridHeaderSections;
-    FCaption: string;
-    FAlignment: TAlignment;
-    FWordWrap: Boolean;
-    FBoundsRect: TRect;
-    FColumnIndex: Integer;
-    function IsSectionsStored: Boolean;
-    function GetAllowClick: Boolean;
-    function GetBoundsRect: TRect;
-    function GetDisplayText: string;
-    function GetFirstColumnIndex: Integer;
-    function GetFixedColumn: Boolean;
-    function GetHeader: TCustomGridHeader;
-    function GetLevel: Integer;
-    function GetParent: TGridHeaderSection;
-    function GetParentSections: TGridHeaderSections;
-    function GetResizeColumnIndex: Integer;
-    function GetSections: TGridHeaderSections;
-    function GetVisible: Boolean;
-    function GetWidth: Integer;
-    procedure ReadWidth(Reader: TReader);
-    procedure SetAlignment(Value: TAlignment);
-    procedure SetCaption(const Value: string);
-    procedure SetSections(Value: TGridHeaderSections);
-    procedure SetWordWrap(Value: Boolean);
-  protected
-    procedure DefineProperties(Filer: TFiler); override;
-    function GetDisplayName: string; override;
-  public
-    destructor Destroy; override;
-    procedure Assign(Source: TPersistent); override;
-    property AllowClick: Boolean read GetAllowClick;
-    property BoundsRect: TRect read GetBoundsRect;
-    property ColumnIndex: Integer read FColumnIndex;
-    property DisplayText: string read GetDisplayText;
-    property FirstColumnIndex: Integer read GetFirstColumnIndex;
-    property FixedColumn: Boolean read GetFixedColumn;
-    property Header: TCustomGridHeader read GetHeader;
-    property Level: Integer read GetLevel;
-    property Parent: TGridHeaderSection read GetParent;
-    property ParentSections: TGridHeaderSections read GetParentSections;
-    property ResizeColumnIndex: Integer read GetResizeColumnIndex;
-    property Visible: Boolean read GetVisible;
-    property Width: Integer read GetWidth;
-  published
-    property Alignment: TAlignment read FAlignment write SetAlignment default taLeftJustify;
-    property Caption: string read FCaption write SetCaption;
-    property WordWrap: Boolean read FWordWrap write SetWordWrap default False;
-    property Sections: TGridHeaderSections read GetSections write SetSections stored IsSectionsStored;
-  end;
-
-{ TGridHeaderSections }
-
-  {
-    Public Methods:
-
-    Add -          Creates a new TGridHeaderSection instance and adds it to the
-                   Sections array.
-
-    Public Properties:
-
-    Header -       Indicates the header to which the sections instance belongs.
-    MaxColumn -    Indicates the maximum column index of the subsections.
-    MaxLevel -     Indicates the maximum level of the subsections. The top level
-                   section is level 0.
-    OwnerSection - Refers the section one level up that contains the section.
-                   The top level section has no owner.
-    Sections -     Lists the subsections.
-  }
-
-  TGridHeaderSections = class(TCollection)
-  private
-    FHeader: TCustomGridHeader;
-    FOwnerSection: TGridHeaderSection;
-    function GetMaxColumn: Integer;
-    function GetMaxLevel: Integer;
-    function GetSection(Index: Integer): TGridHeaderSection;
-    procedure SetSection(Index: Integer; Value: TGridHeaderSection);
-  protected
-    function GetOwner: TPersistent; override;
-    procedure Update(Item: TCollectionItem); override;
-  public
-    constructor Create(AHeader: TCustomGridHeader; AOwnerSection: TGridHeaderSection); virtual;
-    function Add: TGridHeaderSection;
-    property Header: TCustomGridHeader read FHeader;
-    property MaxColumn: Integer read GetMaxColumn;
-    property MaxLevel: Integer read GetMaxLevel;
-    property OwnerSection: TGridHeaderSection read FOwnerSection;
-    property Sections[Index: Integer]: TGridHeaderSection read GetSection write SetSection; default;
-  end;
-
-{ TGridHeader }
-
-  {
-    Public Properties:
-
-    Grid -          Indicates the grid control to which the header instance
-                    belongs.
-    MaxColumn -     Indicates the maximum column index of the subsections.
-    MaxLevel -      Indicates the maximum level of the subsections. The top
-                    level section is level 0.
-
-    Published Properties:
-
-    AutoHeight -    Determines whether the height of the header sections
-                    automatically resizes to accommodate the text.
-    Color -         Specifies the background color of the header.
-    Images -        Provides a list of icon images to display for sections
-                    of the header. To determinate image index of the section
-                    use OnGetHeaderImage event.
-    Flat -          Specifies whether the sections of the header are flat.
-    Font -          Controls the attributes of text written on the header.
-    GridColor -     Determines where a header looks for its color information.
-    GridFont -      Determines where a header looks for its font information
-    PopupMenu -     User pop-up menu of the header. For more information
-                    see TGridView.DefaultHeaderMenu property.
-    SectionHeight - Determines the height of the header sections.
-    Sections -      Lists the header sections (column headings).
-  }
-
-  TCustomGridHeader = class(TPersistent)
-  private
-    FGrid: TCustomGridView;
-    FSections: TGridHeaderSections;
-    FSectionHeight: Integer;
-    FAutoHeight: Boolean;
-    FColor: TColor;
-    FGridColor: Boolean;
-    FFont: TFont;
-    FGridFont: Boolean;
-    FImages: TImageList;
-    FImagesLink: TChangeLink;
-    FFlat: Boolean;
-    FPopupMenu: TPopupMenu;
-    FOnChange: TNotifyEvent;
-    procedure ImagesChange(Sender: TObject);
-    function IsColorStored: Boolean;
-    function IsFontStored: Boolean;
-    function IsSectionHeightStored: Boolean;
-    function IsSectionsStored: Boolean;
-    procedure FontChange(Sender: TObject);
-    function GetHeight: Integer;
-    function GetMaxColumn: Integer;
-    function GetMaxLevel: Integer;
-    function GetWidth: Integer;
-    procedure ReadFullSynchronizing(Reader: TReader);
-    procedure SetAutoHeight(Value: Boolean);
-    procedure SetColor(Value: TColor);
-    procedure SetFlat(Value: Boolean);
-    procedure SetFont(Value: TFont);
-    procedure SetGridColor(Value: Boolean);
-    procedure SetGridFont(Value: Boolean);
-    procedure SetImages(Value: TImageList);
-    procedure SetSections(Value: TGridHeaderSections);
-    procedure SetSectionHeight(Value: Integer);
-    procedure SetPopupMenu(const Value: TPopupMenu);
-  protected
-    procedure Change; virtual;
-    procedure DefineProperties(Filer: TFiler); override;
-    function GetOwner: TPersistent; override;
-    procedure GridColorChanged(NewColor: TColor); virtual;
-    procedure GridFontChanged(NewFont: TFont); virtual;
-  public
-    constructor Create(AGrid: TCustomGridView); virtual;
-    destructor Destroy; override;
-    procedure Assign(Source: TPersistent); override;
-    function GetNamePath: string; override;
-    procedure SynchronizeSections;
-    procedure UpdateSections; virtual;
-    property Grid: TCustomGridView read FGrid;
-    property Height: Integer read GetHeight;
-    property MaxColumn: Integer read GetMaxColumn;
-    property MaxLevel: Integer read GetMaxLevel;
-    property Width: Integer read GetWidth;
-    property OnChange: TNotifyEvent read FOnChange write FOnChange;
-    property AutoHeight: Boolean read FAutoHeight write SetAutoHeight default True;
-    property Color: TColor read FColor write SetColor stored IsColorStored default clBtnFace;
-    property Images: TImageList read FImages write SetImages;
-    property Flat: Boolean read FFlat write SetFlat default True;
-    property Font: TFont read FFont write SetFont stored IsFontStored;
-    property GridColor: Boolean read FGridColor write SetGridColor default False;
-    property GridFont: Boolean read FGridFont write SetGridFont default True;
-    property PopupMenu: TPopupMenu read FPopupMenu write SetPopupMenu;
-    property Sections: TGridHeaderSections read FSections write SetSections stored IsSectionsStored;
-    property SectionHeight: Integer read FSectionHeight write SetSectionHeight stored IsSectionHeightStored;
-  end;
-
-  TGridHeader = class(TCustomGridHeader)
-  published
-    property AutoHeight;
-    property Color;
-    property Images;
-    property Flat;
-    property Font;
-    property GridColor;
-    property GridFont;
-    property PopupMenu;
-    property Sections;
-    property SectionHeight;
-  end;
-
-{ TGridColumn }
-
-  {
-    Public Properties:
-
-    Caption2 -       Return a fully qualified column header for a multi-level
-                     header.
-                     The result string consists of all top-level section headers,
-                     separated by a dash.
-    Columns -        Refers the list that contains the column.
-    HeaderSection -  Refers to the header section of the column.
-
-    Published Properties:
-
-    AlignEdit -      Determines whether the text of the inplace editor will be
-                     aligned same as the text of the column.
-    Alignment -      Determines how the text is aligned within the cells.
-    AllowClick -     Allows the column section to respond to mouse clicks at
-                     runtime.
-    AllowEdit -      Determines whether the inplace editor can be displayed
-                     for a column.
-    Caption -        Indicates the Title that represents the column header.
-    CheckAlignment - Determines how the check box is aligned within the cell text.
-    CheckKind -      Determines the style of the check box:
-                       gcNone -        No check box.
-                       gcCheckBox -    Like TCheckBox.
-                       gcRadioButton - Like TRadioButton.
-                       gcUserDefine -  User defined check image.
-    DefWidth -       The real width of the column.
-    EditMask -       Specifies the mask that represents what text is valid for
-                     the inplace editor.
-    EditStyle -      Determines the style of the inplace editor:
-                       geSimple - Edit line.
-                       geEllipsis - Edit line with ellipsis button.
-                       gePickList - Edit line with drop-down list button.
-                       geDataList - Edit line with lookup list button.
-    EditWordWrap -   Determines whether the inplace editor inserts soft carriage
-                     returns so text wraps at the right margin of the cell.
-    FixedSize -      Specifies whether the column is sizeable.
-    MaxLength -      Specifies the maximum number of characters the user can
-                     enter into the inplace editor.
-    MaxWidth -       Specifies the maximum width (in pixels) of the column.
-    MinWidth -       Specifies the minimal width (in pixels) of the column.
-    PickList -       Contains the lines of text in the inplace editor drop-down
-                     list.
-    ReadOnly  -      Determines whether data displayed in the column is editable.
-    TabStop -        Determines if the user can tab to a column.
-    Visible -        Specifies whether the column is visible in the grid.
-    WantReturns -    Determines whether the user can insert return characters
-                     into the text in the inplace editor.
-    WordWrap -       Determines whether the grid inserts soft carriage returns
-                     so text wraps at the right margin of the cell.
-    Width -          The width of the column or 0 for invisible column.
-  }
-
-  TGridEditWordWrap = (ewAuto, ewEnabled, ewDisabled);
-
-  TGridColumnClass = class of TCustomGridColumn;
-
-  TCustomGridColumn = class(TCollectionItem)
-  private
-    FColumns: TGridColumns;
-    FCaption: string;
-    FWidth: Integer;
-    FMinWidth: Integer;
-    FMaxWidth: Integer;
-    FFixedSize: Boolean;
-    FMaxLength: Integer;
-    FAlignment: TAlignment;
-    FReadOnly: Boolean;
-    FWantReturns: Boolean;
-    FWordWrap: Boolean;
-    FEditStyle: TGridEditStyle;
-    FEditMask: string;
-    FEditWordWrap: TGridEditWordWrap;
-    FCheckKind: TGridCheckKind;
-    FCheckAlignment: TAlignment;
-    FTabStop: Boolean;
-    FVisible: Boolean;
-    FPickList: TStrings;
-    FAllowClick: Boolean;
-    FTag: Integer;
-    FAlignEdit: Boolean;
-    FAllowEdit: Boolean;
-    FDefaultPopup: Boolean;
-    function GetCaption2: string;
-    function GetEditAlignment: TAlignment;
-    function GetGrid: TCustomGridView;
-    function GetHeaderSection: TGridHeaderSection;
-    function GetPickList: TStrings;
-    function GetPickListCount: Integer;
-    function GetWidth: Integer;
-    function IsPickListStored: Boolean;
-    procedure ReadMultiline(Reader: TReader);
-    procedure SetAlignEdit(Value: Boolean);
-    procedure SetAllowEdit(Value: Boolean);
-    procedure SetCheckAlignment(Value: TAlignment);
-    procedure SetCheckKind(Value: TGridCheckKind);
-    procedure SetEditWordWrap(Value: TGridEditWordWrap);
-    procedure SetMaxWidth(Value: Integer);
-    procedure SetMinWidth(Value: Integer);
-    procedure SetPickList(Value: TStrings);
-    procedure SetTabStop(Value: Boolean);
-    procedure SetWantReturns(Value: Boolean);
-    procedure SetWordWrap(Value: Boolean);
-  protected
-    FWidthLock: Integer;
-    procedure DefineProperties(Filer: TFiler); override;
-    function GetDisplayName: string; override;
-    procedure SetAlignment(Value: TAlignment); virtual;
-    procedure SetCaption(const Value: string); virtual;
-    procedure SetEditMask(const Value: string); virtual;
-    procedure SetEditStyle(Value: TGridEditStyle); virtual;
-    procedure SetFixedSize(Value: Boolean); virtual;
-    procedure SetMaxLength(Value: Integer); virtual;
-    procedure SetReadOnly(Value: Boolean); virtual;
-    procedure SetVisible(Value: Boolean); virtual;
-    procedure SetWidth(Value: Integer); virtual;
-  public
-    constructor Create(Collection: TCollection); override;
-    destructor Destroy; override;
-    procedure Assign(Source: TPersistent); override;
-    property AlignEdit: Boolean read FAlignEdit write SetAlignEdit default False;
-    property Alignment: TAlignment read FAlignment write SetAlignment default taLeftJustify;
-    property AllowClick: Boolean read FAllowClick write FAllowClick default True;
-    property AllowEdit: Boolean read FAllowEdit write SetAllowEdit default True;
-    property Caption: string read FCaption write SetCaption;
-    property Caption2: string read GetCaption2;
-    property CheckAlignment: TAlignment read FCheckAlignment write SetCheckAlignment default taLeftJustify;
-    property CheckKind: TGridCheckKind read FCheckKind write SetCheckKind default gcNone;
-    property Columns: TGridColumns read FColumns;
-    property DefaultPopup: Boolean read FDefaultPopup write FDefaultPopup default True;
-    property EditAlignment: TAlignment read GetEditAlignment;
-    property EditMask: string read FEditMask write SetEditMask;
-    property EditStyle: TGridEditStyle read FEditStyle write SetEditStyle default geSimple;
-    property EditWordWrap: TGridEditWordWrap read FEditWordWrap write SetEditWordWrap default ewAuto;
-    property FixedSize: Boolean read FFixedSize write SetFixedSize;
-    property Grid: TCustomGridView read GetGrid;
-    property HeaderSection: TGridHeaderSection read GetHeaderSection;
-    property MaxLength: Integer read FMaxLength write SetMaxLength default 0;
-    property MaxWidth: Integer read FMaxWidth write SetMaxWidth default 10000;
-    property MinWidth: Integer read FMinWidth write SetMinWidth default 0;
-    property PickList: TStrings read GetPickList write SetPickList stored IsPickListStored;
-    property PickListCount: Integer read GetPickListCount;
-    property ReadOnly: Boolean read FReadOnly write SetReadOnly default False;
-    property TabStop: Boolean read FTabStop write SetTabStop default True;
-    property Tag: Integer read FTag write FTag default 0;
-    property Visible: Boolean read FVisible write SetVisible;
-    property WantReturns: Boolean read FWantReturns write SetWantReturns default False;
-    property Width: Integer read GetWidth write SetWidth stored False;
-    property WordWrap: Boolean read FWordWrap write SetWordWrap default False;
-    property DefWidth: Integer read FWidth write SetWidth;
-  end;
-
-  TGridColumn = class(TCustomGridColumn)
-  published
-    property AlignEdit;
-    property Alignment;
-    property AllowClick;
-    property AllowEdit;
-    property Caption;
-    property CheckAlignment;
-    property CheckKind;
-    property DefaultPopup;
-    property EditMask;
-    property EditStyle;
-    property EditWordWrap;
-    property FixedSize default False;
-    property MaxLength;
-    property MaxWidth;
-    property MinWidth;
-    property PickList;
-    property ReadOnly;
-    property TabStop;
-    property Tag;
-    property Visible default True;
-    property WantReturns;
-    property Width default 64;
-    property WordWrap;
-    property DefWidth default 64;
-  end;
-
-{ TGridColumns }
-
-  {
-    Public Methods:
-
-    Add -     Creates a new TGridColumn instance and adds it to the
-              Columns array.
-
-    Public Properties:
-
-    Columns - Lists the columns in the collection.
-    Layout -  Returns a string with a comma-separated list of column widths.
-              Suitable for saving column layouts in the registry or INI file.
-    Grid -    Indicates the grid control to which the columns instance
-              belongs.
-  }
-
-  TGridColumns = class(TCollection)
-  private
-    FGrid: TCustomGridView;
-    FOnChange: TNotifyEvent;
-    function GetColumn(Index: Integer): TGridColumn;
-    function GetLayout: string;
-    procedure SetColumn(Index: Integer; Value: TGridColumn);
-    procedure SetLayout(const Value: string);
-  protected
-    function GetOwner: TPersistent; override;
-    procedure Update(Item: TCollectionItem); override;
-    property OnChange: TNotifyEvent read FOnChange write FOnChange;
-  public
-    constructor Create(AGrid: TCustomGridView); virtual;
-    function Add: TGridColumn;
-    property Columns[Index: Integer]: TGridColumn read GetColumn write SetColumn; default;
-    property Grid: TCustomGridView read FGrid;
-    property Layout: string read GetLayout write SetLayout;
-  end;
-
-{ TGridRows }
-
-  {
-    Public Properties:
-
-    Grid -       Indicates the grid control to which the rows instance belongs.
-    MaxCount -   The maximum number of rows allowed in a grid. Depends on
-                 row height.
-
-    Published Properties:
-
-    AutoHeight - Determines whether the height of the rows automatically
-                 resizes to accommodate the grid font.
-    Count -      Specifies the number of rows in the grid.
-    Height -     Gives the height (in pixels) of all rows in the grid.
-  }
-
-  TCustomGridRows = class(TPersistent)
-  private
-    FGrid: TCustomGridView;
-    FCount: Integer;
-    FHeight: Integer;
-    FAutoHeight: Boolean;
-    FOnChange: TNotifyEvent;
-    function GetMaxCount: Integer;
-    function IsHeightStored: Boolean;
-    procedure SetAutoHeight(Value: Boolean);
-    procedure SetHeight(Value: Integer);
-  protected
-    procedure Change; virtual;
-    procedure SetCount(Value: Integer); virtual;
-  public
-    constructor Create(AGrid: TCustomGridView); virtual;
-    destructor Destroy; override;
-    procedure Assign(Source: TPersistent); override;
-    property AutoHeight: Boolean read FAutoHeight write SetAutoHeight default True;
-    property Count: Integer read FCount write SetCount default 0;
-    property Grid: TCustomGridView read FGrid;
-    property Height: Integer read FHeight write SetHeight stored IsHeightStored;
-    property MaxCount: Integer read GetMaxCount;
-    property OnChange: TNotifyEvent read FOnChange write FOnChange;
-  end;
-
-  TGridRows = class(TCustomGridRows)
-  published
-    property AutoHeight;
-    property Count;
-    property Height;
-  end;
-
-{ TGridFixed }
-
-  {
-    Public Properties:
-
-    Grid -       Indicates the grid control to which the fixed instance belongs.
-
-    Published Properties:
-
-    Color -       Specifies the background color of the fixed columns.
-    Count -       Specifies the number of columns on the left of the grid that
-                  cannot be scrolled.
-    Flat -        Specifies whether the fixed cells are flat.
-    Font -        Controls the attributes of text written in the fixed columns.
-    GridColor -   Determines where a fixed columns looks for its color information.
-    GridFont -    Determines where a fixed columns looks for its font information.
-    ShowDivider - Determines whether to draw a vertical dividing line between
-                  fixed cells and scrollable cells.
-  }
-
-  TCustomGridFixed = class(TPersistent)
-  private
-    FGrid: TCustomGridView;
-    FCount: Integer;
-    FColor: TColor;
-    FGridColor: Boolean;
-    FFont: TFont;
-    FGridFont: Boolean;
-    FFlat: Boolean;
-    FShowDivider: Boolean;
-    FOnChange: TNotifyEvent;
-    function IsColorStored: Boolean;
-    function IsFontStored: Boolean;
-    procedure FontChange(Sender: TObject);
-    procedure SetColor(Value: TColor);
-    procedure SetFlat(Value: Boolean);
-    procedure SetFont(Value: TFont);
-    procedure SetGridColor(Value: Boolean);
-    procedure SetGridFont(Value: Boolean);
-    procedure SetShowDivider(Value: Boolean);
-  protected
-    procedure Change; virtual;
-    procedure GridColorChanged(NewColor: TColor); virtual;
-    procedure GridFontChanged(NewFont: TFont); virtual;
-    procedure SetCount(Value: Integer); virtual;
-  public
-    constructor Create(AGrid: TCustomGridView); virtual;
-    destructor Destroy; override;
-    procedure Assign(Source: TPersistent); override;
-    property Color: TColor read FColor write SetColor stored IsColorStored default clBtnFace;
-    property Count: Integer read FCount write SetCount default 0;
-    property Flat: Boolean read FFlat write SetFlat default True;
-    property Font: TFont read FFont write SetFont stored IsFontStored;
-    property Grid: TCustomGridView read FGrid;
-    property GridColor: Boolean read FGridColor write SetGridColor default False;
-    property GridFont: Boolean read FGridFont write SetGridFont default True;
-    property ShowDivider: Boolean read FShowDivider write SetShowDivider default True;
-    property OnChange: TNotifyEvent read FOnChange write FOnChange;
-  end;
-
-  TGridFixed = class(TCustomGridFixed)
-  published
-    property Color;
-    property Count;
-    property Flat;
-    property Font;
-    property GridColor;
-    property GridFont;
-    property ShowDivider;
-  end;
-
-{ TGridCell }
-
-  TGridCell = record
-    Col: Longint;
-    Row: Longint;
-  end;
-
-{ TGridScrollBar }
-
-  {
-    Public Properties:
-
-    Grid -     Indicates the grid control to which the scroll bar
-               instance belongs.
-    Kind -     Specifies whether the scroll bar is horizontal or vertical.
-    LineStep - Determines how much Position changes when the user clicks
-               the arrow buttons on the scroll bar or presses the arrow
-               keys on the keyboard.
-    LineSize - Determines how far the grid moves when the user clicks one
-               of the small end arrows on the scroll bar.
-    Min -      Specifies the minimum position represented by the scroll bar.
-    Max -      Specifies the maximum position represented by the scroll bar.
-    PageStep - Determines how much Position changes when the user clicks
-               the scroll bar on either side of the thumb tab or presses
-               PgUp or PgDn.
-    Position - Indicates the current position of the scroll bar.
-
-    Published Properties:
-
-    Tracking - Determines whether the grid moves before the thumb tab
-               is released.
-    Visible -  Determines whether the scroll bar appears on the grid.
-  }
-
-  TGridScrollEvent = procedure(Sender: TObject; ScrollCode: Integer; var ScrollPos: Integer) of object;
-
-  TGridScrollBar = class(TPersistent)
-  private
-    FGrid: TCustomGridView;
-    FKind: TScrollBarKind;
-    FPosition: Integer;
-    FMin: Integer;
-    FMax: Integer;
-    FPageStep: Integer;
-    FLineStep: Integer;
-    FLineSize: Integer;
-    FTracking: Boolean;
-    FVisible: Boolean;
-    FUpdateLock: Integer;
-    FOnScroll: TGridScrollEvent;
-    FOnChange: TNotifyEvent;
-    FOnChangeParams: TNotifyEvent;
-    procedure SetLineSize(Value: Integer);
-    procedure SetLineStep(Value: Integer);
-    procedure SetMax(Value: Integer);
-    procedure SetMin(Value: Integer);
-    procedure SetPageStep(Value: Integer);
-    procedure SetVisible(Value: Boolean);
-  protected
-    FBarCode: Integer;
-    procedure Change; virtual;
-    procedure ChangeParams; virtual;
-    procedure Scroll(ScrollCode: Integer; var ScrollPos: Integer); virtual;
-    procedure ScrollMessage(var Message: TWMScroll); virtual;
-    procedure SetParams(AMin, AMax, APageStep, ALineStep: Integer); virtual;
-    procedure SetPosition(Value: Integer);
-    procedure SetPositionEx(Value: Integer; ScrollCode: Integer); virtual;
-    procedure Update; virtual;
-  public
-    constructor Create(AGrid: TCustomGridView; AKind: TScrollBarKind); virtual;
-    procedure Assign(Source: TPersistent); override;
-    procedure LockUpdate;
-    procedure UnLockUpdate;
-    property Grid: TCustomGridView read FGrid;
-    property Kind: TScrollBarKind read FKind;
-    property LineStep: Integer read FLineStep write SetLineStep;
-    property LineSize: Integer read FLineStep write SetLineSize;
-    property Max: Integer read FMax write SetMax;
-    property Min: Integer read FMin write SetMin;
-    property PageStep: Integer read FPageStep write SetPageStep;
-    property Position: Integer read FPosition write SetPosition;
-    property UpdateLock: Integer read FUpdateLock;
-    property OnChange: TNotifyEvent read FOnChange write FOnChange;
-    property OnChangeParams: TNotifyEvent read FOnChangeParams write FOnChangeParams;
-    property OnScroll: TGridScrollEvent read FOnScroll write FOnScroll;
-  published
-    property Tracking: Boolean read FTracking write FTracking default True;
-    property Visible: Boolean read FVisible write SetVisible default True;
-  end;
-
-{ TGridListBox }
-
-  TGridListBox = class(TCustomListBox)
-  private
-    FGrid: TCustomGridView;
-    FSearchText: String;
-    FSearchTime: Longint;
-  protected
-    procedure CreateParams(var Params: TCreateParams); override;
-    procedure CreateWnd; override;
-    procedure KeyPress(var Key: Char); override;
-    procedure MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); override;
-  public
-    constructor Create(AOwner: TComponent); override;
-    property Grid: TCustomGridView read FGrid;
-  end;
-
-{ TGridEdit }
-
-  {
-    Protected Methods:
-
-    ApplyListValue -   Calls the EditCloseUp grid event and sets selected item text
-                       to the edit. Called internally when the drop-down list
-                       closes up.
-    GetDropList -      Creates the popup list instance.
-
-    Public Methods:
-
-    CloseUp -          Call CloseUp to programmatically close the popup list
-                       of the edit. The Accept parameter determines whether to
-                       modify the cell value with the value that corresponds to
-                       the selected value in the drop-down list.
-    DropDown -         Opens popup list so that the user can choose a lookup
-                       value. Only for editor with style gePickList, geDataList.
-    Press -            Use Press to handle button presses. Called when the user
-                       hit Ctrl+Enter or presses a button with the mouse. By
-                       default generates an OnEditButtonPress event.
-    SelectNext -       Use SelectNext to select the next popup list value.
-                       Called when user hit Ctrl+Enter or double click on editor
-                       with closed popup list. By default generates an
-                       OnEditSelectNext event.
-
-    Public Properties:
-
-    DropDownCount -    Specifies the number of lines displayed in the popup list.
-    DropListVisible -  Determines whether the popup list is currently in the
-                       open (dropped-down) position.
-    EditStyle -        Indicates the current style of the editor:
-                         geSimple -   Edit line.
-                         geEllipsis - Edit line with ellipsis button.
-                         gePickList - Edit line with drop-down list button.
-                         geDataList - Edit line with lookup list button.
-    Grid -             Indicates the grid control to which the editor instance
-                       belongs.
-    PickList -         Indicated the current popup list instance.
-    WantReturns -      Determines whether the user can insert return characters
-                       into the text in the editor.
-    WordWrap -         Determines whether the editor inserts soft carriage
-                       returns so text wraps at the right margin of the edit.
-  }
-
-  TGridEditClass = class of TCustomGridEdit;
-
-  TCustomGridEdit = class(TCustomMaskEdit)
-  private
-    FGrid: TCustomGridView;
-    FClickTime: Longint;
-    FEditStyle: TGridEditStyle;
-    FWantReturns: Boolean;
-    FWordWrap: Boolean;
-    FDropDownCount: Integer;
-    FDropListVisible: Boolean;
-    FCloseUpCount: Integer;
-    FPressCount: Integer;
-    FPickList: TGridListBox;
-    FActiveList: TWinControl;
-    FButtonWidth: Integer;
-    FButtonTracking: Boolean;
-    FButtonPressed: Boolean;
-    FButtonHot: Boolean;
-    FDefocusing: Boolean;
-    FAlignment: TAlignment;
-    function GetButtonRect: TRect;
-    function GetClosingUp: Boolean;
-    function GetLineCount: Integer;
-    function GetPressing: Boolean;
-    function GetVisible: Boolean;
-    procedure ListMouseUp(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
-    procedure SetAlignment(Value: TAlignment);
-    procedure SetButtonWidth(Value: Integer);
-    procedure SetDropListVisible(Value: Boolean);
-    procedure SetEditStyle(Value: TGridEditStyle);
-    procedure SetWordWrap(Value: Boolean);
-    procedure WMGetDlgCode(var Message: TWMGetDlgCode); message WM_GETDLGCODE;
-    procedure WMPaste(var Message); message WM_PASTE;
-    procedure WMCut(var Message); message WM_CUT;
-    procedure WMClear(var Message); message WM_CLEAR;
-    procedure WMUndo(var Message); message WM_UNDO;
-    procedure WMCancelMode(var Message: TMessage); message WM_CANCELMODE;
-    procedure WMKillFocus(var Message: TMessage); message WM_KILLFOCUS;
-    procedure WMWindowPosChanged(var Message: TWMWindowPosChanged); message WM_WINDOWPOSCHANGED;
-    procedure WMPaint(var Message: TWMPaint); message WM_PAINT;
-    procedure WMLButtonDown(var Message: TWMLButtonDown); message WM_LBUTTONDOWN;
-    procedure WMLButtonDblClk(var Message: TWMLButtonDblClk); message WM_LBUTTONDBLCLK;
-    procedure WMSetCursor(var Message: TWMSetCursor); message WM_SETCURSOR;
-    procedure CMCancelMode(var Message: TCMCancelMode); message CM_CANCELMODE;
-    procedure CMEnabledChanged(var Message: TMessage); message CM_ENABLEDCHANGED;
-    procedure CMShowingChanged(var Message: TMessage); message CM_SHOWINGCHANGED;
-    procedure WMContextMenu(var Message: TMessage); message WM_CONTEXTMENU;
-    procedure CMFontChanged(var Message: TMessage); message CM_FONTCHANGED;
-    procedure CMMouseEnter(var Message: TMessage); message CM_MOUSEENTER;
-    procedure CMMouseLeave(var Message: TMessage); message CM_MOUSELEAVE;
-  protected
-    procedure ApplyListValue(Accept: Boolean); virtual;
-    procedure Change; override;
-    procedure CreateParams(var Params: TCreateParams); override;
-    procedure DblClick; override;
-    function DoMouseWheel(Shift: TShiftState; WheelDelta: Integer; MousePos: TPoint): Boolean; override;
-    function EditCanModify: Boolean; override;
-    function GetDropList: TWinControl; virtual;
-    procedure KeyDown(var Key: Word; Shift: TShiftState); override;
-    procedure KeyPress(var Key: Char); override;
-    procedure KeyUp(var Key: Word; Shift: TShiftState); override;
-    procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); override;
-    procedure MouseMove(Shift: TShiftState; X, Y: Integer); override;
-    procedure MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); override;
-    procedure PaintButton(DC: HDC; Rect: TRect); virtual;
-    procedure PaintWindow(DC: HDC); override;
-    procedure StartButtonTracking(X, Y: Integer);
-    procedure StepButtonTracking(X, Y: Integer);
-    procedure StopButtonTracking;
-    procedure UpdateBounds(Showing, ScrollCaret: Boolean); virtual;
-    procedure UpdateColors; virtual;
-    procedure UpdateContents; virtual;
-    procedure UpdateList; virtual;
-    procedure UpdateListBounds; virtual;
-    procedure UpdateListItems; virtual;
-    procedure UpdateStyle; virtual;
-    procedure WndProc(var Message: TMessage); override;
-  public
-    constructor Create(AOwner: TComponent); override;
-    procedure CloseUp(Accept: Boolean); virtual;
-    procedure Deselect;
-    procedure DropDown;
-    procedure Invalidate; override;
-    procedure InvalidateButton;
-    procedure Hide;
-    procedure Press;
-    procedure SelectNext;
-    procedure SetFocus; override;
-    procedure Show;
-    property ActiveList: TWinControl read FActiveList write FActiveList;
-    property Alignment: TAlignment read FAlignment write SetAlignment default taLeftJustify;
-    property ButtonRect: TRect read GetButtonRect;
-    property ButtonWidth: Integer read FButtonWidth write SetButtonWidth;
-    property ClosingUp: Boolean read GetClosingUp;
-    property Color;
-    property DropDownCount: Integer read FDropDownCount write FDropDownCount;
-    property DropListVisible: Boolean read FDropListVisible write SetDropListVisible;
-    property EditStyle: TGridEditStyle read FEditStyle write SetEditStyle;
-    property Font;
-    property Grid: TCustomGridView read FGrid;
-    property LineCount: Integer read GetLineCount;
-    property MaxLength;
-    property PickList: TGridListBox read FPickList;
-    property Pressing: Boolean read GetPressing;
-    property Visible: Boolean read GetVisible;
-    property WantReturns: Boolean read FWantReturns write FWantReturns;
-    property WordWrap: Boolean read FWordWrap write SetWordWrap;
-  end;
-
-  TGridEdit = class(TCustomGridEdit);
-
-{ TGridTipsWindow }
-
-  TGridTipsWindowClass = class of TGridTipsWindow;
-
-  TGridTipsWindow = class(THintWindow)
-  private
-    FGrid: TCustomGridView;
-    procedure CMTextChanged(var Message: TMessage); message CM_TEXTCHANGED;
-    procedure WMEraseBkgnd(var Message: TWMEraseBkgnd); message WM_ERASEBKGND;
-  protected
-    procedure CreateParams(var Params: TCreateParams); override;
-    procedure NCPaint(DC: HDC); override;
-    procedure Paint; override;
-  public
-    constructor Create(AOwner: TComponent); override;
-    procedure ActivateHint(Rect: TRect; const AHint: string); override;
-    procedure ActivateHintData(Rect: TRect; const AHint: string; AData: Pointer); override;
-    function CalcHintRect(MaxWidth: Integer; const AHint: string; AData: Pointer): TRect; override;
-  end;
-
-{ TGridFindDialog }
-
-  TGridFindDialog = class(TFindDialog)
-  private
-    FVisible: Boolean;
-  protected
-    procedure DoClose; override;
-    procedure DoShow; override;
-  public
-    procedure ShowModal(FindAsItemNo: Boolean = False);
-    property Visible: Boolean read FVisible;
-  end;
-
-{ TCustomGridView }
-
-  {
-    Protected Methods:
-
-    CancelCellTips -       Cancels the display of a hint for a cell.
-    CellClick -            Respond to user cell click.
-    Change -               Generates an OnChange event. Called after the
-                           selected cell or selected state change
-    Changing -             Generates an OnChanging event. Called before the
-                           selected cell or selected state change.
-    CheckClick -           Generates an OnCheckClick event. Called when user
-                           click the check box with mouse or the SPACE key.
-    ColumnSizeToFit -      Generates an OnColumnSizeToFit event. Called when
-                           the user double-clicks the right side of the header
-                           before automatically change the width of the column
-                           to fit its contents.
-    ColumnResize -         Generates an OnColumnResize event. Called after
-                           resizing a column.
-    ColumnResizing -       Generates an OnColumnResizing event. Called when the
-                           column is resized with the mouse.
-    CreateColumn -         Creates the TGridColumn object. Called internally
-                           to add new column to the Columns list. To define you
-                           own column class overwrite the GetColumnClass method.
-    CreateColumns -        Creates the TGridColumns object that stores the
-                           column descriptors for the grid. Called internally
-                           to create Columns instance. Overwrite this method if
-                           you need to substitute a descendant of TGridColumns
-                           to manage your own column descriptors.
-    CreateEdit -           Creates the inplace editor that allows the cells of
-                           the grid to be edited. Called internally the first
-                           time the grid goes into edit mode. To define you own
-                           class of inplace editor for the specified cell
-                           overwrite GetEditClass method.
-    CreateFixed -          Creates the TGridFixed object. Called internally
-                           to create Fixed instance. Overwrite this method if
-                           you need to substitute a descendant of TGridFixed.
-    CreateHeader -         Creates the TGridHeader object. Called internally
-                           to create Header instance. Overwrite this method if
-                           you need to substitute a descendant of TGridHeader.
-    CreateHeaderSection -  Creates the TGridHeaderSection object. Called
-                           internally to add new section to the Header.
-                           Overwrite this method if you need to substitute a
-                           descendant of TGridHeaderSection.
-    CreateRows -           Creates the TGridRows object. Called internally
-                           to create Rows instance. Overwrite this method if
-                           you need to substitute a descendant of TGridRows.
-    CreateScrollBar -      Creates the TGridScrollBar object. Called internally
-                           to create HorzScrollBar and VertScrollBar instances.
-                           Overwrite this method if you need to substitute a
-                           descendant of TGridScrollBar.
-    EditButtonPress -      Generates an OnEditButtonPress event. Called when
-                           the user hit Ctrl+Enter in the inplace editor or
-                           presses ellipsis button with the mouse.
-    EditCanAcceptKey -     Generates an OnEditCanAcceptKey event. Provides a
-                           simple screening of keyboard input while the user
-                           is editing the contents of a cell.
-    EditCanceled -         Generates an OnEditCanceled event. Called when the
-                           inplace editor is hidden by pressing ESCAPE key.
-    EditCanModify -        Generates an OnEditModify event. Called before any
-                           text changes in the inplace editor.
-    EditCanShow -          Generates an OnEditCanShow event. Determines whether
-                           the current cell in the grid can be edited.
-    EditCanUndo -          Determines whether the current cell in the grid
-                           can handle Undo operation.
-    EditChange -           Generates an OnEditChange event. Called when the text
-                           in the inplace editor has changed.
-    EditCloseUp -          Generates an OnEditCloseUp and OnEditCloseUpEx events.
-                           Called when the drop-down list closes up due to
-                           select list item.
-    EditSelectNext -       Generates an OnEditSelectNext event. Called when user
-                           hit Ctrl+Enter or double click on inplace editor with
-                           closed popup list.
-    GetCellImage -         Generages an OnGetCellImage event to determine
-                           if there is an image for the specified cell.
-                           Returns image index or -1 is cell has no image.
-    GetCellImageRect -     Returns the coordinates of a image in the grid.
-    GetCellHintRect -      Cell hint is shown only if the cell text gets out of
-                           hint rectangle. By default returns the position of
-                           the cell inplace editor.
-    GetCellText -          Generated OnGetCellText event.
-    GetCellColors -        Sets the default color, brush and font for the
-                           specified cell on the specified canvas then
-                           generates OnGetCellColors event.
-    GetCellTextBounds -    Returns the text coordinates of the specified cell
-                           in the grid.
-    GetCellTextIndent -    Generates OnGetCellTextIndent event. By default,
-                           the horizontal indent of the text is 2 pixels for
-                           cells with check box or an image and TextLeftIndent
-                           for other cells.
-    GetCheckAlignment -    Generates OnGetCheckAlignment event.
-    GetCheckImage -        Generates OnGetCheckImage event. Returns the image
-                           index for specified cell or -1 if cell have no image.
-    GetCheckKind -         Generages an OnGetCheckKind event. Returns the type
-                           of the check box for specified cell:
-                             gcNone -        No check box.
-                             gcCheckBox -    Like TCheckBox.
-                             gcRadioButton - Like TRadioButton.
-                             gcUserDefine -  User defined check box image.
-    GetCheckRect -         Returns the coordinates of a check box in the grid.
-                           Returns (0,0,0,0) if cell dows not have a check box.
-    GetCheckState -        Generates OnGetCheckState and OnGetCheckStateEx events.
-                           Returns the state of a check box.
-    GetCheckStateEx -      Returns the state of a check box and its enabled state.
-    GetColumnClass -       Returns the class type of the column. Descendant
-                           classes can override this method to define their own
-                           column class (for example, a TDBGridColumn).
-    GetCursorCell -        Finds a cell in the specified direction where the
-                           cursor can be positioned. Direction can be:
-                             goLeft -       One column to the left.
-                             goRight -      One column to the right.
-                             goUp -         One row to the up.
-                             goDown -       One row to the down.
-                             goPageUp -     One page to the up.
-                             goPageDown -   One page to the down.
-                             goHome -       First cell of specified row.
-                             goEnd -        Last cell of specified row.
-                             goGridHome -   Upper left grid cell.
-                             goGridEnd -    Bottom right grid cell.
-                             goGridTop -    First row of the current column.
-                             goGridBottom - Last row of the current column.
-                             goSelect -     Nearest available cell.
-                             goFirst -      First available cell in the grid.
-                             goNext -       Next cell to the end of the grid.
-                             goPrev -       Previous cell to the beginning of
-                                            the grid.
-    GetEditClass -         Returns the class type of the inplace editor for
-                           the specified cell. Descendant classes can override
-                           this method to define their own editor class (for
-                           example, a TDBGridEdit).
-    GetEditList -          Assigns the pick list items of the current column
-                           (if present) to the drop-down list and generates
-                           OnGetEditList event.
-    GetEditListBounds -    Generates OnGetEditListBounds event.
-    GetEditListIndex -     Generates OnGetEditListIndex event.
-    GetEditMask -          Returns an input mask for the specified cell.
-    GetEditStyle -         Indicates whether a specified cell has an ellipsis
-                           button or drop-down arrow.
-    GetEditText -          Returns the value of the specified cell formatted
-                           for editing. By default returns cell text.
-    GetFixedDividerColor - Returns the color of the dividing line of fixed and
-                           scrollable columns depending on the background color
-                           of the grid.
-    GetFixedGridColor -    Returns the color of grid lines of fixed columns
-                           depending on the background color of fixed columns.
-    GetHeaderColors -      Sets the default header brush and font on the specified
-                           canvas then generates OnGetHeaderColors event.
-    GetHeaderImage -       Generages an OnGetHeaderImage event.
-    GetSortArrowSize -     Calculates the size of the sort image depending on
-                           the Windows theme.
-    GetSortDirection -     Generates OnGetSortDirection event.
-    GetSortImage -         Generates OnGetSortImage event.
-    GetTextRect -          Calculates the coordinates of the text in the cell.
-    GetTipsRect -          Calculates the coordinates of the cell hint in the
-                           grid and generates OnGetTipsRect event.
-    GetTipsText -          Generates OnGetTipsText event.
-    GetTipsWindowClass -   Returns the class type of the hint window class.
-    HeaderClick -          Generated OnHeaderClick event. Called when the user
-                           clicks the header.
-    HeaderClicking -       Generated OnHeaderClicking event. Called when the
-                           user start clicking the header.
-    HideCursor -           Hides the focus rectangle or inplace editor.
-    HideEdit -             Hides the inplace editor.
-    HideFocus -            Hides the focus rectangle.
-    PaintCell -            Generates an OnDrawCell event and draws the cell
-                           using DefaultDrawCell method.
-    PaintCells -           Draws scrollable cells.
-    PaintCheck -           Draws a check box.
-    PaintFixed -           Draws fixed cells.
-    PaintFixedGridLines -  Draws grid lines between fixed cells.
-    PaintFocus -           Draws focus rectangle.
-    PaintFreeField -       Draws the area outside the cells.
-    PaintGridLines -       Draws grid lines between scrollable cells.
-    PaintHeader -          Draws a header section.
-    PaintHeaderBackground - Paints the header section background.
-    PaintHeaders -         Draws the grid header.
-    PaintResizeLine -      Draws a vertical resize line.
-    PaintText -            Universal text drawing procedure. Used internally
-                           to draw the cells, header and cell tips.
-    SetEditText -          Generates an OnSetEditText event.
-    ShowCursor -           Displays the focus rectangle or inplace editor.
-    ShowEdit -             Displays the inplace editor when the grid enters
-                           edit mode.
-    ShowEditChar -         Displays the inplace editor, with its text set to
-                           the specified character.
-    ShowFocus -            Shows a focus rectangle.
-    UpdateListBounds -     Calculates the bounds rectangle of drop-down list.
-                           Called internally before inplace editor's drop-down
-                           list is displayed.
-    UpdateListItems -      Fill the drop-down item list and sets the index of
-                           the selected item.
-
-    Public Methods:
-
-    AcquireFocus -         Changes focus to the grid, if possible. Returns False
-                           if grid can not be focused.
-    ApplyEdit -            Applies text changes from the inplace editor.
-    ApplyEditText -        Calls SetEditText method and handles event exceptions.
-                           Called internally before changing the current cell or
-                           hiding inlace editor.
-    CancelEdit -           Cancels editind, discards changes in the inplace
-                           editor and hides it. Called when AlwaysEdit is
-                           set to False and user has pressed the ESCAPE key.
-    DefaultDrawCell -      Draws the contents of a cell in the grid.
-    DefaultDrawHeader -    Draws the contents of a header section in the grid.
-    FindText -             Searches text from selected cell up or down and sets
-                           the cursor on the cell with the found text. Returns
-                           True if the cell is found.
-    GetCellAt -            Returns the cell located at a specified position
-                           within the grid. If there is no cell located at
-                           the specified position returns (-1, -1).
-    GetCellRect -          Returns the coordinates of a cell in the grid.
-    GetCellsRect -         Returns the coordinates of a cell range in
-                           the grid.
-    GetColumnAt -          Returns the column located at a specified position
-                           within the grid. If there is no column located at
-                           the specified position returns -1.
-    GetColumnLeftRight -   Returns left and right coordinates of the column in
-                           the grid.
-    GetColumnMaxWidth -    Returns the maximum width of the text of the specified
-                           column in visible rows. Called to automatically change
-                           the width of column to fit its contents.
-    GetColumnRect -        Returns the coordinates of the column in the grid.
-    GetColumnsRect -       Returns the coordinates of the column range in
-                           the grid.
-    GetColumnsWidth -      Returns the width in pixels of the column range.
-    GetEditRect -          Returns the coordinates of the inplace editor in the
-                           grid. By default, it is equal to the rectangle of the
-                           cell minus the check box and the image on the left.
-    GetFirstImageColumn -  Returns the index of the first visible scrollable
-                           column.
-    GetFixedRect -         Returns the coordinates of the fixed columns in the
-                           grid.
-    GetFixedWidth -        Returns the width of the fixed columns in pixels.
-    GetFocusRect -         Returns the coordinates of the focus rectangle in
-                           the grid.
-    GetGridHeight -        Returns the height of the visible cells in pixels.
-    GetGridLineColor -     Generates OnGetGridColor event.
-    GetGridOrigin -        Returns the offset in pixels of cells relative to the
-                           upper left corner of the grid. Determined by the
-                           position of the scrollers.
-    GetGridRect -          Returns the rectangle of the visible cells in the
-                           grid.
-    GetHeaderHeight -      Same as Header.Height.
-    GetHeaderRect -        Returns the coordinates of the header in the grid.
-    GetHeaderSection -     Returns the header section of the specified level for
-                           the specified column. If the level is -1, it returns
-                           the lowest section.
-    GetResizeSectionAt -   Returns the header section with the right margin
-                           located at a specified position within the grid.
-                           Called internally to find a section for resizing.
-    GetRowAt -             Returns the row located at a specified position
-                           within the grid. If there is no row located at
-                           the specified position returns -1.
-    GetRowRect -           Returns the coordinates of the row in the grid.
-    GetRowsRect -          Returns the coordinates of the row range in the grid.
-    GetRowsHeight -        Returns the height in pixels of the row range.
-    GetRowTopBottom -      Returns top and bottom coordinates of the row in the
-                           grid.
-    GetSectionAt -         Returns the header section located at a specified
-                           position within the grid. If there is no section
-                           located at the specified position returns null.
-    InvalidateCell -       Invalidates the region occupied by a cell.
-    InvalidateCheck -      Invalidates the region occupied by a check box of
-                           specified cell.
-    InvalidateColumn -     Invalidates the region occupied by a column.
-    InvalidateColumns -    Invalidates the region occupied by the column range.
-    InvalidateEdit -       Invalidates the region occupied by the inplace editor
-                           if visible.
-    InvalidateFixed -      Invalidates the region occupied by a fixed columns.
-    InvalidateFocus -      Invalidates the region occupied by a current cell.
-    InvalidateGrid -       Invalidates the region occupied by the scrollable columns.
-    InvalidateHeader -     Invalidates the region occupied by the header.
-    InvalidateRect -       Invalidates the region occupied by specified rectangle.
-    InvalidateRow -        Invalidates the region occupied by a row.
-    InvalidateRows -       Invalidates the region occupied by a row range.
-    InvalidateSection -    Invalidates the region occupied by the header
-                           of the specified column.
-    IsActiveControl -      Determines whether the grid or its inplace editor
-                           has input focus.
-    IsCellAcceptCursor -   Generates an OnCellAcceptCursor event.
-    IsCellEditing -        Indicates whether the specified cell is currently
-                           being edited.
-    IsCellHighlighted -    Indicates whether the specified cell is selected
-                           and focused and must be highlighted by color.
-    IsCellHasCheck -       Indicates whether the specified cell has a check box.
-    IsCellHasImage -       Indicates whether the specified cell has an image.
-    IsCellFocused -        Indicates whether the specified cell is equal to
-                           the focused cell.
-    IsCellReadOnly -       Indicates whether the specified cell can be edited.
-                           Generates an OnGetCellReadOnly event.
-    IsCellValid -          Indicates that the column and row of the specified
-                           cell are within the grid.
-    IsCellValidEx -        Indicates that the column and row of the specified
-                           cell are within the grid and column is visible.
-    IsCellVisible -        Indicates whether the specified cell is currently
-                           visible in the grid image.
-    IsColumnVisible -      Indicates whether the specified column is currently
-                           visible in the grid image.
-    IsEvenRow -            Indicates whether the row of the specified cell
-                           is even. Called internally to calculate cell colors.
-    IsFixedVisible -       Indicates whether the fixed columns are visible.
-                           Called internally while drawing grid.
-    IsFocusAllowed -       Indicates whether the focus rectangle can be displayed.
-    IsGridHintVisible -    Indicates whether to draw a hint for an empty grid.
-    IsHeaderHasImage -     Indicates whether the specified header has an image.
-    IsHeaderPressed -      Returns the state of specified header section.
-                           Called internally when drawing a header.
-    IsRowHighlighted -     Indicates whether the specified row is selected
-                           and must be highlighted by color.
-    IsRowVisible -         Indicates whether the specified row is currently
-                           visible in the grid image.
-    LockUpdate -           Disables grid redraw.
-    MakeCellVisible -      Makes the specified cell visible to the user,
-                           scrolling the grid as necessary.
-    ResetEdit -            Resets the inplace editor. Called when AlwaysEdit is
-                           set to True and user has pressed the ESCAPE key.
-                           By default sends WM_UNDO to the inplace editor to
-                           undo the last operation.  Override this method if you
-                           need to perform additional actions after cancel editing.
-                           For example, cancel changes to the data source.
-    SetCursor -            Changes the current cell to a specified cell.
-    SizeAllColumnsToFit -  Changes the width of all columns to fit their contents.
-    SizeColumnToFit -      Changes the width of column to fit its contents.
-    UnLockUpdate -         Enables grid redraw.
-    UpdateCursor -         Verifies that the current cell can accept the cursor,
-                           then updates the position of the cursor if necessary.
-    UpdateEdit -           Creates an instance of the editor for the selected
-                           cell, updates its style, font, text, then displays it.
-    UpdateEditContents -   Refreshes the inplace editor. Use this method to
-                           update the text of the editor if cells data have
-                           changed during editing.
-    UpdateFocus -          Sets focus to the grid, if possible, then show the
-                           inplace edit, if necessary.
-    UpdateSelection -      Determines whether the specified cell can be selected,
-                           returns the closest available cell to select. Called
-                           internaly before change the cursor position.
-    UpdateText -           Same as ApplyEditText.
-
-    Public Properties:
-
-    AllowEdit -            Determines whether the user can edit data using
-                           inplace editor. AlowEdit is ignored if RowSelect
-                           is set to True.
-    AllowSelect -          Determines whether the selected cell displays the
-                           focus rectangle even when the grid does not have focus.
-    AlwaysEdit -           Determines whether the grid is always in edit mode
-                           and inplace editor is always visible. AlwaysEdit
-                           is ignored if AlowEdit is set to False.
-    AlwaysSelected -       Some strange property.
-    CellFocused -          Indicates the focused cell in the grid.
-    Cells -                Lists the strings for each cell in the grid.
-    CellSelected -         Indicates the focused cell is in selected state.
-    CheckBoxes -           Specifies whether check boxes appear next to the
-                           cells in the grid.
-    Checked -              Specifies whether the check box of the cell is checked.
-    CheckEnabled -         Specifies whether the check box of the cell is enabled.
-    CheckHeight -          Indicates the height of the check boxes. Do not modify
-                           this property.
-    CheckStyle -           Specifies the style of the check box border:
-                             csFlat -  Flat border.
-                             cs3D -    3D border.
-                             csWin95 - Windows 95 style border.
-                           If Windows themes are enabled, the check box is
-                           displayed using the current theme.
-    CheckWidth -           Indicates the width of check boxes. Do not modify
-                           this property.
-    Col -                  Specifies the index of the column that contains
-                           the selected cell. Same as CellFocused.Col.
-    ColumnClick -          Determines whether the column header behaves like
-                           a button.
-    Columns -              Describes the properties of the columns in the grid.
-    ColumnsFullDrag -      Specifies whether columns are repainted when they
-                           are dragged.
-    ContextPopupCol -      Specifies the index of the column above which the
-                           context menu is displayed.
-    ContextPopupRow -      Specifies the index of the row above which the
-                           context menu is displayed.
-    CursorKeys -           Defines the keys that can be used to move the cursor
-                           in a grid:
-                             gkArrows -     Move the cursor with arrows.
-                             gkTabs -       Move the cursor with TAB key.
-                             gkReturn -     Move to the next cell after pressing
-                                            the ENTER key.
-                             gkMouse -      Select the cells with the mouse.
-                             gkMouseMove -  Select the cells while mouse moving
-                                            with the left mouse button is pressed.
-                             gkMouseWheel - Select cells with the mouse wheel.
-    DefaultEditMenu -      Determines whether the Windows popup menu should be
-                           displayed for the inplace editor instead of grid
-                           popup menu.
-    DefaultHeaderMenu -    Show Explorer-like popup menu for the header to
-                           quick show and hide columns. If there is a user
-                           popup menu assigned to the header, the header menu
-                           items will be added to it.
-    Edit -                 Designates the edit control the grid uses to allow
-                           users to edit the contents of the selected cell.
-    EditCell -             Indicates the edit cell in the grid.
-    EditColumn -           Indicates the column of the edit cell in the grid.
-    EditDropDown -         Indicates whether the inplace editor drop-down list
-                           is being visible.
-    Editing -              Indicates whether any cell in the grid is being
-                           edited.
-    EndEllipsis -          Indicates whether cell text should be replaced at
-                           the end with an ellipsis (...) to fit cell borders.
-                           Works only for single-line text with left alignment.
-    Fixed -                Represents the fixed columns for the grid.
-    FlatBorder -           Determines whether a single line border is drawn
-                           around the grid.
-    FocusOnScroll -        Determines whether the grid should capture the input
-                           focus when scrolling.
-    GridColor -            Specifies the color of the lines that separate the
-                           cells of the grid.
-    GridHint -             Specifies the hint for an empty grid (grid without
-                           rows, like "This folder is empty" for empty folder
-                           in Explorer).
-    GridHintColor -        Specifies the color of the hint for an empty grid.
-    GridLines -            Determines whether lines are drawn separating cells
-                           in the grid.
-    GridStyle -            Determines the style of the grid lines:
-                             gsHorzLine -     Show horizontal lines.
-                             gsVertLine -     Show vertical lines.
-                             gsFullHorzLine - Draw horizontal lines to the right
-                                              side of the grid, but not to the
-                                              last column.
-                             gsFullVertLine - Draw vertical lines to the bottom
-                                              of the grid, but not to the last
-                                              row (only if Rows.Count > 0).
-                             gsListViewLike - TListView like grid lines.
-                             gsDotLines -     Draw dotted lines.
-    Header -               Represents the header for the grid.
-    HideSelection -        Determines whether a selected cell appears selected
-                           when the focus shifts to another control.
-    HighlightEvenRows -    Enable highlight every alternate row.
-    HighlightFocusCol -    Indicates whether a focused column should be
-                           highlighted when it is drawn.
-    HighlightFocusRow -    Indicates whether a focused row should be highlighted
-                           when it is drawn.
-    HorzScrollBar -        Represents the horizontal scroll bar for the grid.
-    Images -               Determines which image list is associated with the grid.
-    ImageIndexDef -        Determines the default image that appears on the first
-                           column of the grid.
-    ImageHighlight -       Indicates whether the selected cell image should be
-                           highlighted too.
-    LeftCol -              Specifies the index of the first visible (may be
-                           partial visible) scrollable column in the grid.
-                           Same as VisOrigin.Col.
-    RightClickSelect -     Determines whether the CellFocused property returns
-                           cells that are selected using the right mouse button.
-    Row -                  Specifies the index of the row that contains the
-                           selected cell. Same as CellFocused.Row.
-    Rows -                 Represents the rows parameters for the grid.
-    RowSelect -            Specifies whether the entire row of the selected cell
-                           is highlighted.
-    ShowCellTips -         Determines whether the grid displays a tooltip for a
-                           cell with long text when the mouse pointer rests
-                           momentarily on the cell. When ShowCellTips is True
-                           the standard control hint is now working.
-    ShowFocusRect -        Indicates whether to draw a focus rectangle around
-                           the current cell when it has input focus.
-    ShowGridHint -         Indicates whether to display hint for an empty grid.
-    ShowHeader -           Indicates whether to display header of the grid.
-    TextLeftIndent -       Specifies the indent of cells text from the left edge.
-    TextRightIndent -      Specifies the indent of cells text from the right edge.
-    TextTopIndent -        Specifies the indent of cells text from the top edge.
-    TipsCell -             Indicates the cell for which tooltip is displayed.
-    TipsText -             Indicates the cell's tooltip text that is displayed.
-    TopRow -               Specifies the index of the first visible scrollable
-                           row in the grid. Same as VisOrigin.Row.
-    VertScrollBar -        Represents the vertical scroll bar for the grid.
-    VisibleColCount -      Indicates the number of scrollable columns visible
-                           in the grid. Same as VisSize.Col.
-    VisibleRowCount -      Indicates the number of scrollable rows visible
-                           in the grid. Same as VisSize.Row.
-    VisOrigin -            Specifies the index of the first visible cell in
-                           the grid.
-    VisSize -              Indicates the number of scrollable cells visible
-                           in the grid.
-
-    Public Events:
-
-    OnCellAcceptCursor -   Occurs when the grid checks for permission to move
-                           the cursor to the selected cell.
-    OnCellClick -          Occurs when the user presses the left mouse button
-                           in one of the cells of the grid.
-    OnCellTips -           Occurs before displaying the cell hint.
-    OnChange -             Occurs after a cell in the grid is selected.
-    OnChangeColumns -      Occurs after change columns.
-    OnChangeEditing -      Occurs when the inplace editor is shown or hidden.
-    OnChangeEditMode -     Occurs when the value of AllowEdit property changes.
-    OnChangeFixed -        Occurs after changing fixed cells.
-    OnChangeRows -         Occurs after changing rows.
-    OnChanging -           Occurs before a cell in the grid is selected.
-    OnCheckClick -         Occurs when the user clicks cell check box.
-    OnColumnSizeToFit -    Occurs before the with of a column changes to fit
-                           its contents.
-    OnColumnResize -       Occurs after the with of a column changes.
-    OnColumnResizing -     Occurs before changing the column with.
-    OnDraw -               Occurs when a grid needs to be drawn.
-    OnDrawCell -           Occurs when a cell needs to be drawn. If you just
-                           need to change the colors of the cell but not the
-                           drawing, use OnGetCellColors event.
-    OnDrawHeader -         Occurs when a section of the header needs to be
-                           drawn. If you just need to change the colors of
-                           the section but not the drawing, use OnGetCellColors
-                           event.
-    OnEditAcceptKey -      Called to check whether the Key can be entered into
-                           the current cell.
-    OnEditButtonPress -    Occurs when the user presses the ellipsis button
-                           in a inplace editor.
-    OnEditCanceled -       Occurs when the inplace editor is hidden by
-                           pressing ESCAPE key.
-    OnEditCanModify -      Called to check whether the user can change
-                           the text in the inplace editor.
-    OnEditChange -         Occurs when the text in the inplace editor has
-                           changed.
-    OnEditCloseUp -        Occurs when the drop-down list closes up due to
-                           select list item.
-    OnEditCloseUpEx -      Extended version of OnEditCloseUp event.
-    OnEditSelectNext -     Occurs when user hit Ctrl+Enter or double click
-                           on inplace editor with closed popup list.
-    OnGetCellColors -      Occurs when the grid requests the colors and font
-                           of a cell.
-    OnGetCellImage -       Occurs when the grid requests the image index
-                           of a cell.
-    OnGetCellImageEx -     Extended version OnGetCellImage event for images
-                           with overlay.
-    OnGetCellImageIndent - Occurs during drawing the cell when the grid
-                           requests the indent of cell image.
-    OnGetCellReadOnly -    Called to check whether the user can change
-                           the value of the cell.
-    OnGetCellText -        Occurs when the grid requests a value for a cell.
-    OnGetCellTextIndent -  Occurs during drawing the cell when the grid
-                           requests indent of the cell text.
-    OnGetCheckAlignment -  Occurs during drawing the cell when the grid
-                           requires alignment of the cell check box.
-    OnGetCheckImage -      Occurs during drawing the cell when the grid
-                           requires the user defined check box image. Check box
-                           image must be a transparent bitmap with 16x16 pixels
-                           size.
-    OnGetCheckIndent -     Occurs during drawing the cell when the grid
-                           requires indent of the cell check box.
-    OnGetCheckKind -       Occurs when the grid requests the kind of
-                           a check box of a cell.
-    OnGetCheckState -      Occurs during drawing the cell when the grid
-                           requires the state of a check box of a cell.
-    OnGetCheckStateEx -    Extended version OnGetCheckState event for cells
-                           with disabled check boxes.
-    OnGetEditList -        Occurs when the grid needs to fill drop-down list
-                           before open it.
-    OnGetEditListBounds -  Occurs when the grid needs to adjusts the size and
-                           position of the drop-down list before open it.
-    OnGetEditListIndex -   Occurs when the grid needs to select an item in the
-                           f drop-down list before open it.
-    OnGetEditMask -        Occurs when the inplace editor requests an edit mask.
-    OnGetEditStyle -       Occurs when the grid requests the style of inplace
-                           editor of the cell.
-    OnGetEditText -        Occurs when the inplace editor requests the value
-                           of a cell. By default, returns cell text.
-    OnGetGridHint -        Occurs when an empty grid's ToolTip text is needed.
-                           For example: "This folder is empty".
-    OnGetGridColor -       Occurs during drawing when grid requires the
-                           colors of the grid lines.
-    OnGetHeaderColors -    Occurs when the grid requests the colors and font
-                           of a header section.
-    OnGetHeaderImage -     Occurs when the drawing the header whe grid requires
-                           an image of the header section.
-    OnGetSortDirection -   Occurs during drawing the header when the grid needs
-                           to determine whether to draw the column sort image.
-    OnGetSortImage -       Occurs during drawing the header when grid requires
-                           an image of the sort direction.
-    OnHeaderClick -        Occurs after the user clicks a column header.
-    OnHeaderClicking -     Occurs before the user clicks the column header
-                           when Header.Flat is False.
-    OnHeaderDetailsClick - Occurs when the "Details..." item is selected in
-                           the popup menu of the header.
-    OnResize -             Occurs after the control is resized.
-    OnSetEditText -        Occurs when the user edits the value of a cell by
-                           pressing the ENTER key or by moving to another cell.
-                           If the new value is not valid, an exception should
-                           be raised to abort.
-  }
-
-  TGridStyle = (gsHorzLine, gsVertLine, gsFullHorzLine, gsFullVertLine,
-    gsListViewLike, gsDotLines);
-  TGridStyles = set of TGridStyle;
-
-  TGridCursorKey = (gkArrows, gkTabs, gkReturn, gkMouse, gkMouseMove, gkMouseWheel);
-  TGridCursorKeys = set of TGridCursorKey;
-
-  TGridCursorOffset = (goLeft, goRight, goUp, goDown, goPageUp, goPageDown,
-    goHome, goEnd, goGridHome, goGridEnd, goSelect, goFirst, goNext, goPrev,
-    goGridTop, goGridBottom);
-
-  TGridSortDirection = (gsNone, gsAscending, gsDescending);
-
-  TGridPaintState = (psPressed, psHot, psSorted, psFlat, psDontCare);
-  TGridPaintStates = set of TGridPaintState;
-
-  TGridTextEvent = procedure(Sender: TObject; Cell: TGridCell; var Value: string) of object;
-  TGridRectEvent = procedure(Sender: TObject; Cell: TGridCell; var Rect: TRect) of object;
-  TGridCellColorsEvent = procedure(Sender: TObject; Cell: TGridCell; Canvas: TCanvas) of object;
-  TGridCellImageEvent = procedure(Sender: TObject; Cell: TGridCell; var ImageIndex: Integer) of object;
-  TGridCellImageExEvent = procedure(Sender: TObject; Cell: TGridCell; var ImageIndex, OverlayIndex: Integer) of object;
-  TGridCellClickEvent = procedure(Sender: TObject; Cell: TGridCell; Shift: TShiftState; X, Y: Integer) of object;
-  TGridCellAcceptCursorEvent = procedure(Sender: TObject; Cell: TGridCell; var Accept: Boolean) of object;
-  TGridCellNotifyEvent = procedure(Sender: TObject; Cell: TGridCell) of object;
-  TGridCellIndentEvent = procedure(Sender: TObject; Cell: TGridCell; var Indent: TPoint) of object;
-  TGridCellTipsEvent = procedure(Sender: TObject; Cell: TGridCell; var AllowTips: Boolean) of object;
-  TGridCellreadOnlyEvent = procedure(Sender: TObject; Cell: TGridCell; var CellReadOnly: Boolean) of object;
-  TGridHeaderColorsEvent = procedure(Sender: TObject; Section: TGridHeaderSection; Canvas: TCanvas) of object;
-  TGridHeaderImageEvent = procedure(Sender: TObject; Section: TGridHeaderSection; var ImageIndex: Integer) of object;
-  TGridDrawEvent = procedure(Sender: TObject; var DefaultDrawing: Boolean) of object;
-  TGridDrawCellEvent = procedure(Sender: TObject; Cell: TGridCell; var Rect: TRect; var DefaultDrawing: Boolean) of object;
-  TGridDrawHeaderEvent = procedure(Sender: TObject; Section: TGridHeaderSection; Rect: TRect; var DefaultDrawing: Boolean) of object;
-  TGridColumnResizeEvent = procedure(Sender: TObject; Column: Integer; var Width: Integer) of object;
-  TGridHeaderClickEvent = procedure(Sender: TObject; Section: TGridHeaderSection) of object;
-  TGridHeaderClickingEvent = procedure(Sender: TObject; Section: TGridHeaderSection; var AllowClick: Boolean) of object;
-  TGridChangingEvent = procedure(Sender: TObject; var Cell: TGridCell; var Selected: Boolean) of object;
-  TGridChangedEvent = procedure(Sender: TObject; Cell: TGridCell; Selected: Boolean) of object;
-  TGridEditStyleEvent = procedure(Sender: TObject; Cell: TGridCell; var Style: TGridEditStyle) of object;
-  TGridEditListEvent = procedure(Sender: TObject; Cell: TGridCell; Items: TStrings) of object;
-  TGridEditListIndexEvent = procedure(Sender: TObject; Cell: TGridCell; Items: TStrings; const ItemText: string; var ItemIndex: Integer) of object;
-  TGridEditCloseUpEvent = procedure(Sender: TObject; Cell: TGridCell; ItemIndex: Integer; var Accept: Boolean) of object;
-  TGridEditCloseUpExEvent = procedure(Sender: TObject; Cell: TGridCell; Items: TStrings; ItemIndex: Integer; var ItemText: string; var Accept: Boolean) of object;
-  TGridEditCanModifyEvent = procedure(Sender: TObject; Cell: TGridCell; var CanModify: Boolean) of object;
-  TGridEditCanShowEvent = procedure(Sender: TObject; Cell: TGridCell; var CanShow: Boolean) of object;
-  TGridAcceptKeyEvent = procedure(Sender: TObject; Cell: TGridCell; Key: Char; var Accept: Boolean) of object;
-  TGridCheckKindEvent = procedure(Sender: TObject; Cell: TGridCell; var CheckKind: TGridCheckKind) of object;
-  TGridCheckStateEvent = procedure(Sender: TObject; Cell: TGridCell; var CheckState: TCheckBoxState) of object;
-  TGridCheckStateExEvent = procedure(Sender: TObject; Cell: TGridCell; var CheckState: TCheckBoxState; var CheckEnabled: Boolean) of object;
-  TGridCheckImageEvent = procedure(Sender: TObject; Cell: TGridCell; CheckImage: TBitmap) of object;
-  TGridCheckAlignmentEvent = procedure(Sender: TObject; Cell: TGridCell; var CheckAlignment: TAlignment) of object;
-  TGridSortDirectionEvent = procedure(Sender: TObject; Section: TGridHeaderSection; var SortDirection: TGridSortDirection) of object;
-  TGridSortImageEvent = procedure(Sender: TObject; Section: TGridHeaderSection; SortImage: TBitmap) of object;
-  TGridHintEvent = procedure(Sender: TObject; var Value: string) of object;
-  TGridColorEvent = procedure(Sender: TObject; var Color: TColor) of object;
-  TGridFindTextEvent = procedure(Sender: TObject; const FindText: string) of object;
-
-  TCustomGridView = class(TCustomControl)
-  private
-    FHorzScrollBar: TGridScrollBar;
-    FVertScrollBar: TGridScrollBar;
-    FHeader: TCustomGridHeader;
-    FColumns: TGridColumns;
-    FRows: TCustomGridRows;
-    FFixed: TCustomGridFixed;
-    FImages: TImageList;
-    FImagesLink: TChangeLink;
-    FImageLeftIndent: Integer;
-    FImageTopIndent: Integer;
-    FImageHighlight: Boolean;
-    FImageIndexDef: Integer;
-    FCellFocused: TGridCell;
-    FCellSelected: Boolean;
-    FVisOrigin: TGridCell;
-    FVisSize: TGridCell;
-    FBorderStyle: TBorderStyle;
-    FFlatBorder: Boolean;
-    FHideSelection: Boolean;
-    FShowHeader: Boolean;
-    FGridLines: Boolean;
-    FGridLineWidth: Integer;
-    FGridStyle: TGridStyles;
-    FGridColor: TColor;
-    FEndEllipsis: Boolean;
-    FShowFocusRect: Boolean;
-    FAlwaysSelected: Boolean;
-    FRowSelect: Boolean;
-    FRightClickSelect: Boolean;
-    FAllowSelect: Boolean;
-    FFocusOnScroll: Boolean;
-    FCursorKeys: TGridCursorKeys;
-    FTextLeftIndent: Integer;
-    FTextRightIndent: Integer;
-    FTextTopIndent: Integer;
-    FHitTest: TPoint;
-    FClickPos: TGridCell;
-    FColumnsResize: Boolean;
-    FColumnsFullDrag: Boolean;
-    FColumnClick: Boolean;
-    FColResizing: Boolean;
-    FColResizeSection: TGridHeaderSection;
-    FColResizeLevel: Integer;
-    FColResizeIndex: Integer;
-    FColResizeOffset: Integer;
-    FColResizeRect: TRect;
-    FColResizePos: Integer;
-    FColResizeMinWidth: Integer;
-    FColResizeMaxWidth: Integer;
-    FColResizeCount: Integer;
-    FHeaderClickSection: TGridHeaderSection;
-    FHeaderClickRect: TRect;
-    FHeaderClickState: Boolean;
-    FHeaderClicking: Boolean;
-    FHotSection: TGridHeaderSection;
-    FHotColumn: Integer;
-    FHotLevel: Integer;
-    FUpdateLock: Integer;
-    FAllowEdit: Boolean;
-    FAlwaysEdit: Boolean;
-    FReadOnly: Boolean;
-    FEdit: TCustomGridEdit;
-    FEditCell: TGridCell;
-    FEditing: Boolean;
-    FShowCellTips: Boolean;
-    FTipsCell: TGridCell;
-    FTipsText: string;
-    FCheckBoxes: Boolean;
-    FCheckStyle: TGridCheckStyle;
-    FCheckWidth: Integer;
-    FCheckHeight: Integer;
-    FCheckLeftIndent: Integer;
-    FCheckTopIndent: Integer;
-    FCheckBuffer: TBitmap;
-    FSortLeftIndent: Integer;
-    FSortTopIndent: Integer;
-    FSortBuffer: TBitmap;
-    FPatternBitmap: TBitmap;
-    FCancelOnExit: Boolean;
-    FDefaultEditMenu: Boolean;
-    FHighlightEvenRows: Boolean;
-    FHighlightFocusCol: Boolean;
-    FHighlightFocusRow: Boolean;
-    FOnGetCellText: TGridTextEvent;
-    FOnGetCellTextIndent: TGridCellIndentEvent;
-    FOnGetCellColors: TGridCellColorsEvent;
-    FOnGetCellImage: TGridCellImageEvent;
-    FOnGetCellImageEx: TGridCellImageExEvent;
-    FOnGetCellImageIndent: TGridCellIndentEvent;
-    FOnGetCellReadOnly: TGridCellreadOnlyEvent;
-    FOnGetHeaderColors: TGridHeaderColorsEvent;
-    FOnGetHeaderImage: TGridHeaderImageEvent;
-    FOnDraw: TGridDrawEvent;
-    FOnDrawCell: TGridDrawCellEvent;
-    FOnDrawHeader: TGridDrawHeaderEvent;
-    FOnColumnSizeToFit: TGridColumnResizeEvent;
-    FOnColumnResizing: TGridColumnResizeEvent;
-    FOnColumnResize: TGridColumnResizeEvent;
-    FOnHeaderClick: TGridHeaderClickEvent;
-    FOnHeaderClicking: TGridHeaderClickingEvent;
-    FOnChangeColumns: TNotifyEvent;
-    FOnChangeRows: TNotifyEvent;
-    FOnChangeFixed: TNotifyEvent;
-    FOnCellAcceptCursor: TGridCellAcceptCursorEvent;
-    FOnChanging: TGridChangingEvent;
-    FOnChange: TGridChangedEvent;
-    FOnCellClick: TGridCellClickEvent;
-    FOnGetEditStyle: TGridEditStyleEvent;
-    FOnGetEditMask: TGridTextEvent;
-    FOnGetEditText: TGridTextEvent;
-    FOnSetEditText: TGridTextEvent;
-    FOnGetEditList: TGridEditListEvent;
-    FOnGetEditListIndex: TGridEditListIndexEvent;
-    FOnGetEditListBounds: TGridRectEvent;
-    FOnEditCanModify: TGridEditCanModifyEvent;
-    FOnEditCanShow: TGridEditCanShowEvent;
-    FOnEditAcceptKey: TGridAcceptKeyEvent;
-    FOnEditButtonPress: TGridCellNotifyEvent;
-    FOnEditSelectNext: TGridTextEvent;
-    FOnEditCloseUp: TGridEditCloseUpEvent;
-    FOnEditCloseUpEx: TGridEditCloseUpExEvent;
-    FOnEditChange: TGridCellNotifyEvent;
-    FOnEditCanceled: TGridCellNotifyEvent;
-    FOnGetCheckKind: TGridCheckKindEvent;
-    FOnGetCheckState: TGridCheckStateEvent;
-    FOnGetCheckStateEx: TGridCheckStateExEvent;
-    FOnGetCheckImage: TGridCheckImageEvent;
-    FOnGetCheckAlignment: TGridCheckAlignmentEvent;
-    FOnGetCheckIndent: TGridCellIndentEvent;
-    FOnCheckClick: TGridCellNotifyEvent;
-    FOnGetSortDirection: TGridSortDirectionEvent;
-    FOnGetSortImage: TGridSortImageEvent;
-    FOnChangeEditing: TNotifyEvent;
-    FOnChangeEditMode: TNotifyEvent;
-    FOnGetCellHintRect: TGridRectEvent;
-    FOnCellTips: TGridCellTipsEvent;
-    FOnGetTipsRect: TGridRectEvent;
-    FOnGetTipsText: TGridTextEvent;
-    FGridHint: string;
-    FGridHintColor: TColor;
-    FShowGridHint: Boolean;
-    FOnGetGridHint: TGridHintEvent;
-    FGrayReadOnly: Boolean;
-    FDefaultHeaderMenu: Boolean;
-    FHeaderPopupMenu: TPopupMenu;
-    FOnHeaderDetailsClick: TNotifyEvent;
-    FOnGetGridColor: TGridColorEvent;
-    FFindDialog: TGridFindDialog;
-    FOnTextNotFound: TGridFindTextEvent;
-    FContextPopupCol: Integer;
-    FContextPopupRow: Integer;
-    function GetCell(Col, Row: Longint): string;
-    function GetChecked(Col, Row: Longint): Boolean;
-    function GetCheckBoxEnabled(Col, Row: Longint): Boolean;
-    function GetCheckBoxState(Col, Row: Longint): TCheckBoxState;
-    function GetCol: Longint;
-    function GetFindDialog: TGridFindDialog;
-    function GetFixed: TGridFixed;
-    function GetEdit: TGridEdit;
-    function GetEditColumn: TGridColumn;
-    function GetEditDropDown: Boolean;
-    function GetEditing: Boolean;
-    function GetEditFocused: Boolean;
-    function GetHeader: TGridHeader;
-    function GetLeftCol: Longint;
-    function GetRow: Longint;
-    function GetRows: TGridRows;
-    function GetTopRow: Longint;
-    function GetVisibleColCount: Longint;
-    function GetVisibleRowCount: Longint;
-    procedure HeaderMenuClick(Sender: TObject);
-    procedure HorzScroll(Sender: TObject; ScrollCode: Integer; var ScrollPos: Integer);
-    procedure HorzScrollChange(Sender: TObject);
-    procedure SetAllowEdit(Value: Boolean);
-    procedure SetAllowSelect(Value: Boolean);
-    procedure SetAlwaysEdit(Value: Boolean);
-    procedure SetAlwaysSelected(Value: Boolean);
-    procedure SetBorderStyle(Value: TBorderStyle);
-    procedure SetCell(Col, Row: Longint; Value: string);
-    procedure SetCellFocused(Value: TGridCell);
-    procedure SetCellSelected(Value: Boolean);
-    procedure SetCheckBoxes(Value: Boolean);
-    procedure SetCheckLeftIndent(Value: Integer);
-    procedure SetCheckStyle(Value: TGridCheckStyle);
-    procedure SetCheckTopIndent(Value: Integer);
-    procedure SetCol(Value: Longint);
-    procedure SetColumns(Value: TGridColumns);
-    procedure SetCursorKeys(Value: TGridCursorKeys);
-    procedure SetEditDropDown(Value: Boolean);
-    procedure SetEditing(Value: Boolean);
-    procedure SetEndEllipsis(Value: Boolean);
-    procedure SetFlatBorder(Value: Boolean);
-    procedure SetFixed(Value: TGridFixed);
-    procedure SetGrayReadOnly(const Value: Boolean);
-    procedure SetGridColor(Value: TColor);
-    procedure SetGridHint(const Value: string);
-    procedure SetGridHintColor(Value: TColor);
-    procedure SetGridLines(Value: Boolean);
-    procedure SetGridStyle(Value: TGridStyles);
-    procedure SetHeader(Value: TGridHeader);
-    procedure SetHideSelection(Value: Boolean);
-    procedure SetHighlightEvenRows(const Value: Boolean);
-    procedure SetHighlightFocusCol(const Value: Boolean);
-    procedure SetHighlightFocusRow(const Value: Boolean);
-    procedure SetHorzScrollBar(Value: TGridScrollBar);
-    procedure SetImageIndexDef(Value: Integer);
-    procedure SetImageHighlight(Value: Boolean);
-    procedure SetImageLeftIndent(Value: Integer);
-    procedure SetImages(Value: TImageList);
-    procedure SetImageTopIndent(Value: Integer);
-    procedure SetLeftCol(Value: Longint);
-    procedure SetReadOnly(Value: Boolean);
-    procedure SetRow(Value: Longint);
-    procedure SetRows(Value: TGridRows);
-    procedure SetRowSelect(Value: Boolean);
-    procedure SetShowCellTips(Value: Boolean);
-    procedure SetShowFocusRect(Value: Boolean);
-    procedure SetShowGridHint(Value: Boolean);
-    procedure SetShowHeader(Value: Boolean);
-    procedure SetSortLeftIndent(Value: Integer);
-    procedure SetSortTopIndent(Value: Integer);
-    procedure SetTextLeftIndent(Value: Integer);
-    procedure SetTextRightIndent(Value: Integer);
-    procedure SetTextTopIndent(Value: Integer);
-    procedure SetTopRow(Value: Longint);
-    procedure SetVertScrollBar(Value: TGridScrollBar);
-    procedure SetVisOrigin(Value: TGridCell);
-    procedure VertScroll(Sender: TObject; ScrollCode: Integer; var ScrollPos: Integer);
-    procedure VertScrollChange(Sender: TObject);
-    procedure WMGetDlgCode(var Message: TWMGetDlgCode); message WM_GETDLGCODE;
-    procedure WMKillFocus(var Message: TWMKillFocus); message WM_KILLFOCUS;
-    procedure WMSetFocus(var Message: TWMSetFocus); message WM_SETFOCUS;
-    procedure WMLButtonDown(var Message: TMessage); message WM_LBUTTONDOWN;
-    procedure WMChar(var Msg: TWMChar); message WM_CHAR;
-    procedure WMHScroll(var Message: TWMHScroll); message WM_HSCROLL;
-    procedure WMVScroll(var Message: TWMVScroll); message WM_VSCROLL;
-    procedure WMNCHitTest(var Message: TWMNCHitTest); message WM_NCHITTEST;
-    procedure WMSetCursor(var Message: TWMSetCursor); message WM_SETCURSOR;
-    procedure WMEraseBkgnd(var Message: TWMEraseBkgnd); message WM_ERASEBKGND;
-    procedure WMThemeThanged(var Message: TMessage); message WM_THEMECHANGED;
-    procedure WMTimer(var Message: TWMTimer); message WM_TIMER;
-    procedure WMUser(var Message: TMessage); message WM_USER;
-    procedure CNThemeThanged(var Message: TMessage); message CN_THEMECHANGED;
-    procedure CMCancelMode(var Message: TCMCancelMode); message CM_CANCELMODE;
-    procedure CMEnabledChanged(var Message: TMessage); message CM_ENABLEDCHANGED;
-    procedure CMCtl3DChanged(var Message: TMessage); message CM_CTL3DCHANGED;
-    procedure CMFontChanged(var Message: TMessage); message CM_FONTCHANGED;
-    procedure CMColorChanged(var Message: TMessage); message CM_COLORCHANGED;
-    procedure CMShowHintChanged(var Message: TMessage); message CM_SHOWHINTCHANGED;
-    procedure CMHintShow(var Message: TMessage); message CM_HINTSHOW;
-    procedure CMMouseLeave(var Message: TMessage); message CM_MOUSELEAVE;
-    procedure CMWinIniChange(var Message: TWMWinIniChange); message CM_WININICHANGE;
-  protected
-    FEditPending: Boolean;
-    procedure CancelCellTips; virtual;
-    procedure CellClick(Cell: TGridCell; Shift: TShiftState; X, Y: Integer); virtual;
-    procedure CellTips(Cell: TGridCell; var AllowTips: Boolean); virtual;
-    procedure Change(var Cell: TGridCell; var Selected: Boolean); virtual;
-    procedure ChangeColumns; virtual;
-    procedure ChangeEditing; virtual;
-    procedure ChangeEditMode; virtual;
-    procedure ChangeFixed; virtual;
-    procedure ChangeRows; virtual;
-    procedure ChangeScale(M, D: Integer); override;
-    procedure Changing(var Cell: TGridCell; var Selected: Boolean); virtual;
-    procedure CheckClick(Cell: TGridCell); virtual;
-    procedure ColumnResize(Column: Integer; var Width: Integer); virtual;
-    procedure ColumnResizing(Column: Integer; var Width: Integer); virtual;
-    procedure ColumnsChange(Sender: TObject); virtual;
-    procedure ColumnSizeToFit(Column: Integer; var Width: Integer); virtual;
-    function CompareStrings(const S1, S2: string; WholeWord, MatchCase: Boolean): Boolean; virtual;
-    function CreateColumn(Columns: TGridColumns): TCustomGridColumn; virtual;
-    function CreateColumns: TGridColumns; virtual;
-    function CreateEdit(EditClass: TGridEditClass): TCustomGridEdit; virtual;
-    function CreateFixed: TCustomGridFixed; virtual;
-    function CreateHeader: TCustomGridHeader; virtual;
-    function CreateHeaderSection(Sections: TGridHeaderSections): TGridHeaderSection; virtual;
-    procedure CreateParams(var Params: TCreateParams); override;
-    function CreateRows: TCustomGridRows; virtual;
-    function CreateScrollBar(Kind: TScrollBarKind): TGridScrollBar; virtual;
-    procedure CreateWnd; override;
-    procedure DoContextPopup(MousePos: TPoint; var Handled: Boolean); override;
-    procedure DoExit; override;
-    procedure DoHeaderPopup(MousePos: TPoint; var Handled: Boolean); virtual;
-    function DoMouseWheelDown(Shift: TShiftState; MousePos: TPoint): Boolean; override;
-    function DoMouseWheelUp(Shift: TShiftState; MousePos: TPoint): Boolean; override;
-    procedure DoStartDrag(var DragObject: TDragObject); override;
-    procedure DoTextNotFound(const FindText: string); virtual;
-    procedure EditButtonPress(Cell: TGridCell); virtual;
-    function EditCanAcceptKey(Cell: TGridCell; Key: Char): Boolean; virtual;
-    procedure EditCanceled(Cell: TGridCell); virtual;
-    function EditCanModify(Cell: TGridCell): Boolean; virtual;
-    function EditCanShow(Cell: TGridCell): Boolean; virtual;
-    function EditCanUndo(Cell: TGridCell): Boolean; virtual;
-    procedure EditChange(Cell: TGridCell); virtual;
-    procedure EditCloseUp(Cell: TGridCell; Items: TStrings; ItemIndex: Integer;
-      var ItemText: string; var Accept: Boolean); virtual;
-    procedure EditSelectNext(Cell: TGridCell; var Value: string); virtual;
-    procedure FixedChange(Sender: TObject); virtual;
-    procedure GetCellColors(Cell: TGridCell; Canvas: TCanvas); virtual;
-    function GetCellImage(Cell: TGridCell; var OverlayIndex: Integer): Integer; virtual;
-    function GetCellImageIndent(Cell: TGridCell): TPoint; virtual;
-    function GetCellImageRect(Cell: TGridCell): TRect; virtual;
-    function GetCellHintRect(Cell: TGridCell): TRect; virtual;
-    function GetCellText(Cell: TGridCell): string; virtual;
-    function GetCellTextBounds(Cell: TGridCell): TRect; virtual;
-    function GetCellTextIndent(Cell: TGridCell): TPoint; virtual;
-    function GetCheckAlignment(Cell: TGridCell): TAlignment; virtual;
-    procedure GetCheckImage(Cell: TGridCell; CheckImage: TBitmap); virtual;
-    function GetCheckIndent(Cell: TGridCell): TPoint; virtual;
-    function GetCheckKind(Cell: TGridCell): TGridCheckKind; virtual;
-    function GetCheckRect(Cell: TGridCell): TRect; virtual;
-    function GetCheckState(Cell: TGridCell): TCheckBoxState; virtual;
-    function GetCheckStateEx(Cell: TGridCell; var CheckEnabled: Boolean): TCheckBoxState; virtual;
-    function GetClientOrigin: TPoint; override;
-    function GetClientRect: TRect; override;
-    function GetColumnClass: TGridColumnClass; virtual;
-    function GetCursorCell(Cell: TGridCell; Offset: TGridCursorOffset): TGridCell; virtual;
-    function GetEditClass(Cell: TGridCell): TGridEditClass; virtual;
-    procedure GetEditList(Cell: TGridCell; Items: TStrings); virtual;
-    procedure GetEditListBounds(Cell: TGridCell; var Rect: TRect); virtual;
-    function GetEditListIndex(Cell: TGridCell; Items: TStrings; const ItemText: string): Integer; virtual;
-    function GetEditMask(Cell: TGridCell): string; virtual;
-    function GetEditStyle(Cell: TGridCell): TGridEditStyle; virtual;
-    function GetEditText(Cell: TGridCell): string; virtual;
-    function GetFixedDividerColor: TColor; virtual;
-    function GetFixedGridColor: TColor; virtual;
-    function GetFontHeight(Font: TFont): Integer;
-    function GetFontWidth(Font: TFont; TextLength: Integer): Integer;
-    function GetGridHint: string; virtual;
-    function GetHeaderImage(Section: TGridHeaderSection): Integer; virtual;
-    procedure GetHeaderColors(Section: TGridHeaderSection; Canvas: TCanvas); virtual;
-    function GetSortArrowSize: TSize; virtual;
-    function GetSortDirection(Section: TGridHeaderSection): TGridSortDirection; virtual;
-    procedure GetSortImage(Section: TGridHeaderSection; SortImage: TBitmap); virtual;
-    function GetTextRect(Canvas: TCanvas; Rect: TRect; LeftIndent,
-      TopIndent: Integer; Alignment: TAlignment; WantReturns, WordWrap: Boolean;
-      const Text: string): TRect; virtual;
-    function GetTipsRect(Cell: TGridCell; const TipsText: string): TRect; virtual;
-    function GetTipsText(Cell: TGridCell): string; virtual;
-    function GetTipsWindowClass: TGridTipsWindowClass; virtual;
-    procedure HeaderChange(Sender: TObject); virtual;
-    procedure HeaderClick(Section: TGridHeaderSection); virtual;
-    procedure HeaderClicking(Section: TGridHeaderSection; var AllowClick: Boolean); virtual;
-    procedure HideCursor; virtual;
-    procedure HideEdit; virtual;
-    procedure HideFocus; virtual;
-    procedure ImagesChange(Sender: TObject); virtual;
-    procedure KeyDown(var Key: Word; Shift: TShiftState); override;
-    procedure KeyPress(var Key: Char); override;
-    procedure Loaded; override;
-    procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); override;
-    procedure MouseMove(Shift: TShiftState; X, Y: Integer); override;
-    procedure MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); override;
-    procedure Notification(AComponent: TComponent; Operation: TOperation); override;
-    procedure Paint; override;
-    procedure Paint3DFrame(Rect: TRect; SideFlags: Longint); virtual;
-    procedure PaintCell(Cell: TGridCell; Rect: TRect); virtual;
-    procedure PaintCells; virtual;
-    procedure PaintCheck(Rect: TRect; CheckKind: TGridCheckKind; CheckState: TCheckBoxState; CheckEnabled: Boolean); virtual;
-    procedure PaintDotGridLines(Points: Pointer; Count: Integer);
-    procedure PaintFixed; virtual;
-    procedure PaintFixedGridLines; virtual;
-    procedure PaintFreeField; virtual;
-    procedure PaintFocus; virtual;
-    procedure PaintGridLines; virtual;
-    procedure PaintHeader(Section: TGridHeaderSection; Rect: TRect); virtual;
-    procedure PaintHeaderBackground(Rect: TRect; Color: TColor; PaintState: TGridPaintStates); virtual;
-    procedure PaintHeaders(DrawFixed: Boolean); virtual;
-    procedure PaintHeaderSections(Sections: TGridHeaderSections; DrawFixed: Boolean); virtual;
-    procedure PaintResizeLine;
-    procedure PaintText(Canvas: TCanvas; Rect: TRect; LeftIndent, TopIndent: Integer; Alignment: TAlignment; WantReturns, WordWrap: Boolean; const Text: string); virtual;
-    procedure PreparePatternBitmap(Canvas: TCanvas; FillColor: TColor; Remove: Boolean); virtual;
-    procedure ResetClickPos; virtual;
-    procedure Resize; override;
-    procedure RowsChange(Sender: TObject); virtual;
-    procedure SetEditText(Cell: TGridCell; var Value: string); virtual;
-    procedure ShowCursor; virtual;
-    procedure ShowEdit; virtual;
-    procedure ShowEditChar(C: Char); virtual;
-    procedure ShowFocus; virtual;
-    procedure StartColResize(Section: TGridHeaderSection; X, Y: Integer);
-    procedure StartHeaderClick(Section: TGridHeaderSection; X, Y: Integer);
-    procedure StepColResize(X, Y: Integer);
-    procedure StepHeaderClick(X, Y: Integer);
-    procedure StopColResize(Abort: Boolean);
-    procedure StopHeaderClick(Abort: Boolean);
-  public
-    constructor Create(AOwner: TComponent); override;
-    destructor Destroy; override;
-    function AcquireFocus: Boolean; virtual;
-    procedure ApplyEdit; virtual;
-    procedure ApplyEditText; virtual;
-    procedure CancelEdit; virtual;
-    procedure DefaultDrawCell(Cell: TGridCell; Rect: TRect); virtual;
-    procedure DefaultDrawHeader(Section: TGridHeaderSection; Rect: TRect); virtual;
-    procedure DrawDragRect(Cell: TGridCell); virtual;
-    function FindText(const FindText: string; Options: TFindOptions): Boolean; virtual;
-    function GetCellAt(X, Y: Integer): TGridCell; virtual;
-    function GetCellRect(Cell: TGridCell): TRect;
-    function GetCellsRect(Cell1, Cell2: TGridCell): TRect;
-    function GetColumnAt(X, Y: Integer): Integer; virtual;
-    function GetColumnLeftRight(Column: Integer): TRect;
-    function GetColumnMaxWidth(Column: Integer): Integer;
-    function GetColumnRect(Column: Integer): TRect;
-    function GetColumnsRect(Column1, Column2: Integer): TRect;
-    function GetColumnsWidth(Column1, Column2: Integer): Integer;
-    function GetEditRect(Cell: TGridCell): TRect; virtual;
-    function GetFirstImageColumn: Integer;
-    function GetFixedRect: TRect; virtual;
-    function GetFixedWidth: Integer;
-    function GetFocusRect: TRect; virtual;
-    function GetGridHeight: Integer;
-    function GetGridLineColor(BkColor: TColor): TColor; virtual;
-    function GetGridOrigin: TPoint;
-    function GetGridRect: TRect; virtual;
-    function GetHeaderHeight: Integer;
-    function GetHeaderRect: TRect; virtual;
-    function GetHeaderSection(ColumnIndex, Level: Integer): TGridHeaderSection;
-    function GetLightenColor(Color: TColor; Amount: Integer): TColor;
-    function GetResizeSectionAt(X, Y: Integer): TGridHeaderSection;
-    function GetRowAt(X, Y: Integer): Integer; virtual;
-    function GetRowRect(Row: Integer): TRect;
-    function GetRowsRect(Row1, Row2: Integer): TRect;
-    function GetRowsHeight(Row1, Row2: Integer): Integer;
-    function GetRowTopBottom(Row: Integer): TRect;
-    function GetSectionAt(X, Y: Integer): TGridHeaderSection;
-    procedure HandlerFind(Sender: TObject);
-    procedure HandlerFindNext(Sender: TObject);
-    procedure HandlerFindPrev(Sender: TObject);
-    procedure HandlerFindMenu(Sender: TObject);
-    procedure Invalidate; override;
-    procedure InvalidateCell(Cell: TGridCell);
-    procedure InvalidateCheck(Cell: TGridCell);
-    procedure InvalidateColumn(Column: Integer);
-    procedure InvalidateColumns(Column1, Column2: Integer);
-    procedure InvalidateEdit;
-    procedure InvalidateFixed;
-    procedure InvalidateFocus; virtual;
-    procedure InvalidateGrid; virtual;
-    procedure InvalidateHeader;
-    procedure InvalidateRect(Rect: TRect);
-    procedure InvalidateRow(Row: Integer); virtual;
-    procedure InvalidateRows(Row1, Row2: Integer);
-    procedure InvalidateSection(Section: TGridHeaderSection); overload;
-    procedure InvalidateSection(ColumnIndex, Level: Integer); overload;
-    function IsActiveControl: Boolean;
-    function IsCellAcceptCursor(Cell: TGridCell): Boolean; virtual;
-    function IsCellEditing(Cell: TGridCell): Boolean;
-    function IsCellHighlighted(Cell: TGridCell): Boolean; virtual;
-    function IsCellHasCheck(Cell: TGridCell): Boolean; virtual;
-    function IsCellHasImage(Cell: TGridCell): Boolean; virtual;
-    function IsCellFocused(Cell: TGridCell): Boolean;
-    function IsCellReadOnly(Cell: TGridCell): Boolean; virtual;
-    function IsCellValid(Cell: TGridCell): Boolean;
-    function IsCellValidEx(Cell: TGridCell; CheckPosition, CheckVisible: Boolean): Boolean;
-    function IsCellVisible(Cell: TGridCell; PartialOK: Boolean): Boolean;
-    function IsColumnVisible(Column: Integer): Boolean;
-    function IsEvenRow(Cell: TGridCell): Boolean; virtual;
-    function IsFixedVisible: Boolean;
-    function IsFocusAllowed: Boolean;
-    function IsGridHintVisible: Boolean; virtual;
-    function IsHeaderHasImage(Section: TGridHeaderSection): Boolean; virtual;
-    function IsHeaderPressed(Section: TGridHeaderSection): Boolean; virtual;
-    function IsRowHighlighted(Row: Integer): Boolean; virtual;
-    function IsRowVisible(Row: Integer): Boolean;
-    procedure LockUpdate;
-    procedure MakeCellVisible(Cell: TGridCell; PartialOK: Boolean); virtual;
-    procedure ResetEdit; virtual;
-    procedure SetCursor(Cell: TGridCell; Selected, Visible: Boolean); virtual;
-    procedure SizeAllColumnsToFit;
-    procedure SizeColumnToFit(ColumnIndex: Integer);
-    procedure UnLockUpdate(Redraw: Boolean);
-    procedure UpdateCursor; virtual;
-    procedure UpdateColors; virtual;
-    procedure UpdateEdit(Activate: Boolean); virtual;
-    procedure UpdateEditContents(SaveText: Boolean); virtual;
-    procedure UpdateFixed; virtual;
-    procedure UpdateFocus; virtual;
-    procedure UpdateFonts; virtual;
-    procedure UpdateHeader; virtual;
-    procedure UpdateRows; virtual;
-    procedure UpdateScrollBars; virtual;
-    procedure UpdateScrollPos; virtual;
-    procedure UpdateSelection(var Cell: TGridCell; var Selected: Boolean); virtual;
-    procedure UpdateText; virtual;
-    procedure UpdateVisOriginSize; virtual;
-    property AllowEdit: Boolean read FAllowEdit write SetAllowEdit default False;
-    property AllowSelect: Boolean read FAllowSelect write SetAllowSelect default True;
-    property AlwaysEdit: Boolean read FAlwaysEdit write SetAlwaysEdit default False;
-    property AlwaysSelected: Boolean read FAlwaysSelected write SetAlwaysSelected default False;
-    property BorderStyle: TBorderStyle read FBorderStyle write SetBorderStyle default bsSingle;
-    property CancelOnExit: Boolean read FCancelOnExit write FCancelOnExit default True;
-    property Canvas;
-    property Cells[Col, Row: Longint]: string read GetCell write SetCell;
-    property CellFocused: TGridCell read FCellFocused write SetCellFocused;
-    property CellSelected: Boolean read FCellSelected write SetCellSelected;
-    property CheckBoxes: Boolean read FCheckBoxes write SetCheckBoxes default False;
-    property Checked[Col, Row: Longint]: Boolean read GetChecked;
-    property CheckEnabled[Col, Row: Longint]: Boolean read GetCheckBoxEnabled;
-    property CheckState[Col, Row: Longint]: TCheckBoxState read GetCheckBoxState;
-    property CheckHeight: Integer read FCheckHeight write FCheckHeight default 16;
-    property CheckLeftIndent: Integer read FCheckLeftIndent write SetCheckLeftIndent default 0;
-    property CheckStyle: TGridCheckStyle read FCheckStyle write SetCheckStyle default csWin95;
-    property CheckTopIndent: Integer read FCheckTopIndent write SetCheckTopIndent default 0;
-    property CheckWidth: Integer read FCheckWidth write FCheckWidth default 16;
-    property Col: Longint read GetCol write SetCol;
-    property ColResizing: Boolean read FColResizing;
-    property ColumnClick: Boolean read FColumnClick write FColumnClick default True;
-    property Columns: TGridColumns read FColumns write SetColumns;
-    property ColumnsFullDrag: Boolean read FColumnsFullDrag write FColumnsFullDrag default False;
-    property ColumnsResize: Boolean read FColumnsResize write FColumnsResize default True;
-    property ContextPopupCol: Integer read FContextPopupCol;
-    property ContextPopupRow: Integer read FContextPopupRow;
-    property CursorKeys: TGridCursorKeys read FCursorKeys write SetCursorKeys default [gkArrows, gkMouse, gkMouseWheel];
-    property DefaultEditMenu: Boolean read FDefaultEditMenu write FDefaultEditMenu default False;
-    property DefaultHeaderMenu: Boolean read FDefaultHeaderMenu write FDefaultHeaderMenu default False;
-    property Edit: TGridEdit read GetEdit;
-    property EditCell: TGridCell read FEditCell;
-    property EditColumn: TGridColumn read GetEditColumn;
-    property EditDropDown: Boolean read GetEditDropDown write SetEditDropDown;
-    property Editing: Boolean read GetEditing write SetEditing;
-    property EditFocused: Boolean read GetEditFocused;
-    property EndEllipsis: Boolean read FEndEllipsis write SetEndEllipsis default True;
-    property FindDialog: TGridFindDialog read GetFindDialog;
-    property GrayReadOnly: Boolean read FGrayReadOnly write SetGrayReadOnly default False;
-    property GridColor: TColor read FGridColor write SetGridColor default clWindow;
-    property GridHint: string read FGridHint write SetGridHint;
-    property GridHintColor: TColor read FGridHintColor write SetGridHintColor default clGrayText;
-    property GridLines: Boolean read FGridLines write SetGridLines default True;
-    property GridLineWidth: Integer read FGridLineWidth;
-    property GridStyle: TGridStyles read FGridStyle write SetGridStyle default [gsHorzLine, gsVertLine];
-    property Fixed: TGridFixed read GetFixed write SetFixed;
-    property FlatBorder: Boolean read FFlatBorder write SetFlatBorder default False;
-    property FocusOnScroll: Boolean read FFocusOnScroll write FFocusOnScroll default False;
-    property Header: TGridHeader read GetHeader write SetHeader;
-    property HideSelection: Boolean read FHideSelection write SetHideSelection default False;
-    property HighlightEvenRows: Boolean read FHighlightEvenRows write SetHighlightEvenRows default False;
-    property HighlightFocusCol: Boolean read FHighlightFocusCol write SetHighlightFocusCol default False;
-    property HighlightFocusRow: Boolean read FHighlightFocusRow write SetHighlightFocusRow default False;
-    property HorzScrollBar: TGridScrollBar read FHorzScrollBar write SetHorzScrollBar;
-    property ImageIndexDef: Integer read FImageIndexDef write SetImageIndexDef default 0;
-    property ImageHighlight: Boolean read FImageHighlight write SetImageHighlight default True;
-    property ImageLeftIndent: Integer read FImageLeftIndent write SetImageLeftIndent default 2;
-    property Images: TImageList read FImages write SetImages;
-    property ImageTopIndent: Integer read FImageTopIndent write SetImageTopIndent default 1;
-    property LeftCol: Longint read GetLeftCol write SetLeftCol;
-    property ReadOnly: Boolean read FReadOnly write SetReadOnly default False;
-    property RightClickSelect: Boolean read FRightClickSelect write FRightClickSelect default True;
-    property Row: Longint read GetRow write SetRow;
-    property Rows: TGridRows read GetRows write SetRows;
-    property RowSelect: Boolean read FRowSelect write SetRowSelect default False;
-    property ShowCellTips: Boolean read FShowCellTips write SetShowCellTips;
-    property ShowFocusRect: Boolean read FShowFocusRect write SetShowFocusRect default True;
-    property ShowGridHint: Boolean read FShowGridHint write SetShowGridHint default False;
-    property ShowHeader: Boolean read FShowHeader write SetShowHeader default True;
-    property SortLeftIndent: Integer read FSortLeftIndent write SetSortLeftIndent default 4;
-    property SortTopIndent: Integer read FSortTopIndent write SetSortTopIndent default 0;
-    property TextLeftIndent: Integer read FTextLeftIndent write SetTextLeftIndent default 6;
-    property TextRightIndent: Integer read FTextRightIndent write SetTextRightIndent default 6;
-    property TextTopIndent: Integer read FTextTopIndent write SetTextTopIndent default 2;
-    property TipsCell: TGridCell read FTipsCell;
-    property TipsText: string read FTipsText;
-    property TopRow: Longint read GetTopRow write SetTopRow;
-    property UpdateLock: Integer read FUpdateLock;
-    property VertScrollBar: TGridScrollBar read FVertScrollBar write SetVertScrollBar;
-    property VisibleColCount: Longint read GetVisibleColCount;
-    property VisibleRowCount: Longint read GetVisibleRowCount;
-    property VisOrigin: TGridCell read FVisOrigin write SetVisOrigin;
-    property VisSize: TGridCell read FVisSize;
-    property OnCellAcceptCursor: TGridCellAcceptCursorEvent read FOnCellAcceptCursor write FOnCellAcceptCursor;
-    property OnCellClick: TGridCellClickEvent read FOnCellClick write FOnCellClick;
-    property OnCellTips: TGridCellTipsEvent read FOnCellTips write FOnCellTips;
-    property OnChange: TGridChangedEvent read FOnChange write FOnChange;
-    property OnChangeColumns: TNotifyEvent read FOnChangeColumns write FOnChangeColumns;
-    property OnChangeEditing: TNotifyEvent read FOnChangeEditing write FOnChangeEditing;
-    property OnChangeEditMode: TNotifyEvent read FOnChangeEditMode write FOnChangeEditMode;
-    property OnChangeFixed: TNotifyEvent read FOnChangeFixed write FOnChangeFixed;
-    property OnChangeRows: TNotifyEvent read FOnChangeRows write FOnChangeRows;
-    property OnChanging: TGridChangingEvent read FOnChanging write FOnChanging;
-    property OnCheckClick: TGridCellNotifyEvent read FOnCheckClick write FOnCheckClick;
-    property OnColumnResizing: TGridColumnResizeEvent read FOnColumnResizing write FOnColumnResizing;
-    property OnColumnResize: TGridColumnResizeEvent read FOnColumnResize write FOnColumnResize;
-    property OnColumnSizeToFit: TGridColumnResizeEvent read FOnColumnSizeToFit write FOnColumnSizeToFit;
-    property OnDraw: TGridDrawEvent read FOnDraw write FOnDraw;
-    property OnDrawCell: TGridDrawCellEvent read FOnDrawCell write FOnDrawCell;
-    property OnDrawHeader: TGridDrawHeaderEvent read FOnDrawHeader write FOnDrawHeader;
-    property OnEditAcceptKey: TGridAcceptKeyEvent read FOnEditAcceptKey write FOnEditAcceptKey;
-    property OnEditButtonPress: TGridCellNotifyEvent read FOnEditButtonPress write FOnEditButtonPress;
-    property OnEditCanceled: TGridCellNotifyEvent read FOnEditCanceled write FOnEditCanceled;
-    property OnEditCanModify: TGridEditCanModifyEvent read FOnEditCanModify write FOnEditCanModify;
-    property OnEditCanShow: TGridEditCanShowEvent read FOnEditCanShow write FOnEditCanShow;
-    property OnEditChange: TGridCellNotifyEvent read FOnEditChange write FOnEditChange;
-    property OnEditCloseUp: TGridEditCloseUpEvent read FOnEditCloseUp write FOnEditCloseUp;
-    property OnEditCloseUpEx: TGridEditCloseUpExEvent read FOnEditCloseUpEx write FOnEditCloseUpEx;
-    property OnEditSelectNext: TGridTextEvent read FOnEditSelectNext write FOnEditSelectNext;
-    property OnGetCellColors: TGridCellColorsEvent read FOnGetCellColors write FOnGetCellColors;
-    property OnGetCellImage: TGridCellImageEvent read FOnGetCellImage write FOnGetCellImage;
-    property OnGetCellImageEx: TGridCellImageExEvent read FOnGetCellImageEx write FOnGetCellImageEx;
-    property OnGetCellImageIndent: TGridCellIndentEvent read FOnGetCellImageIndent write FOnGetCellImageIndent;
-    property OnGetCellHintRect: TGridRectEvent read FOnGetCellHintRect write FOnGetCellHintRect;
-    property OnGetCellReadOnly: TGridCellreadOnlyEvent read FOnGetCellReadOnly write FOnGetCellReadOnly;
-    property OnGetCellText: TGridTextEvent read FOnGetCellText write FOnGetCellText;
-    property OnGetCellTextIndent: TGridCellIndentEvent read FOnGetCellTextIndent write FOnGetCellTextIndent;
-    property OnGetCheckAlignment: TGridCheckAlignmentEvent read FOnGetCheckAlignment write FOnGetCheckAlignment;
-    property OnGetCheckImage: TGridCheckImageEvent read FOnGetCheckImage write FOnGetCheckImage;
-    property OnGetCheckIndent: TGridCellIndentEvent read FOnGetCheckIndent write FOnGetCheckIndent;
-    property OnGetCheckKind: TGridCheckKindEvent read FOnGetCheckKind write FOnGetCheckKind;
-    property OnGetCheckState: TGridCheckStateEvent read FOnGetCheckState write FOnGetCheckState;
-    property OnGetCheckStateEx: TGridCheckStateExEvent read FOnGetCheckStateEx write FOnGetCheckStateEx;
-    property OnGetEditList: TGridEditListEvent read FOnGetEditList write FOnGetEditList;
-    property OnGetEditListBounds: TGridRectEvent read FOnGetEditListBounds write FOnGetEditListBounds;
-    property OnGetEditListIndex: TGridEditListIndexEvent read FOnGetEditListIndex write FOnGetEditListIndex;
-    property OnGetEditMask: TGridTextEvent read FOnGetEditMask write FOnGetEditMask;
-    property OnGetEditStyle: TGridEditStyleEvent read FOnGetEditStyle write FOnGetEditStyle;
-    property OnGetEditText: TGridTextEvent read FOnGetEditText write FOnGetEditText;
-    property OnGetGridHint: TGridHintEvent read FOnGetGridHint write FOnGetGridHint;
-    property OnGetGridColor: TGridColorEvent read FOnGetGridColor write FOnGetGridColor;
-    property OnGetHeaderColors: TGridHeaderColorsEvent read FOnGetHeaderColors write FOnGetHeaderColors;
-    property OnGetHeaderImage: TGridHeaderImageEvent read FOnGetHeaderImage write FOnGetHeaderImage;
-    property OnGetSortDirection: TGridSortDirectionEvent read FOnGetSortDirection write FOnGetSortDirection;
-    property OnGetSortImage: TGridSortImageEvent read FOnGetSortImage write FOnGetSortImage;
-    property OnGetTipsRect: TGridRectEvent read FOnGetTipsRect write FOnGetTipsRect;
-    property OnGetTipsText: TGridTextEvent read FOnGetTipsText write FOnGetTipsText;
-    property OnHeaderClick: TGridHeaderClickEvent read FOnHeaderClick write FOnHeaderClick;
-    property OnHeaderClicking: TGridHeaderClickingEvent read FOnHeaderClicking write FOnHeaderClicking;
-    property OnHeaderDetailsClick: TNotifyEvent read FOnHeaderDetailsClick write FOnHeaderDetailsClick;
-    property OnSetEditText: TGridTextEvent read FOnSetEditText write FOnSetEditText;
-    property OnTextNotFound: TGridFindTextEvent read FOnTextNotFound write FOnTextNotFound;
-  end;
-
-{ TGridView }
-
-  TGridView = class(TCustomGridView)
-  published
-    property Align;
-    property AllowEdit;
-    property AllowSelect;
-    property AlwaysEdit;
-    property AlwaysSelected;
-    property Anchors;
-    property BevelEdges;
-    property BevelInner;
-    property BevelOuter;
-    property BevelKind default bkNone;
-    property BevelWidth;
-    property BorderStyle;
-    property CancelOnExit;
-    property CheckBoxes;
-    property CheckStyle;
-    property Color;
-    property ColumnClick;
-    property Columns;
-    property ColumnsFullDrag;
-    property Constraints;
-    property Ctl3D;
-    property CursorKeys;
-    property DefaultEditMenu;
-    property DefaultHeaderMenu;
-    property DragCursor;
-    property DragMode;
-    property DoubleBuffered default False;
-    property Enabled;
-    property EndEllipsis;
-    property Fixed;
-    property FlatBorder;
-    property FocusOnScroll;
-    property Font;
-    property GrayReadOnly;
-    property GridColor;
-    property GridHint;
-    property GridHintColor;
-    property GridLines;
-    property GridStyle;
-    property Header;
-    property HideSelection;
-    property HighlightEvenRows;
-    property HighlightFocusCol;
-    property HighlightFocusRow;
-    property Hint;
-    property HorzScrollBar;
-    property ImageIndexDef;
-    property ImageHighlight;
-    property Images;
-    property ParentColor default False;
-    property ParentCtl3D;
-    property ParentFont;
-    property ParentShowHint;
-    property PopupMenu;
-    property ReadOnly;
-    property RightClickSelect;
-    property Rows;
-    property RowSelect;
-    property ShowCellTips;
-    property ShowFocusRect;
-    property ShowGridHint;
-    property ShowHeader;
-    property ShowHint;
-    property TabOrder;
-    property TabStop default True;
-    property VertScrollBar;
-    property Visible;
-    property OnCellAcceptCursor;
-    property OnCellClick;
-    property OnCellTips;
-    property OnChange;
-    property OnChangeColumns;
-    property OnChangeEditing;
-    property OnChangeEditMode;
-    property OnChangeFixed;
-    property OnChangeRows;
-    property OnChanging;
-    property OnCheckClick;
-    property OnClick;
-    property OnColumnResizing;
-    property OnColumnResize;
-    property OnColumnSizeToFit;
-    property OnContextPopup;
-    property OnDblClick;
-    property OnDragDrop;
-    property OnDragOver;
-    property OnDraw;
-    property OnDrawCell;
-    property OnDrawHeader;
-    property OnEditAcceptKey;
-    property OnEditButtonPress;
-    property OnEditCanceled;
-    property OnEditCanModify;
-    property OnEditCanShow;
-    property OnEditChange;
-    property OnEditCloseUp;
-    property OnEditCloseUpEx;
-    property OnEditSelectNext;
-    property OnEndDrag;
-    property OnEnter;
-    property OnExit;
-    property OnGetCellColors;
-    property OnGetCellImage;
-    property OnGetCellImageEx;
-    property OnGetCellImageIndent;
-    property OnGetCellHintRect;
-    property OnGetCellReadOnly;
-    property OnGetCellText;
-    property OnGetCellTextIndent;
-    property OnGetCheckAlignment;
-    property OnGetCheckImage;
-    property OnGetCheckIndent;
-    property OnGetCheckKind;
-    property OnGetCheckState;
-    property OnGetCheckStateEx;
-    property OnGetEditList;
-    property OnGetEditListBounds;
-    property OnGetEditListIndex;
-    property OnGetEditMask;
-    property OnGetEditStyle;
-    property OnGetEditText;
-    property OnGetGridHint;
-    property OnGetGridColor;
-    property OnGetHeaderColors;
-    property OnGetHeaderImage;
-    property OnGetSortDirection;
-    property OnGetSortImage;
-    property OnGetTipsRect;
-    property OnGetTipsText;
-    property OnHeaderClick;
-    property OnHeaderClicking;
-    property OnHeaderDetailsClick;
-    property OnMouseDown;
-    property OnMouseMove;
-    property OnMouseUp;
-    property OnMouseWheelDown;
-    property OnMouseWheelUp;
-    property OnKeyDown;
-    property OnKeyPress;
-    property OnKeyUp;
-    property OnResize;
-    property OnSetEditText;
-    property OnStartDrag;
-  end;
-
-{ Cell utilities }
-
-function GridCell(Col, Row: Longint): TGridCell;
-
-function IsCellEqual(Cell1, Cell2: TGridCell): Boolean;
-function IsCellEmpty(Cell: TGridCell): Boolean;
-
-function OffsetCell(Cell: TGridCell; C, R: Longint): TGridCell;
+{$I Ex_Grid.inc}
 
 implementation
-
-uses
-  Themes, UxTheme;
 
 resourcestring
   SHeaderDetails = '&Details...';
   STextNotFound = 'Can not find "%s".';
-
-function GridCell(Col, Row: Longint): TGridCell;
-begin
-  Result.Col := Col;
-  Result.Row := Row;
-end;
-
-function IsCellEqual(Cell1, Cell2: TGridCell): Boolean;
-begin
-  Result := (Cell1.Col = Cell2.Col) and (Cell1.Row = Cell2.Row);
-end;
-
-function IsCellEmpty(Cell: TGridCell): Boolean;
-begin
-  Result := (Cell.Col = -1) or (Cell.Row = -1);
-end;
-
-function OffsetCell(Cell: TGridCell; C, R: Longint): TGridCell;
-begin
-  Result.Col := Cell.Col + C;
-  Result.Row := Cell.Row + R;
-end;
 
 { TGridHeaderSection }
 
@@ -2403,6 +47,7 @@ var
   I: Integer;
 begin
   Result := False;
+  { можно ли щелкать на колонке }
   { column AllowClick property can disable header click }
   if (Header <> nil) and (Header.Grid <> nil) then
   begin
@@ -2416,16 +61,15 @@ function TGridHeaderSection.GetBoundsRect: TRect;
 var
   R: TRect;
 begin
+  { нет заголовка - нет размеров }
   if (Header = nil) or (Header.Grid = nil) then
-  begin
-    Result := Rect(0, 0, 0, 0);
-    Exit;
-  end;
+    Exit( Classes.Rect(0, 0, 0, 0) );
   { get bounds relative to the upper-left corner of the header }
   Result := FBoundsRect;
   R := Header.Grid.GetHeaderRect;
   OffsetRect(Result, R.Left, R.Top);
-  { non-fixed sections should scroll as their columns }
+  { если это не фиксированный заголовок - смещаем его на величину сдвига
+    таблицы скроллером }
   if not FixedColumn then
     OffsetRect(Result, Header.Grid.GetGridOrigin.X, 0);
 end;
@@ -2441,7 +85,7 @@ var
   I: Integer;
 begin
   Result := Caption;
-  if (Length(Result) = 0) and (not IsSectionsStored) and (Header <> nil) and
+  if (Result = '') and (not IsSectionsStored) and (Header <> nil) and
     (Header.Grid <> nil) then
   begin
     I := ColumnIndex;
@@ -2453,66 +97,51 @@ end;
 function TGridHeaderSection.GetFirstColumnIndex: Integer;
 begin
   if Sections.Count > 0 then
-  begin
-    Result := Sections[0].FirstColumnIndex;
-    Exit;
-  end;
-  Result := ColumnIndex;
+    Result := Sections[0].FirstColumnIndex
+  else
+    Result := ColumnIndex;
 end;
 
 function TGridHeaderSection.GetFixedColumn: Boolean;
 begin
   if Sections.Count > 0 then
-  begin
-    Result := Sections[0].FixedColumn;
-    Exit;
-  end;
-  if (Header = nil) or (Header.Grid = nil) then
-  begin
-    Result := False;
-    Exit;
-  end;
-  Result := ColumnIndex < Header.Grid.Fixed.Count;
+    Result := Sections[0].FixedColumn
+  else if (Header = nil) or (Header.Grid = nil) then
+    Result := False
+  else
+    Result := ColumnIndex < Header.Grid.Fixed.Count;
 end;
 
 function TGridHeaderSection.GetHeader: TCustomGridHeader;
 begin
   if ParentSections <> nil then
-  begin
-    Result := ParentSections.Header;
-    Exit;
-  end;
-  Result := nil;
+    Result := ParentSections.Header
+  else
+    Result := nil;
 end;
 
 function TGridHeaderSection.GetLevel: Integer;
 begin
   if Parent <> nil then
-  begin
-    Result := Parent.Level + 1;
-    Exit;
-  end;
-  Result := 0
+    Result := Parent.Level + 1
+  else
+    Result := 0
 end;
 
 function TGridHeaderSection.GetParent: TGridHeaderSection;
 begin
   if ParentSections <> nil then
-  begin
-    Result := ParentSections.OwnerSection;
-    Exit;
-  end;
-  Result := nil;
+    Result := ParentSections.OwnerSection
+  else
+    Result := nil;
 end;
 
 function TGridHeaderSection.GetParentSections: TGridHeaderSections;
 begin
   if Collection <> nil then
-  begin
-    Result := TGridHeaderSections(Collection);
-    Exit;
-  end;
-  Result := nil;
+    Result := TGridHeaderSections(Collection)
+  else
+    Result := nil;
 end;
 
 function TGridHeaderSection.GetSections: TGridHeaderSections;
@@ -2526,13 +155,12 @@ function TGridHeaderSection.GetResizeColumnIndex: Integer;
 var
   I: Integer;
 begin
+  { если есть подзаголовки возвращаем колонку последнего из них }
   { the resize column is the column of the rightmost subsection }
   for I := Sections.Count - 1 downto 0 do
     if Sections[I].Visible then
-    begin
-      Result := Sections[I].ResizeColumnIndex;
-      Exit;
-    end;
+      Exit( Sections[I].ResizeColumnIndex );
+  { возвращаем расчитанный индекс колонки }
   Result := FColumnIndex;
 end;
 
@@ -2540,23 +168,20 @@ function TGridHeaderSection.GetVisible: Boolean;
 var
   I: Integer;
 begin
+  { если есть подзаголовки, то смотрим видимость их }
   if Sections.Count > 0 then
     for I := 0 to Sections.Count - 1 do
       if Sections[I].Visible then
-      begin
-        Result := True;
-        Exit;
-      end;
+        Exit( True );
+  { иначе смотрим видимость колонки }
   { section visibility is the visibility of the corresponding column }
   if (Header <> nil) and (Header.Grid <> nil) then
   begin
     I := ColumnIndex;
     if I < Header.Grid.Columns.Count then
-    begin
-      Result := Header.Grid.Columns[I].Visible;
-      Exit;
-    end;
+      Exit( Header.Grid.Columns[I].Visible );
   end;
+  { нет колонки - секция видна }
   { sections without columns (nonsense) are always visible }
   Result := True;
 end;
@@ -2566,6 +191,7 @@ var
   I: Integer;
   S: TGridHeaderSection;
 begin
+  { если есть подзаголовки, то ширина есть сумма ширин подзаголовков }
   if Sections.Count > 0 then
   begin
     Result := 0;
@@ -2576,15 +202,13 @@ begin
     end;
     Exit;
   end;
+  { иначе возвращаем ширину соответствующей колонки }
   { section with is the with of the corresponding column }
   if (Header <> nil) and (Header.Grid <> nil) then
   begin
     I := ColumnIndex;
     if I < Header.Grid.Columns.Count then
-    begin
-      Result := Header.Grid.Columns[I].Width;
-      Exit;
-    end;
+      Exit( Header.Grid.Columns[I].Width );
   end;
   { sections without columns (nonsense) do not have width }
   Result := 0;
@@ -2647,11 +271,9 @@ end;
 function TGridHeaderSections.GetMaxColumn: Integer;
 begin
   if Count > 0 then
-  begin
-    Result := Sections[Count - 1].ColumnIndex;
-    Exit;
-  end;
-  Result := 0;
+    Result := Sections[Count - 1].ColumnIndex
+  else
+    Result := 0;
 end;
 
 function TGridHeaderSections.GetMaxLevel: Integer;
@@ -2698,11 +320,9 @@ end;
 function TGridHeaderSections.Add: TGridHeaderSection;
 begin
   if (Header = nil) or (Header.Grid = nil) then
-  begin
-    Result := TGridHeaderSection(inherited Add);
-    Exit;
-  end;
-  Result := Header.Grid.CreateHeaderSection(Self);
+    Result := TGridHeaderSection(inherited Add)
+  else
+    Result := Header.Grid.CreateHeaderSection(Self);
 end;
 
 { TCustomGridHeader }
@@ -2762,17 +382,14 @@ var
   I: Integer;
   S: TGridHeaderSection;
 begin
+  Result := False;
   for I := 0 to Sections.Count - 1 do
   begin
     S := Sections[I];
     if (S.Caption <> '') or (S.Alignment <> taLeftJustify) or S.WordWrap or
-      ((S.FSections <> nil) and (S.Sections.Count > 0)) then
-    begin
-      Result := True;
-      Exit;
-    end;
+       ((S.FSections <> nil) and (S.Sections.Count > 0)) then
+      Exit( True );
   end;
-  Result := False;
 end;
 
 procedure TCustomGridHeader.ImagesChange(Sender: TObject);
@@ -2783,6 +400,7 @@ end;
 procedure TCustomGridHeader.FontChange(Sender: TObject);
 begin
   FGridFont := False;
+  { подправляем высоту, изменения }
   SetSectionHeight(SectionHeight);
   Change;
 end;
@@ -2863,6 +481,7 @@ begin
       FImages.RegisterChanges(FImagesLink);
       if Grid <> nil then FImages.FreeNotification(Grid);
     end;
+    { подправляем высоту, изменения }
     SetSectionHeight(SectionHeight);
     Change;
   end;
@@ -2882,9 +501,11 @@ begin
   if FFlat <> Value then
   begin
     FFlat := Value;
+    { подправляем 3D эффект фиксированных }
     { fixed columns and header must have the same 3D effects }
     if Value and (Grid <> nil) then
       Grid.Fixed.Flat := True;
+    { подправляем высоту, изменения }
     SetSectionHeight(SectionHeight);
     Change;
   end;
@@ -2901,6 +522,7 @@ begin
   begin
     FGridColor := Value;
     if Grid <> nil then GridColorChanged(Grid.Color);
+    { подправляем высоту, изменения }
     SetSectionHeight(SectionHeight);
     Change;
   end;
@@ -2918,6 +540,7 @@ end;
 
 procedure TCustomGridHeader.SetSections(Value: TGridHeaderSections);
 begin
+  { устанавливаем заголовок }
   FSections.Assign(Value);
 end;
 
@@ -2925,9 +548,12 @@ procedure TCustomGridHeader.SetSectionHeight(Value: Integer);
 var
   TH, IH: Integer;
 begin
+  { проверяем автоподбор }
   if AutoHeight then
   begin
+    { высота текста }
     TH := Grid.GetFontHeight(Font) + 2 * 2;
+    { высота картинки }
     IH := 0;
     if Images <> nil then
     begin
@@ -2935,10 +561,11 @@ begin
       if not GridColor then Inc(IH, 1);
       if not Flat then Inc(IH, 1);
     end;
+    { высота текста }
     Value := MaxIntValue([0, TH, IH]);
     { take into account borders (conditions are made in the order of drawing
       the header background in PaintHeaderBackground() }
-    if not StyleServices.Enabled then
+    if not ThemeServices.ThemesEnabled then
     begin
       { double line or 3D frame }
       if Flat then Inc(Value, 2)
@@ -2946,16 +573,20 @@ begin
     end
     else if Grid <> nil then
     begin
-      { in Windows XP with themes enabled, we need additional space at the
-        bottom of the header for rounding, and in Windows Vista - for
-        the sort arrow }
+    {$IFDEF WINDOWS}
+    { in Windows XP with themes enabled, we need additional space at the
+      bottom of the header for rounding, and in Windows Vista - for
+      the sort arrow }
       if CheckWin32Version(6, 0) then
         Inc(Value, Grid.GetSortArrowSize.cy) // + 2
       else
+    {$ENDIF}
         Inc(Value, 3);
     end;
   end;
+  { высота секций не может быть нулевой }
   if Value < 0 then Value := 0;
+  { устанавливаем }
   if FSectionHeight <> Value then
   begin
     FSectionHeight := Value;
@@ -2965,7 +596,9 @@ end;
 
 procedure TCustomGridHeader.Change;
 begin
+  { обновляем секции заголовка }
   UpdateSections;
+  { событие }
   if Assigned(FOnChange) then FOnChange(Self);
 end;
 
@@ -3010,19 +643,24 @@ var
   var
     R: TRect;
   begin
+    { абсолютные границы заголовка }
     R.Left := Grid.GetColumnLeftRight(Column).Left;
     R.Right := R.Left;
     R.Top := Grid.ClientRect.Top;
     R.Bottom := R.Top + Height;
+    { добавляем }
     while Column < Grid.Columns.Count do
     begin
+      { прямоугольник секции }
       R.Left := R.Right;
       R.Right := R.Left + Grid.Columns[Column].Width;
+      { добавляем секцию }
       with Sections.Add do
       begin
         FColumnIndex := Column;
         FBoundsRect := R;
       end;
+      { следующия колонка }
       Inc(Column);
     end;
   end;
@@ -3058,22 +696,27 @@ var
   end;
 
 begin
+  { синхронизируем секции }
   if (Grid <> nil) and (Grid.ComponentState * [csReading, csLoading] = [])
     and (Grid.Columns <> nil) then
   begin
     Sections.BeginUpdate;
     try
+      { необходимо обновить внутренние параметры секций }
       UpdateSections;
+      { заголовок пуст - добавляем все колонки }
       if Sections.Count = 0 then
       begin
         DoAddSections(0);
         Exit;
       end;
+      { если секций меньше - добавляем, иначе удаляем лишние }
       C := Sections[Sections.Count - 1].ColumnIndex;
       if C < Grid.Columns.Count - 1 then
         DoAddSections(C + 1)
       else if C > Grid.Columns.Count - 1 then
         DoDeleteSections(Sections);
+      { у нижних секций синхронизируем заголовок, выравнивание и шинрину }
       DoSynchronizeSections(Sections);
     finally
       Sections.EndUpdate;
@@ -3094,14 +737,18 @@ var
     for I := 0 to Sections.Count - 1 do
     begin
       S := Sections[I];
+      { есть ли подзаголовки }
       if S.Sections.Count = 0 then
       begin
+        { это нижняя секция }
         S.FColumnIndex := C;
         Inc(C);
       end
       else
       begin
+        { рекурсия на все подзаголовки снизу }
         DoUpdateColumnIndex(S.Sections);
+        { индекс есть индекс последнего }
         S.FColumnIndex := S.Sections[S.Sections.Count - 1].FColumnIndex;
       end;
     end;
@@ -3115,18 +762,24 @@ var
   begin
     R := Rect;
     R.Right := R.Left;
+    { перебираем подзаголовки }
     for I := 0 to Sections.Count - 1 do
     begin
       S := Sections[I];
       R.Left := R.Right;
       R.Right := R.Left + S.Width;
+      { прямоугольник }
       SR := R;
       if S.Sections.Count > 0 then SR.Bottom := R.Top + SectionHeight;
+      { запоминаем }
       S.FBoundsRect := SR;
+      { подзаголовки }
       if S.Sections.Count > 0 then
       begin
+        { вычитаем строку сверху }
         SR.Top := SR.Bottom;
         SR.Bottom := R.Bottom;
+        { подзаголовки снизу }
         DoUpdateSecionsBounds(S.Sections, SR);
       end;
     end;
@@ -3136,12 +789,15 @@ begin
   if (Grid <> nil) and (Grid.ComponentState * [csReading, csLoading] = [])
     and (Grid.Columns <> nil) then
   begin
+    { определяеи индексы колонок }
     C := 0;
     DoUpdateColumnIndex(Sections);
+    { абсолютные границы заголовка }
     R.Left := Grid.ClientRect.Left;
     R.Right := R.Left + Grid.GetColumnsWidth(0, Grid.Columns.Count - 1);
     R.Top := Grid.ClientRect.Top;
     R.Bottom := R.Top + Height;
+    { определяем границы секций }
     DoUpdateSecionsBounds(Sections, R);
   end;
 end;
@@ -3186,7 +842,8 @@ begin
   S := HeaderSection;
   if S <> nil then
   begin
-    if Length(S.Caption) <> 0 then Result := S.Caption;
+    if S.Caption <> '' then
+      Result := S.Caption;
     S := S.Parent;
     while S <> nil do
     begin
@@ -3430,7 +1087,8 @@ end;
 procedure TCustomGridColumn.DefineProperties(Filer: TFiler);
 begin
   inherited DefineProperties(Filer);
-  { backward compatibility }
+  { для совместимости со старыми версиями, где вместо свойства WantReturns
+    было свойство Multiline }
   Filer.DefineProperty('Multiline', ReadMultiline, nil, False);
 end;
 
@@ -3475,9 +1133,9 @@ begin
   FGrid := AGrid;
 end;
 
-function TGridColumns.GetColumn(Index: Integer): TGridColumn;
+function TGridColumns.GetColumn(Index: Integer): TCustomGridColumn;
 begin
-  Result := TGridColumn(inherited GetItem(Index));
+  Result := TCustomGridColumn(inherited GetItem(Index));
 end;
 
 function TGridColumns.GetLayout: string;
@@ -3487,21 +1145,23 @@ var
 begin
   Strings := TStringList.Create;
   try
+    { добавляем в список ширины колонок }
     for I := 0 to Count - 1 do
     begin
-      { negative width means invisible column }
+      { отрицательное значение ширины соотвествует невидимой колонке }
       W := Columns[I].DefWidth;
       if not Columns[I].Visible then W := W * (-1);
+      { добавляем в список }
       Strings.Add(IntToStr(W));
     end;
-    { layout is comma-delimited string }
+    { результат - ширины колонок, разделенные запятой }
     Result := Strings.CommaText;
   finally
     Strings.Free;
   end;
 end;
 
-procedure TGridColumns.SetColumn(Index: Integer; Value: TGridColumn);
+procedure TGridColumns.SetColumn(Index: Integer; Value: TCustomGridColumn);
 begin
   inherited SetItem(Index, Value);
 end;
@@ -3515,14 +1175,19 @@ begin
   try
     Strings := TStringList.Create;
     try
+      { разбиваем ширины колонок, разделенные запятой, на строки }
       Strings.CommaText := Value;
+      { меняем ширины колонок }
       for I := 0 to Strings.Count - 1 do
       begin
+        { проверяем количество колонок }
         if I > Count - 1 then Break;
         { see comment in SetMinWidth() }
         Inc(Columns[I].FWidthLock);
         try
+          { получаем ширину }
           W := StrToIntDef(Strings[I], Columns[I].DefWidth);
+          { отрицательное значение ширины соотвествует невидимой колонке }
           Columns[I].DefWidth := Abs(W);
           Columns[I].Visible := W > 0;
         finally
@@ -3547,14 +1212,12 @@ begin
   if Assigned(FOnChange) then FOnChange(Self);
 end;
 
-function TGridColumns.Add: TGridColumn;
+function TGridColumns.Add: TCustomGridColumn;
 begin
   if Grid = nil then
-  begin
-    Result := TGridColumn(inherited Add);
-    Exit;
-  end;
-  Result := TGridColumn(Grid.CreateColumn(Self));
+    Result := TCustomGridColumn(inherited Add)
+  else
+    Result := Grid.CreateColumn(Self);
 end;
 
 { TCustomGridRows }
@@ -3598,28 +1261,36 @@ procedure TCustomGridRows.SetHeight(Value: Integer);
 var
   TH, FH, CH, IH, GH: Integer;
 begin
+  { проверяем автоподбор }
   if AutoHeight and (Grid <> nil) then
   begin
+    { высота текста }
     { the height of text }
     TH := Grid.GetFontHeight(Grid.Font) + Grid.TextTopIndent + 1;
     FH := Grid.GetFontHeight(Grid.Fixed.Font) + Grid.TextTopIndent + 1;
+    { высота флажков }
     { the height of check boxes }
     if not Grid.CheckBoxes then CH := 0
     else CH := Grid.CheckHeight + Grid.CheckTopIndent + 1;
+    { высота картинки }
     { the height of images }
     if Grid.Images = nil then IH := 0
     else IH := Grid.Images.Height + Grid.ImageTopIndent + 1;
+    { учет сетки }
     { grid lines }
     if not (Grid.GridLines and (gsHorzLine in Grid.GridStyle)) then GH := 0
     else
     begin
       GH := Grid.FGridLineWidth;
       if (Grid.Fixed.Count > 0) and (not Grid.Fixed.Flat) and
-        (not StyleServices.Enabled) then Inc(GH, 1); // <- 3D
+        (not ThemeServices.ThemesEnabled) then Inc(GH, 1); // <- 3D
     end;
+    { высота строки }
     Value := MaxIntValue([0, TH, FH, CH, IH]) + GH + 1;
   end;
+  { высота строк не может быть нулевой }
   if Value < 0 then Value := 0;
+  { устанавливаем }
   if FHeight <> Value then
   begin
     FHeight := Value;
@@ -3706,6 +1377,7 @@ begin
   if FFlat <> Value then
   begin
     FFlat := Value;
+    { подправляем 3D эффект заголовка }
     { fixed columns and header must have the same 3D effects }
     if (not Value) and (Grid <> nil) then
       Grid.Header.Flat := False;
@@ -3772,9 +1444,11 @@ end;
 
 procedure TCustomGridFixed.SetCount(Value: Integer);
 begin
+  { подправляем значение }
   if (Grid <> nil) and (Value > Grid.Columns.Count - 1) then
     Value := Grid.Columns.Count - 1;
   if Value < 0 then Value := 0;
+  { устанавливаем }
   if FCount <> Value then
   begin
     FCount := Value;
@@ -3860,7 +1534,7 @@ begin
   if Assigned(FOnScroll) then FOnScroll(Self, ScrollCode, ScrollPos);
 end;
 
-procedure TGridScrollBar.ScrollMessage(var Message: TWMScroll);
+procedure TGridScrollBar.ScrollMessage(var Message: TLMScroll);
 var
   ScrollInfo: TScrollInfo;
 begin
@@ -3896,18 +1570,24 @@ end;
 
 procedure TGridScrollBar.SetParams(AMin, AMax, APageStep, ALineStep: Integer);
 begin
+  { подправляем новые значения }
   if AMax < AMin then AMax := AMin;
   if APageStep > AMax - AMin + 1 then APageStep := AMax - AMin + 1;
   if APageStep < 0 then APageStep := 0;
   if ALineStep < 0 then ALineStep := 0;
+  { изменилось ли что нибудь }
   if (FMin <> AMin) or (FMax <> AMax) or (FPageStep <> APageStep) or (FLineStep <> ALineStep) then
   begin
+    { устанавливаем новые значения }
     FMin := AMin;
     FMax := AMax;
     FPageStep := APageStep;
     FLineStep := ALineStep;
+    { подправляем позицию }
     CheckScrollPos(FMin, FMax, FPageStep, FPosition);
+    { обновляем скроллер }
     Update;
+    { событие }
     ChangeParams;
   end;
 end;
@@ -3921,18 +1601,23 @@ procedure TGridScrollBar.SetPositionEx(Value: Integer; ScrollCode: Integer);
 var
   R: TRect;
 begin
+  { проверяем позицию }
   CheckScrollPos(FMin, FMax, FPageStep, Value);
   if Value <> FPosition then
   begin
     Scroll(ScrollCode, Value);
     CheckScrollPos(FMin, FMax, FPageStep, Value);
   end;
+  { изменилась ли позиция }
   if Value <> FPosition then
   begin
+    { сдвигаем сетку }
     with FGrid do
     begin
+      { гасим фокус }
       { focus rect should be hidden while scrolling grid }
       HideFocus;
+      { сдвигаем }
       if FKind = sbHorizontal then
       begin
         UnionRect(R, GetHeaderRect, GetGridRect);
@@ -3944,10 +1629,14 @@ begin
         R := GetGridRect;
         ScrollWindowEx(Handle, 0, (FPosition - Value) * FLineSize, @R, @R, 0, nil, SW_INVALIDATE);
       end;
+      { устанавливаем новую позицию }
       FPosition :=  Value;
+      { показываем фокус }
       ShowFocus;
     end;
+    { устанавливаем скроллер }
     Update;
+    { изменение }
     Change;
   end;
 end;
@@ -3959,6 +1648,7 @@ begin
   if FGrid.HandleAllocated and (FUpdateLock = 0) then
   begin
     FillChar(ScrollInfo, SizeOf(ScrollInfo), 0);
+    { параметры скроллера }
     ScrollInfo.cbSize := SizeOf(ScrollInfo);
     ScrollInfo.fMask := SIF_RANGE or SIF_PAGE or SIF_POS;
     if Visible and (Max <> Min) then
@@ -4014,6 +1704,8 @@ begin
 end;
 
 procedure TGridListBox.CreateParams(var Params: TCreateParams);
+const
+  CS_SAVEBITS = $800;
 begin
   inherited CreateParams(Params);
   with Params do
@@ -4027,26 +1719,28 @@ end;
 procedure TGridListBox.CreateWnd;
 begin
   inherited CreateWnd;
-  Windows.SetParent(Handle, 0);
-  CallWindowProc(DefWndProc, Handle, WM_SETFOCUS, 0, 0);
+  SetParent(Self);
+  CallWindowProc(DefWndProc, Handle, LM_SETFOCUS, 0, 0);
 end;
 
 procedure TGridListBox.KeyPress(var Key: Char);
 var
-  TickCount: Integer;
+  TickCount: UInt64;
+  i: Integer;
 begin
   case Key of
     #8, #27:
-      { discard search text  }
+      { сбрасываем текст поиска }
       FSearchText := '';
     #32..#255:
-      { search a list box }
+      { инициируем поиск }
       begin
-        TickCount := Longint(GetTickCount);
-        if Abs(TickCount - FSearchTime) > 2000 then FSearchText := '';
+        TickCount := GetTickCount64;
+        if TickCount - FSearchTime > 2000 then FSearchText := '';
         FSearchTime := TickCount;
-        if Length(FSearchText) < 32 then FSearchText := FSearchText + Key;
-        SendMessage(Handle, LB_SELECTSTRING, WORD(-1), Longint(PChar(FSearchText)));
+        if UTF8Length(FSearchText) < 32 then FSearchText := FSearchText + Key;
+        i := FindInStrings(FSearchText, Items, [fsIgnoreCase, fsFromBegin]);
+        if i <> -1 then ItemIndex:= i;
         Key := #0;
       end;
   end;
@@ -4065,11 +1759,11 @@ end;
 constructor TCustomGridEdit.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
+  { внутренние переменные }
   FEditStyle := geSimple;
   FDropDownCount := 0;
   FButtonWidth := GetSystemMetrics(SM_CXVSCROLL);
-  ParentCtl3D := False;
-  Ctl3D := False;
+  { параметры внешнего вида }
   TabStop := False;
   BorderStyle := bsNone;
   ParentShowHint := False;
@@ -4078,7 +1772,7 @@ end;
 
 function TCustomGridEdit.GetButtonRect: TRect;
 begin
-  Result := Rect(Width - FButtonWidth, 0, Width, Height);
+  Result := Classes.Rect(Width - FButtonWidth, 0, Width, Height);
 end;
 
 function TCustomGridEdit.GetClosingUp: Boolean;
@@ -4113,7 +1807,7 @@ end;
 
 procedure TCustomGridEdit.ListMouseUp(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 begin
-  if (Button = mbLeft) and (FActiveList <> nil) then CloseUp(PtInRect(FActiveList.ClientRect, Point(X, Y)));
+  if (Button = mbLeft) and (FActiveList <> nil) then CloseUp(PtInRect(FActiveList.ClientRect, Classes.Point(X, Y)));
 end;
 
 procedure TCustomGridEdit.SetAlignment(Value: TAlignment);
@@ -4121,7 +1815,7 @@ begin
   if FAlignment <> Value then
   begin
     FAlignment := Value;
-    RecreateWnd;
+    RecreateWnd(Self);
   end;
 end;
 
@@ -4153,13 +1847,14 @@ begin
   if FWordWrap <> Value then
   begin
     FWordWrap := Value;
-    RecreateWnd;
+    RecreateWnd(Self);
   end;
 end;
 
-procedure TCustomGridEdit.WMGetDlgCode(var Message: TWMGetDlgCode);
+procedure TCustomGridEdit.LMGetDlgCode(var Message: TLMGetDlgCode);
 begin
   inherited;
+  { символы, переход по нажатию TAB }
   with Message do
   begin
     Result := Result or DLGC_WANTARROWS or DLGC_WANTCHARS;
@@ -4168,13 +1863,13 @@ begin
   end;
 end;
 
-procedure TCustomGridEdit.WMCancelMode(var Message: TMessage);
+procedure TCustomGridEdit.LMCancelMode(var Message);
 begin
   StopButtonTracking;
   inherited;
 end;
 
-procedure TCustomGridEdit.WMKillFocus(var Message: TMessage);
+procedure TCustomGridEdit.LMKillFocus(var Message);
 begin
   inherited;
   { ignore the focus message if the dialog box appears after selecting
@@ -4189,24 +1884,24 @@ begin
   end;
 end;
 
-procedure TCustomGridEdit.WMWindowPosChanged(var Message: TWMWindowPosChanged);
+procedure TCustomGridEdit.LMWindowPosChanged(var Message);
 begin
   inherited;
   Invalidate;
 end;
 
-procedure TCustomGridEdit.WMPaint(var Message: TWMPaint);
+procedure TCustomGridEdit.LMPaint(var Message: TLMPaint);
 begin
   PaintHandler(Message);
 end;
 
-procedure TCustomGridEdit.WMLButtonDown(var Message: TWMLButtonDown);
+procedure TCustomGridEdit.LMLButtonDown(var Message: TLMLButtonDown);
 begin
-  SendCancelMode(Self);
+  //SendCancelMode(Self); not implemented in Lazarus
   with Message do
-    { to avoid hiding text selection at the click of a button, we need to
-      process the click manually }
-    if (EditStyle <> geSimple) and PtInrect(ButtonRect, Point(XPos, YPos)) then
+    { чтобы выделение текста не гасло при нажатии на кнопку, обрабатываем
+      нажатие сами }
+    if (EditStyle <> geSimple) and PtInrect(ButtonRect, Classes.Point(XPos, YPos)) then
     begin
       if csCaptureMouse in ControlStyle then MouseCapture := True;
       MouseDown(mbLeft, KeysToShiftState(Keys), XPos, YPos);
@@ -4218,44 +1913,50 @@ begin
     end;
 end;
 
-procedure TCustomGridEdit.WMLButtonDblClk(var Message: TWMLButtonDblClk);
+procedure TCustomGridEdit.LMLButtonDblClk(var Message: TLMLButtonDblClk);
 var
   P: TPoint;
 begin
   with Message do
   begin
-    P := Point(XPos, YPos);
+    P := Classes.Point(XPos, YPos);
     if (FEditStyle <> geSimple) and PtInRect(GetButtonRect, P) then Exit;
   end;
   inherited;
 end;
 
-procedure TCustomGridEdit.WMSetCursor(var Message: TWMSetCursor);
+procedure TCustomGridEdit.LMSetCursor(var Message);
+//var
+//  P: TPoint;
 begin
+  { не попала ли мышка на кнопку }
+  //GetCursorPos(P);
+  //if (FEditStyle <> geSimple) and PtInRect(GetButtonRect, ScreenToClient(P)) then
   if (FEditStyle <> geSimple) and PtInRect(GetButtonRect, ScreenToClient(Mouse.CursorPos)) then
   begin
-    Windows.SetCursor(LoadCursor(0, IDC_ARROW));
+    LCLIntf.SetCursor(Screen.Cursors[crArrow]);
+    //Cursor := crArrow;
     Exit;
   end;
   inherited;
 end;
 
-procedure TCustomGridEdit.WMPaste(var Message);
+procedure TCustomGridEdit.LMPaste(var Message);
 begin
   if EditCanModify then inherited;
 end;
 
-procedure TCustomGridEdit.WMCut(var Message);
+procedure TCustomGridEdit.LMCut(var Message);
 begin
   if EditCanModify then inherited;
 end;
 
-procedure TCustomGridEdit.WMClear(var Message);
+procedure TCustomGridEdit.LMClear(var Message);
 begin
   if EditCanModify then inherited;
 end;
 
-procedure TCustomGridEdit.WMUndo(var Message);
+procedure TCustomGridEdit.Undo;
 begin
   if (Grid = nil) or Grid.EditCanUndo(Grid.EditCell) then inherited;
 end;
@@ -4265,22 +1966,23 @@ begin
   if (Message.Sender <> Self) and (Message.Sender <> FActiveList) then CloseUp(False);
 end;
 
-procedure TCustomGridEdit.CMEnabledChanged(var Message: TMessage);
+procedure TCustomGridEdit.CMEnabledChanged(var Message);
 begin
   inherited;
   Invalidate;
 end;
 
-procedure TCustomGridEdit.CMShowingChanged(var Message: TMessage);
+procedure TCustomGridEdit.CMShowingChanged(var Message);
 begin
+  { игнорируем изменение видимости через изменение свойства Visible }
   { ignore visibility change through Visible property change }
 end;
 
-procedure TCustomGridEdit.WMContextMenu(var Message: TMessage);
+procedure TCustomGridEdit.LMContextMenu(var Message: TLMessage);
 begin
-  { if the DefaultPopupMenu property of the grid is True, then the standard
-    popup menu of the inplace editor should be displayed, otherwise the grid
-    popup menu will be displayed }
+  { если свойство DefaultPopupMenu таблицы установлено в True, то по правой
+    кнопке надо показать стандартное popup меню строки ввода, а не Popup
+    меню таблицы }
   if (Grid <> nil) and Grid.DefaultEditMenu and Assigned(Grid.PopupMenu) then
     with Message do
       Result := CallWindowProc(DefWndProc, Handle, Msg, WParam, LParam)
@@ -4288,7 +1990,7 @@ begin
     inherited;
 end;
 
-procedure TCustomGridEdit.CMFontChanged(var Message: TMessage);
+procedure TCustomGridEdit.CMFontChanged(var Message);
 begin
   inherited;
   { in Borland C ++ Builder, after changing the font, the position of the
@@ -4296,20 +1998,20 @@ begin
   UpdateBounds(Visible, False);
 end;
 
-procedure TCustomGridEdit.CMMouseEnter(var Message: TMessage);
+procedure TCustomGridEdit.CMMouseEnter(var Message);
 begin
   inherited;
-  if StyleServices.Enabled and not FButtonHot then
+  if ThemeServices.ThemesEnabled and not FButtonHot then
   begin
     FButtonHot := True;
     InvalidateButton;
   end;
 end;
 
-procedure TCustomGridEdit.CMMouseLeave(var Message: TMessage);
+procedure TCustomGridEdit.CMMouseLeave(var Message);
 begin
   inherited;
-  if StyleServices.Enabled and FButtonHot then
+  if ThemeServices.ThemesEnabled and FButtonHot then
   begin
     FButtonHot := False;
     InvalidateButton;
@@ -4333,7 +2035,7 @@ begin
     if Accept and (I <> -1) then
     begin
       Text := ItemText;
-      SendMessage(Handle, EM_SETSEL, 0, -1);
+      SetSel(0, -1);
     end;
   end;
 end;
@@ -4356,11 +2058,14 @@ end;
 
 procedure TCustomGridEdit.DblClick;
 begin
+  { событие таблицы }
   if Grid <> nil then Grid.DblClick;
-  { double click works like a button click }
+  { двойной щелчок - эмуляция нажатия на кнопку }
   case EditStyle of
     geEllipsis: Press;
     gePickList, geDataList: if not FDropListVisible then SelectNext;
+  else
+    //
   end;
 end;
 
@@ -4408,27 +2113,37 @@ procedure TCustomGridEdit.KeyDown(var Key: Word; Shift: TShiftState);
   end;
 
 begin
+  { обрабатываем нажатие }
   case Key of
     VK_UP,
     VK_DOWN:
+      { перемещение фокуса }
       if (Shift = [ssCtrl]) or ((Shift = []) and (not (WantReturns or WordWrap))) then SendToParent;
     VK_PRIOR,
     VK_NEXT:
+      { перемещение фокуса }
+      //if Shift = [ssCtrl] then 
       SendToParent;
     VK_ESCAPE:
+      { отмена }
       SendToParent;
     VK_DELETE:
+      { удаление }
       if not EditCanModify then SendToParent;
     VK_INSERT:
+      { вставка }
       if (not EditCanModify) or (Shift = []) then SendToParent;
 //  VK_LEFT,
 //  VK_RIGHT,
     VK_HOME,
     VK_END:
+      { перемещение фокуса при нажатом Ctrl }
       if Shift = [ssCtrl] then SendToParent;
     VK_TAB:
+      { табуляция }
       if not (ssAlt in Shift) then SendToParent;
   end;
+  { кнопка не обработана - событие }
   if Key <> 0 then
   begin
     ParentEvent;
@@ -4440,25 +2155,31 @@ procedure TCustomGridEdit.KeyPress(var Key: Char);
 begin
   if Grid <> nil then
   begin
+    { отсылаем клавишу таблице }
     Grid.KeyPress(Key);
+    { проверяем доступность символа }
     { char can be dropped by grid OnEditAcceptKey event  }
-    if CharInSet(Key, [#32..#255]) and (not Grid.EditCanAcceptKey(Grid.EditCell, Key)) then
+    if (Key in [#32..#255]) and not Grid.EditCanAcceptKey(Grid.EditCell, Key) then
     begin
       Key := #0;
-      MessageBeep(0);
+      SysUtils.Beep;
     end;
-    case Key of
-      #9, #27:
+    { разбираем символ }
+    case Key of                                 
+      #9, #27, #13: // bugfix TS : added #13
+        { TAB, ESC, ENTER убираем }
         Key := #0;
       ^H, ^V, ^X, #32..#255:
+        { BACKSPACE, обычные символы убираем, если нельзя редактировать }
         { drop BACKSPACE and chars when cell is readonly }
         if not EditCanModify then
         begin
           Key := #0;
-          MessageBeep(0);
+          SysUtils.Beep;
         end;
     end;
   end;
+  { обработан ли символ }
   if Key <> #0 then inherited KeyPress(Key);
 end;
 
@@ -4469,12 +2190,16 @@ end;
 
 procedure TCustomGridEdit.MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 begin
-  if (Button = mbLeft) and (EditStyle <> geSimple) and PtInrect(ButtonRect, Point(X, Y)) then
+  { проверяем нажатие на кнопку }
+  if (Button = mbLeft) and (EditStyle <> geSimple) and PtInrect(ButtonRect, Classes.Point(X, Y)) then
   begin
+    { видим ли список }
     if FDropListVisible then
+      { закрываем его }
       CloseUp(False)
     else
     begin
+      { начинаем нажатие на кнопку и, если нужно, открываем список }
       StartButtonTracking(X, Y);
       if EditStyle <> geEllipsis then DropDown;
     end;
@@ -4489,18 +2214,24 @@ var
 begin
   if FButtonTracking then
   begin
+    { нажатие на кнопку }
     StepButtonTracking(X, Y);
+    { для открытого списка }
     { stop button tracking when moving over drop-down list }
     if FDropListVisible then
     begin
-      P := FActiveList.ScreenToClient(ClientToScreen(Point(X, Y)));
+      { получаем точку на списке }
+      P := FActiveList.ScreenToClient(ClientToScreen(Classes.Point(X, Y)));
+      { если попали на список }
       if PtInRect(FActiveList.ClientRect, P) then
       begin
+        { прекращаем нажатие на кнопку }
         StopButtonTracking;
+        { эмулируем нажатие на список }
         { emulate a click on the drop-down list to close it when you release
           the mouse button }
         M := PointToSmallPoint(P);
-        SendMessage(FActiveList.Handle, WM_LBUTTONDOWN, 0, Integer(M));
+        SendMessage(FActiveList.Handle, LM_LBUTTONDOWN, 0, LongInt(M));
         Exit;
       end;
     end;
@@ -4513,8 +2244,11 @@ var
   P: Boolean;
 begin
   P := FButtonPressed;
+  { завершаем нажатие }
   StopButtonTracking;
+  { нажатие на кнопку }
   if (Button = mbLeft) and (EditStyle = geEllipsis) and P then Press;
+  { обработка по умолчанию }
   inherited MouseUp(Button, Shift, X, Y);
 end;
 
@@ -4522,17 +2256,21 @@ procedure TCustomGridEdit.PaintButton(DC: HDC; Rect: TRect);
 var
   Detail1: TThemedButton;
   Detail2: TThemedComboBox;
-  X, Y, Flags, DX: Integer;
+  Flags: Integer;
+{$IFDEF WINDOWS}
+  X, Y, DX: Integer;
+{$ENDIF}
 begin
   case EditStyle of
     geEllipsis:
-      if StyleServices.Enabled then
+      if ThemeServices.ThemesEnabled then
       begin
         if FButtonPressed then Detail1 := tbPushButtonPressed
         //else if Hot then Detail1 := tbPushButtonHot
         else Detail1 := tbPushButtonNormal;
-        with StyleServices do
+        with ThemeServices do
           DrawElement(DC, GetElementDetails(Detail1), Rect);
+      {$IFDEF WINDOWS}
         //X := (Rect.Right - Rect.Left) div 2 - 1 + Ord(Pressed);
         //Y := (Rect.Bottom - Rect.Top) div 2 - 1 + Ord(Pressed);
         X := (Rect.Right - Rect.Left) div 2 + Ord(FButtonPressed and (Win32MajorVersion > 6));
@@ -4540,24 +2278,27 @@ begin
         PatBlt(DC, Rect.Left + X, Rect.Top + Y, 1, 2, BLACKNESS);
         PatBlt(DC, Rect.Left + X - 3, Rect.Top + Y, 1, 2, BLACKNESS);
         PatBlt(DC, Rect.Left + X + 3, Rect.Top + Y, 1, 2, BLACKNESS);
+      {$ENDIF}
       end
       else
       begin
         Flags := 0;
         if FButtonPressed then Flags := BF_FLAT;
         DrawEdge(DC, Rect, EDGE_RAISED, BF_RECT or BF_MIDDLE or Flags);
+      {$IFDEF WINDOWS}
         Flags := (Rect.Right - Rect.Left) div 2 - 1 + Ord(FButtonPressed);
         PatBlt(DC, Rect.Left + Flags, Rect.Top + Flags, 2, 2, BLACKNESS);
         PatBlt(DC, Rect.Left + Flags - 3, Rect.Top + Flags, 2, 2, BLACKNESS);
         PatBlt(DC, Rect.Left + Flags + 3, Rect.Top + Flags, 2, 2, BLACKNESS);
+      {$ENDIF}
       end;
     gePickList, geDataList:
-      if StyleServices.Enabled then
+      if ThemeServices.ThemesEnabled then
       begin
         if FButtonPressed then Detail2 := tcDropDownButtonPressed
         //else if Hot then Detail2 := tcDropDownButtonHot
         else Detail2 := tcDropDownButtonNormal;
-        with StyleServices do
+        with ThemeServices do
           DrawElement(DC, GetElementDetails(Detail2), Rect);
       end
       else
@@ -4565,13 +2306,17 @@ begin
         Flags := 0;
         if FButtonPressed then Flags := DFCS_FLAT;
         DrawEdge(DC, Rect, EDGE_RAISED, BF_RECT or BF_MIDDLE or Flags);
+      {$IFDEF WINDOWS}
         Flags := (Rect.Right - Rect.Left) div 2 - 1 + Ord(FButtonPressed);
         DX := (Rect.Right - Rect.Left) mod 2 - 1;
         PatBlt(DC, Rect.Left + Flags - 2 + DX, Rect.Top + Flags - 1, 7, 1, BLACKNESS);
         PatBlt(DC, Rect.Left + Flags - 1 + DX, Rect.Top + Flags + 0, 5, 1, BLACKNESS);
         PatBlt(DC, Rect.Left + Flags - 0 + DX, Rect.Top + Flags + 1, 3, 1, BLACKNESS);
         PatBlt(DC, Rect.Left + Flags + 1 + DX, Rect.Top + Flags + 2, 1, 1, BLACKNESS);
+      {$ENDIF}
       end;
+  else
+    //
   end;
 end;
 
@@ -4582,7 +2327,9 @@ begin
   if (EditStyle <> geSimple) then
   begin
     R := GetButtonRect;
+    { рисуем кнопку }
     PaintButton(DC, R);
+    { убираем прямоугольник кнопки из области отрисовки }
     ExcludeClipRect(DC, R.Left, R.Top, R.Right, R.Bottom);
   end;
   inherited;
@@ -4601,7 +2348,7 @@ var
   P: Boolean;
 begin
   R := GetButtonRect;
-  P := PtInRect(R, Point(X, Y));
+  P := PtInRect(R, Classes.Point(X, Y));
   if FButtonPressed <> P then
   begin
     FButtonPressed := P;
@@ -4625,6 +2372,8 @@ type
 procedure TCustomGridEdit.UpdateBounds(Showing, ScrollCaret: Boolean);
 const
   Flags: array[Boolean] of Integer = (0, SWP_SHOWWINDOW or SWP_NOREDRAW);
+  EM_SETRECTNP = 180;
+  EM_SCROLLCARET = 183;
 var
   R, F: TRect;
   L, T, W, H: Integer;
@@ -4632,33 +2381,38 @@ var
 begin
   if Grid <> nil then
   begin
-    { set the inplace editor bounds }
+    { определяем прямоугольник ячейки строки ввоа }
     R := Grid.GetEditRect(Grid.EditCell);
     F := R;
+    { подправляем строку в соотвествии с фиксированными }
     with Grid.GetFixedRect do
     begin
       if R.Left < Right then R.Left := Right;
       if R.Right < Right then R.Right := Right;
     end;
+    { подправляем строку в соотвествии с заголовком }
     with Grid.GetHeaderRect do
     begin
       if R.Top < Bottom then R.Top := Bottom;
       if R.Bottom < Bottom then R.Bottom := Bottom;
     end;
+    { устанавливаем положение }
     W := R.Right - R.Left;
     H := R.Bottom - R.Top;
     SetWindowPos(Handle, HWND_TOP, R.Left, R.Top, W, H, Flags[Showing]);
-    { set the text formatting rectangle (the text in inplace editor should
-      be placed exactly above the cell text) }
+    { вычисляем новые границы текста }
     L := F.Left - R.Left;
     T := F.Top - R.Top;
     W := F.Right - F.Left;
     H := F.Bottom - F.Top;
+    { смещение текста }
     TI := Grid.GetCellTextIndent(Grid.EditCell);
+    { учитываем кнопку }
     if EditStyle <> geSimple then Dec(W, ButtonWidth + 4) else Dec(W, Grid.TextRightIndent);
+    { устанавливаем границы текста }
     R := Bounds(L + TI.X, T + TI.Y, W - TI.X + Ord(Alignment = taRightJustify), H);
-    SendMessage(Handle, EM_SETRECTNP, 0, LongInt(@R));
-    { set cursor to the end of text }
+    SendMessage(Handle, EM_SETRECTNP, 0, LPARAM(@R));
+    { курсор в конец строки }
     if ScrollCaret then SendMessage(Handle, EM_SCROLLCARET, 0, 0);
     { when scrolling the grid horizontally, inplace editor should be redrawn
       immediately, otherwise a black rectangle (garbage) will flash
@@ -4675,7 +2429,9 @@ begin
   begin
     Canvas := TCanvas.Create;
     try
+      { получаем цвета ячейки }
       Grid.GetCellColors(Grid.EditCell, Canvas);
+      { запоминаем их }
       Color := Canvas.Brush.Color;
       Font := Canvas.Font;
     finally
@@ -4687,6 +2443,7 @@ end;
 procedure TCustomGridEdit.UpdateContents;
 begin
   if (Grid = nil) or (not Grid.IsCellValid(Grid.EditCell)) then Exit;
+  { обновляем параметры строки }
   with Grid do
   begin
     Self.MaxLength := Columns[EditCell.Col].MaxLength;
@@ -4764,13 +2521,18 @@ begin
         ClientHeight := I * ItemHeight;
       end;
     end;
+  { подправлям размеры списка в зависимости от размеров колонки и его
+    положение на экране }
   with FActiveList do
   begin
+    { подправляем по ширине колонки }
     R := Grid.GetCellRect(Grid.EditCell);
-    Width := Max(Width, R.Right - R.Left);
+    Width := MaxIntValue([Width, R.Right - R.Left]);
+    { положение }
     Left := P.X + Self.Width - Width;
     Top := P.Y + Self.Height;
     if Top + Height > Rect.Bottom - Rect.Top then Top := P.Y - Height;
+    { подправляем в соотвествием с пожеланием пользователя }
     { list bounds can be redefined in OnGetEditListBounds event }
     R := BoundsRect;
     Grid.GetEditListBounds(Grid.EditCell, R);
@@ -4781,10 +2543,13 @@ end;
 procedure TCustomGridEdit.UpdateListItems;
 begin
   if (Grid = nil) or (FActiveList = nil) or (not (FActiveList is TGridListBox)) then Exit;
+  { обновляем выпадающий список }
   with TGridListBox(FActiveList) do
   begin
+    { очищаем старый список, заполняем новый }
     Items.Clear;
     Grid.GetEditList(Grid.EditCell, Items);
+    { устанавливаем выделенную позицию }
     ItemIndex := Grid.GetEditListIndex(Grid.EditCell, Items, Self.Text);
   end;
 end;
@@ -4793,39 +2558,44 @@ procedure TCustomGridEdit.UpdateStyle;
 var
   Style: TGridEditStyle;
 begin
+  { получаем стиль строки }
   Style := geSimple;
-  if (Grid <> nil) and (not Grid.ReadOnly) then
+  if (Grid <> nil) and (not Grid.ReadOnly) then 
     Style := Grid.GetEditStyle(Grid.EditCell);
+  { устанавливаем }
   EditStyle := Style;
 end;
 
 {
   Delete the requested message from the queue, but throw back
-  any WM_QUIT msgs that PeekMessage may also return.
+  any LM_QUIT msgs that PeekMessage may also return.
 }
 procedure KillMessage(Wnd: HWND; Msg: Integer);
 var
   M: TMsg;
 begin
   M.Message := 0;
-  if PeekMessage(M, Wnd, Msg, Msg, PM_REMOVE) and (M.Message = WM_QUIT) then PostQuitMessage(M.wParam);
+  if PeekMessage(M, Wnd, Msg, Msg, PM_REMOVE) and (M.Message = LM_QUIT) then
+    PostMessage(M.hwnd, LM_QUIT, M.wParam, M.lParam);
 end;
 
-procedure TCustomGridEdit.WndProc(var Message: TMessage);
+procedure TCustomGridEdit.WndProc(var Message: TLMessage);
 
   procedure DoDropDownKeys(var Key: Word; Shift: TShiftState);
   begin
     case Key of
       VK_UP, VK_DOWN:
+        { открытие или закрытие }
         if ssAlt in Shift then
         begin
           if FDropListVisible then CloseUp(True) else DropDown;
           Key := 0;
         end;
       VK_RETURN, VK_ESCAPE:
+        { закрытие списка }
         if (not (ssAlt in Shift)) and FDropListVisible then
         begin
-          KillMessage(Handle, WM_CHAR);
+          KillMessage(Handle, LM_CHAR);
           CloseUp(Key = VK_RETURN);
           Key := 0;
         end;
@@ -4836,12 +2606,15 @@ procedure TCustomGridEdit.WndProc(var Message: TMessage);
   begin
     if (Key = VK_RETURN) and (Shift = [ssCtrl]) then
     begin
-      KillMessage(Handle, WM_CHAR);
+      KillMessage(Handle, LM_CHAR);
       Key := 0;
+      { эмуляция нажатия на кнопку }
       { Ctrl+Enter works like a button click }
       case EditStyle of
         geEllipsis: Press;
         gePickList, geDataList: if not FDropListVisible then SelectNext;
+      else
+        //
       end;
     end;
   end;
@@ -4850,41 +2623,45 @@ var
   Form: TCustomForm;
 begin
   case Message.Msg of
-    WM_KEYDOWN,
-    WM_SYSKEYDOWN,
-    WM_CHAR:
-        with TWMKey(Message) do
+    LM_KEYDOWN,
+    LM_SYSKEYDOWN,
+    LM_CHAR:
+        with TLMKey(Message) do
         begin
-          { opening the drop-down list }
+          { открытие списка }
           if EditStyle in [gePickList, geDataList] then
           begin
             DoDropDownKeys(CharCode, KeyDataToShiftState(KeyData));
+            { передаем оставшееся событие списку }
             if (CharCode <> 0) and FDropListVisible then
             begin
-              with TMessage(Message) do SendMessage(FActiveList.Handle, Msg, WParam, LParam);
+              with Message do SendMessage(FActiveList.Handle, Msg, WParam, LParam);
               Exit;
             end;
           end;
-          { button click }
+          { эмуляция нажатия на кнопку }
           if not WantReturns then
           begin
             DoButtonKeys(CharCode, KeyDataToShiftState(KeyData));
             if CharCode = 0 then Exit;
           end;
         end;
-    WM_SETFOCUS:
+    LM_SETFOCUS:
       begin
         Form := GetParentForm(Self);
         if (Form = nil) or Form.SetFocusedControl(Grid) then Dispatch(Message);
         Exit;
       end;
-    WM_LBUTTONDOWN:
-      with TWMLButtonDown(Message) do
+    LM_LBUTTONDOWN:
+      { двойное нажатие мышки }
+      with TLMLButtonDown(Message) do
       begin
-        { mouse double click }
-        if (EditStyle = geSimple) or (not PtInrect(ButtonRect, Point(XPos, YPos))) then
-          if UINT(GetMessageTime - FClickTime) < GetDoubleClickTime then
-            Message.Msg := WM_LBUTTONDBLCLK;
+        { на нажатие на кнопку не реагируем }
+        if (EditStyle = geSimple) or (not PtInrect(ButtonRect, Classes.Point(XPos, YPos))) then
+          { смотрим время повторного щелчка }
+          if GetTickCount64 - FClickTime < GetDoubleClickTime then
+            { меняем сообщение на двойной щелчок }
+            Message.Msg := LM_LBUTTONDBLCLK;
         FClickTime := 0;
       end;
   end;
@@ -4897,8 +2674,9 @@ const
 begin
   if FDropListVisible then
   begin
-    if GetCapture <> 0 then
-      SendMessage(GetCapture, WM_CANCELMODE, 0, 0);
+    if GetCapture <> 0 then 
+      SendMessage(GetCapture, LM_CANCELMODE, 0, 0);
+    { скрываем список }
     SetWindowPos(FActiveList.Handle, 0, 0, 0, 0, 0, Flags);
     FDropListVisible := False;
     Invalidate;
@@ -4917,7 +2695,7 @@ end;
 
 procedure TCustomGridEdit.Deselect;
 begin
-  SendMessage(Handle, EM_SETSEL, $7FFFFFFF, Longint($FFFFFFFF));
+  SetSel(0, -1);
 end;
 
 procedure TCustomGridEdit.DropDown;
@@ -4926,9 +2704,11 @@ const
 begin
   if (not FDropListVisible) and (Grid <> nil) and (EditStyle in [gePickList, geDataList]) then
   begin
+    { получаем выпадающий список }
     FActiveList := GetDropList;
     if FActiveList <> nil then
     begin
+      { заполяем список, устанавливаем размеры }
       UpdateList;
       UpdateListItems;
       { protection against exotic errors: if, when retrieving a list the user
@@ -4939,10 +2719,12 @@ begin
         Exit;
       end;
       UpdateListBounds;
+      { показываем список }
       SetWindowPos(FActiveList.Handle, HWND_TOP, FActiveList.Left, FActiveList.Top, 0, 0, Flags);
       FDropListVisible := True;
       Invalidate;
-      Windows.SetFocus(Handle);
+      { устанавливаем на него фокус }
+      LCLIntf.SetFocus(FActiveList.Handle);
     end;
   end;
 end;
@@ -4951,17 +2733,26 @@ procedure TCustomGridEdit.Invalidate;
 var
   Cur: TRect;
 begin
+  { проверяем таблицу }
   if Grid = nil then
   begin
     inherited Invalidate;
     Exit;
   end;
+  { перерисовываемся }
+{$IFDEF WINDOWS}
   ValidateRect(Handle, nil);
+{$ENDIF}
   InvalidateRect(Handle, nil, True);
+  { обновляем прямоугольник таблицы }
   { grid under the inplace editor must be invalidated too }
-  Windows.GetClientRect(Handle, Cur);
+  LCLIntf.GetClientRect(Handle, Cur);
+{$IFDEF WINDOWS}
   MapWindowPoints(Handle, Grid.Handle, Cur, 2);
   ValidateRect(Grid.Handle, @Cur);
+{$ELSE}
+  dpMapWindowPoints(Handle, Grid.Handle, Cur, 2);
+{$ENDIF}
   InvalidateRect(Grid.Handle, @Cur, False);
 end;
 
@@ -4979,15 +2770,18 @@ const
 begin
   if (Grid <> nil) and HandleAllocated and Visible then
   begin
+    { сбрасываем флаг редактирования }
     Grid.FEditing := False;
+    { скрываем строку ввода }
     Invalidate;
     SetWindowPos(Handle, 0, 0, 0, 0, 0, Flags);
+    { удаляем фокус }
     { the grid should not lose focus }
     if Focused then
     begin
       FDefocusing := True;
       try
-        Windows.SetFocus(Grid.Handle);
+        LCLIntf.SetFocus(Grid.Handle);
       finally
         FDefocusing := False;
       end;
@@ -5019,18 +2813,20 @@ begin
   begin
     OldText := Text;
     NewText := OldText;
+    { вызываем метод таблицы }
     Grid.EditSelectNext(Grid.EditCell, NewText);
+    { устанавливаем новое значение }
     if NewText <> OldText then
     begin
       Text := NewText;
-      SendMessage(Handle, EM_SETSEL, 0, -1);
+      SetSel(0, -1);
     end;
   end;
 end;
 
 procedure TCustomGridEdit.SetFocus;
 begin
-  if IsWindowVisible(Handle) then Windows.SetFocus(Handle);
+  if IsWindowVisible(Handle) then LCLIntf.SetFocus(Handle);
 end;
 
 procedure TCustomGridEdit.Show;
@@ -5041,21 +2837,24 @@ begin
   if Grid <> nil then
   begin
     ScrollCaret := not Grid.FEditing;
+    { поднимаем флаг редактирования }
     Grid.FEditing := True;
     Grid.FCellSelected := True;
-    { colors must be set before the bounds are set, as the bounds are set
-      depending on the font size }
+    { подправляем цвета (следует делать до установки границ, так как
+      они выставляются в зависимости от размера шрифта) }
     UpdateColors;
+    { получаем размеры }
     UpdateBounds(True, ScrollCaret);
     { hot flag to draw a button when themes are enabled }
-    if Windows.GetCursorPos(CursorPos) then
+    if LCLIntf.GetCursorPos(CursorPos) then
     begin
       CursorPos := ScreenToClient(CursorPos);
       FButtonHot := PtInRect(Bounds(0, 0, Width, Height), CursorPos);
     end
     else
       FButtonHot := False;
-    if Grid.Focused then Windows.SetFocus(Handle);
+    { устанавливаем фокус }
+    if Grid.Focused then LCLIntf.SetFocus(Handle);
   end;
 end;
 
@@ -5069,20 +2868,14 @@ begin
 end;
 
 procedure TGridTipsWindow.ActivateHint(Rect: TRect; const AHint: string);
-type
-  TAnimationStyle = (atSlideNeg, atSlidePos, atBlend);
-const
-  Flags: array[TAnimationStyle] of Integer = (AW_VER_NEGATIVE, AW_VER_POSITIVE, AW_BLEND);
 var
   Monitor: TMonitor;
   R: TRect;
   X, Y: Integer;
-  Animate: BOOL;
-  Style: TAnimationStyle;
-  P: TPoint;
 begin
   Caption := AHint;
-  UpdateBoundsRect(Rect);
+  //UpdateBoundsRect(Rect);
+  BoundsRect := Rect;
   { do not show a hint behind the screen }
   Monitor := Screen.MonitorFromPoint(Rect.TopLeft);
   if Monitor <> nil then
@@ -5096,28 +2889,8 @@ begin
     if Y < R.Top then Y := R.Top;
     OffsetRect(Rect, X - Rect.Left, Y - Rect.Top);
   end;
-  { showing hint with or without animation }
-  SystemParametersInfo(SPI_GETTOOLTIPANIMATION, 0, @Animate, 0);
-  if Animate and Assigned(AnimateWindowProc) then
-  begin
-    SetWindowPos(Handle, HWND_TOPMOST, Rect.Left, Rect.Top, Width, Height, SWP_NOACTIVATE);
-    SystemParametersInfo(SPI_GETTOOLTIPFADE, 0, @Animate, 0);
-    if Animate then
-      Style := atBlend
-    else
-    begin
-      Windows.GetCursorPos(P);
-      if P.Y > Rect.Top then
-        Style := atSlideNeg
-      else
-        Style := atSlidePos;
-    end;
-    AnimateWindowProc(Handle, 100, Flags[Style] or AW_SLIDE);
-    ShowWindow(Handle, SW_SHOWNOACTIVATE);
-  end
-  else
-    SetWindowPos(Handle, HWND_TOPMOST, Rect.Left, Rect.Top, Width, Height,
-      SWP_SHOWWINDOW or SWP_NOACTIVATE);
+  SetWindowPos(Handle, HWND_TOPMOST, Rect.Left, Rect.Top, Width, Height,
+    SWP_SHOWWINDOW or SWP_NOACTIVATE);
   Invalidate;
 end;
 
@@ -5144,7 +2917,7 @@ begin
   Result := R;
 end;
 
-procedure TGridTipsWindow.CMTextChanged(var Message: TMessage);
+procedure TGridTipsWindow.CMTextChanged(var Message);
 begin
   { ignore message to prevent flickering hint window }
 end;
@@ -5160,11 +2933,6 @@ begin
     Style := WS_POPUP and not WS_BORDER;
     ExStyle := ExStyle and not WS_EX_CLIENTEDGE;
   end;
-end;
-
-procedure TGridTipsWindow.NCPaint(DC: HDC);
-begin
-  { frame is drawing manually in WMEraseBkgnd }
 end;
 
 procedure TGridTipsWindow.Paint;
@@ -5197,34 +2965,34 @@ begin
   FGrid.PaintText(Canvas, R, TI.X, TI.Y, A, WR, WW, T);
 end;
 
-procedure TGridTipsWindow.WMEraseBkgnd(var Message: TWMEraseBkgnd);
+procedure TGridTipsWindow.LMEraseBkgnd(var Message: TLMEraseBkgnd);
 var
   R: TRect;
   Details: TThemedElementDetails;
-  C: COLORREF;
+  //C: COLORREF;
 begin
   inherited;
-  { when themes are enabled in Windows Vista and above, draw the background
-    with the frame using the current theme, with the themes disabled, draw
-    a solid frame like the explorer (the background is already filled by
-    inherited call) }
-  if StyleServices.Enabled and CheckWin32Version(6, 0) then
+{ when themes are enabled in Windows Vista and above, draw the background
+  with the frame using the current theme, with the themes disabled, draw
+  a solid frame like the explorer (the background is already filled by
+  inherited call) }
+  if ThemeServices.ThemesEnabled {and CheckWin32Version(6, 0)} then
   begin
-    Details := StyleServices.GetElementDetails(tttStandardNormal);
-    StyleServices.DrawElement(Message.DC, Details, ClientRect);
+    Details := ThemeServices.GetElementDetails(tttStandardNormal);
+    ThemeServices.DrawElement(Message.DC, Details, ClientRect);
     { patch for Window 7 and higher: the standard theme draw the bottom
       right pixel with a light color, so a bright dot is visible on the
       shadow background }
-    if (Win32MajorVersion = 6) and (Win32MinorVersion < 2) then
-    begin
-      C := GetPixel(Message.DC, 1, 0);
-      SetPixel(Message.DC, Width - 1, Height - 1, C);
-    end;
+    //if (Win32MajorVersion = 6) and (Win32MinorVersion < 2) then
+    //begin
+    //  C := GetPixel(Message.DC, 1, 0);
+    //  SetPixel(Message.DC, Width - 1, Height - 1, C);
+    //end;
   end
   else
   begin
     R := ClientRect;
-    Windows.DrawEdge(Message.DC, R, BDR_RAISEDOUTER, BF_RECT or BF_MONO);
+    DrawEdge(Message.DC, R, BDR_RAISEDOUTER, BF_RECT or BF_MONO);
   end;
 end;
 
@@ -5245,10 +3013,11 @@ end;
 procedure TGridFindDialog.ShowModal(FindAsItemNo: Boolean);
 var
   ActiveWindow: HWnd;
-  WindowList: Pointer;
+  Forms: TList;
 begin
   ActiveWindow := GetActiveWindow;
-  WindowList := DisableTaskWindows(0);
+  Forms := TList.Create;
+  Screen.DisableForms(nil, Forms);
   try
     if Execute then
       repeat
@@ -5256,7 +3025,8 @@ begin
         if Application.Terminated then FVisible := False;
       until not FVisible;
   finally
-    EnableTaskWindows(WindowList);
+    Screen.EnableForms(Forms);
+    FreeThenNil(Forms);
     SetActiveWindow(ActiveWindow);
   end;
 end;
@@ -5267,11 +3037,11 @@ constructor TCustomGridView.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
   ControlStyle := ControlStyle + [csOpaque, csNeedsBorderPaint];
-  Width := 185;
-  Height := 105;
-  Color := clWindow;
-  ParentColor := False;
-  TabStop := True;
+  //Width := 185;
+  //Height := 105;
+  //Color := clWindow;
+  //ParentColor := False;
+  //TabStop := True;
   FHorzScrollBar := CreateScrollBar(sbHorizontal);
   FHorzScrollBar.OnScroll := HorzScroll;
   FHorzScrollBar.OnChange := HorzScrollChange;
@@ -5292,7 +3062,7 @@ begin
   FBorderStyle := bsSingle;
   FShowHeader := True;
   FGridLines := True;
-  FGridLineWidth := 1; { <- do not modify !!! }
+  FGridLineWidth := 1; // NOTE !! не менять !!
   FGridStyle := [gsHorzLine, gsVertLine];
   FGridColor := clWindow;
   FEndEllipsis := True;
@@ -5301,7 +3071,7 @@ begin
   FImageHighlight := True;
   FTextLeftIndent := 5;
   FTextRightIndent := 5;
-  FTextTopIndent := 2;
+  FTextTopIndent := 0;
   FShowFocusRect := True;
   FRightClickSelect := True;
   FAllowSelect := True;
@@ -5314,15 +3084,20 @@ begin
   FCheckHeight := 16;
   FCheckLeftIndent := 0;
   FCheckTopIndent := 0;
-  FCheckBuffer := TBitmap.Create;
+  FCheckBuffer := Graphics.TBitmap.Create;
   FSortLeftIndent := 4;
   FSortTopIndent := 0;
-  FSortBuffer := TBitmap.Create;
-  FPatternBitmap := TBitmap.Create;
+  FSortBuffer := Graphics.TBitmap.Create;
+  FPatternBitmap := Graphics.TBitmap.Create;
   FPatternBitmap.Width := 2;
   FPatternBitmap.Height := 2;
   FCancelOnExit := True;
   FGridHintColor := clGrayText;
+  Width := 185;
+  Height := 105;
+  Color := clWindow;
+  ParentColor := False;
+  TabStop := True;
 end;
 
 destructor TCustomGridView.Destroy;
@@ -5365,17 +3140,17 @@ begin
   Result := CellFocused.Col;
 end;
 
-function TCustomGridView.GetFixed: TGridFixed;
+function TCustomGridView.GetFixed: TCustomGridFixed;
 begin
-  Result := TGridFixed(FFixed);
+  Result := FFixed;
 end;
 
-function TCustomGridView.GetEdit: TGridEdit;
+function TCustomGridView.GetEdit: TCustomGridEdit;
 begin
-  Result := TGridEdit(FEdit);
+  Result := FEdit;
 end;
 
-function TCustomGridView.GetEditColumn: TGridColumn;
+function TCustomGridView.GetEditColumn: TCustomGridColumn;
 begin
   Result := nil;
   if (EditCell.Col >= 0) and (EditCell.Col < Columns.Count) then Result := Columns[EditCell.Col];
@@ -5396,9 +3171,9 @@ begin
   Result := FEditing and (FEdit <> nil);
 end;
 
-function TCustomGridView.GetHeader: TGridHeader;
+function TCustomGridView.GetHeader: TCustomGridHeader;
 begin
-  Result := TGridHeader(FHeader);
+  Result := FHeader;
 end;
 
 function TCustomGridView.GetLeftCol: Longint;
@@ -5418,8 +3193,10 @@ begin
   if G < 0 then G := 0 else if G > 255 then G := 255;
   if B < 0 then B := 0 else if B > 255 then B := 255;
   Result := R or (G shl 8) or (B shl 16);
+{$IFDEF WINDOWS}
   { return system color from system palette (actual for a 8-bit palette) }
   Result := GetNearestColor(Canvas.Handle, Result);
+{$ENDIF}
 end;
 
 function TCustomGridView.GetRow: Longint;
@@ -5427,9 +3204,9 @@ begin
   Result := CellFocused.Row;
 end;
 
-function TCustomGridView.GetRows: TGridRows;
+function TCustomGridView.GetRows: TCustomGridRows;
 begin
-  Result := TGridRows(FRows);
+  Result := FRows;
 end;
 
 function TCustomGridView.GetTopRow: Longint;
@@ -5467,14 +3244,14 @@ function TCustomGridView.CompareStrings(const S1, S2: string; WholeWord,
 begin
   if WholeWord then
     if MatchCase then
-      Result := AnsiSameStr(S1, S2)
+      Result := UTF8CompareStr(S1, S2) = 0
     else
-      Result := AnsiSameText(S1, S2)
+      Result := UTF8CompareText(S1, S2) = 0
   else
     if MatchCase then
-      Result := AnsiContainsStr(S2, S1)
+      Result := UTF8Pos(S1, S2) > 0
     else
-      Result := AnsiContainsText(S2, S1);
+      Result := UTF8Pos(UTF8Uppercase(S1), UTF8Uppercase(S2)) > 0;
 end;
 
 procedure TCustomGridView.FixedChange(Sender: TObject);
@@ -5501,14 +3278,14 @@ end;
 procedure TCustomGridView.HandlerFindNext(Sender: TObject);
 begin
   with FindDialog do
-    if Length(FindText) = 0 then ShowModal(False)
+    if FindText = '' then ShowModal(False)
     else Self.FindText(FindText, Options + [frDown]);
 end;
 
 procedure TCustomGridView.HandlerFindPrev(Sender: TObject);
 begin
   with FindDialog do
-    if Length(FindText) = 0 then ShowModal(False)
+    if FindText = '' then ShowModal(False)
     else Self.FindText(FindText, Options - [frDown]);
 end;
 
@@ -5541,7 +3318,9 @@ end;
 
 procedure TCustomGridView.RowsChange(Sender: TObject);
 begin
+  { при изменении количества строк гасим подсказку }
   CancelCellTips;
+  { обновляем свойства }
   UpdateScrollBars;
   UpdateVisOriginSize;
   UpdateCursor;
@@ -5555,6 +3334,7 @@ begin
   if FAllowEdit <> Value then
   begin
     FAllowEdit := Value;
+    { гасим строку редактирвоания или построчное выделение }
     if not Value then
     begin
       AlwaysEdit := False;
@@ -5562,6 +3342,7 @@ begin
     end
     else
       RowSelect := False;
+    { событие }
     ChangeEditMode;
   end;
 end;
@@ -5605,8 +3386,8 @@ procedure TCustomGridView.SetBorderStyle(Value: TBorderStyle);
 begin
   if FBorderStyle <> Value then
   begin
-    FBorderStyle := Value;
-    RecreateWnd;
+    inherited SetBorderStyle(Value);
+    RecreateWnd(Self);
   end;
 end;
 
@@ -5617,12 +3398,12 @@ end;
 
 procedure TCustomGridView.SetCellFocused(Value: TGridCell);
 begin
-  SetCursor(Value, CellSelected, True);
+  SetGridCursor(Value, CellSelected, True);
 end;
 
 procedure TCustomGridView.SetCellSelected(Value: Boolean);
 begin
-  SetCursor(CellFocused, Value, True);
+  SetGridCursor(CellFocused, Value, True);
 end;
 
 procedure TCustomGridView.SetCheckBoxes(Value: Boolean);
@@ -5677,14 +3458,18 @@ end;
 
 procedure TCustomGridView.SetCursorKeys(Value: TGridCursorKeys);
 begin
+  { проверяем несовместимые флаги }
   if gkMouseMove in Value then Include(Value, gkMouse);
   if not (gkMouse in Value) then Exclude(Value, gkMouseMove);
+  { устанавливаем значение }
   FCursorKeys := Value;
 end;
 
 procedure TCustomGridView.SetEditDropDown(Value: Boolean);
 begin
+  { переводим ячейку в режим редактирвания }
   Editing := True;
+  { показываем выпадающий список }
   if Edit <> nil then Edit.DropListvisible := True;
 end;
 
@@ -5693,17 +3478,21 @@ var
   WasEditing: Boolean;
 begin
   WasEditing := Editing;
+  { проверяем начало редактирования }
   if Value and AllowEdit then
   begin
+    { фокус на таблицу, показываем строку ввода }
     if AcquireFocus then
     begin
       CancelDrag;
       ShowEdit;
     end;
   end
+  { смотрим завершение ввода }
   else if (not Value) and FEditing then
   begin
     ApplyEditText;
+
     if not AlwaysEdit then HideEdit;
   end;
   if WasEditing <> Editing then ChangeEditing;
@@ -5723,16 +3512,16 @@ begin
   if FFlatBorder <> Value then
   begin
     FFlatBorder := Value;
-    RecreateWnd;
+    RecreateWnd(Self);
   end;
 end;
 
-procedure TCustomGridView.SetFixed(Value: TGridFixed);
+procedure TCustomGridView.SetFixed(Value: TCustomGridFixed);
 begin
   FFixed.Assign(Value);
 end;
 
-procedure TCustomGridView.SetHeader(Value: TGridHeader);
+procedure TCustomGridView.SetHeader(Value: TCustomGridHeader);
 begin
   FHeader.Assign(Value);
 end;
@@ -5874,8 +3663,10 @@ begin
       FImages.RegisterChanges(FImagesLink);
       FImages.FreeNotification(Self);
     end;
+    { подправляем параметры }
     UpdateRows;
     UpdateEdit(Editing);
+    { перерисовываем таблицу }
     InvalidateGrid;
   end;
 end;
@@ -5910,7 +3701,7 @@ begin
   CellFocused := GridCell(CellFocused.Col, Value);
 end;
 
-procedure TCustomGridView.SetRows(Value: TGridRows);
+procedure TCustomGridView.SetRows(Value: TCustomGridRows);
 begin
   FRows.Assign(Value);
 end;
@@ -6028,8 +3819,10 @@ begin
   if (FVisOrigin.Col <> Value.Col) or (FVisOrigin.Row <> Value.Row) then
   begin
     FVisOrigin := Value;
+    { подправляем положение движков скроллеров }
     UpdateScrollPos;
     UpdateVisOriginSize;
+    { перерисовываем таблицу }
     Invalidate;
   end;
 end;
@@ -6046,7 +3839,7 @@ begin
   UpdateEdit(Editing);
 end;
 
-procedure TCustomGridView.WMGetDlgCode(var Message: TWMGetDlgCode);
+procedure TCustomGridView.LMGetDlgCode(var Message: TLMGetDlgCode);
 begin
   with Message do
   begin
@@ -6059,7 +3852,7 @@ begin
   end;
 end;
 
-procedure TCustomGridView.WMKillFocus(var Message: TWMKillFocus);
+procedure TCustomGridView.LMKillFocus(var Message: TLMKillFocus);
 begin
   inherited;
   if Rows.Count > 0 then
@@ -6069,7 +3862,7 @@ begin
   end;
 end;
 
-procedure TCustomGridView.WMSetFocus(var Message: TWMSetFocus);
+procedure TCustomGridView.LMSetFocus(var Message: TLMSetFocus);
 begin
   inherited;
   if Rows.Count > 0 then
@@ -6079,17 +3872,18 @@ begin
   end;
 end;
 
-procedure TCustomGridView.WMLButtonDown(var Message: TMessage);
+procedure TCustomGridView.LMLButtonDown(var Message);
 begin
   inherited;
-  if FEdit <> nil then FEdit.FClickTime := GetMessageTime;
+  if FEdit <> nil then FEdit.FClickTime := GetTickCount64;
 end;
 
-procedure TCustomGridView.WMChar(var Msg: TWMChar);
+procedure TCustomGridView.LMChar(var Msg: TLMChar);
 var
   Shift: TShiftState;
 begin
-  if AllowEdit and (CharInSet(Char(Msg.CharCode), [^H]) or (Char(Msg.CharCode) >= #32)) then
+  { показываем строку ввода, если можно }
+  if AllowEdit and (Char(Msg.CharCode) in [^H, #32..#255]) then
   begin
     Shift := KeyDataToShiftState(Msg.KeyData);
     if Shift * [ssCtrl, ssAlt] = [] then
@@ -6098,10 +3892,11 @@ begin
       Exit;
     end;
   end;
+  { иначе обработка по умолчанию }
   inherited;
 end;
 
-procedure TCustomGridView.WMHScroll(var Message: TWMHScroll);
+procedure TCustomGridView.LMHScroll(var Message: TLMHScroll);
 begin
   if Message.ScrollBar = 0 then
     FHorzScrollBar.ScrollMessage(Message)
@@ -6109,7 +3904,7 @@ begin
     inherited;
 end;
 
-procedure TCustomGridView.WMVScroll(var Message: TWMVScroll);
+procedure TCustomGridView.LMVScroll(var Message: TLMVScroll);
 begin
   if Message.ScrollBar = 0 then
     FVertScrollBar.ScrollMessage(Message)
@@ -6117,103 +3912,67 @@ begin
     inherited;
 end;
 
-procedure TCustomGridView.WMNCHitTest(var Message: TWMNCHitTest);
+procedure TCustomGridView.LMNCHitTest(var Message: TLMNCHitTest);
 begin
   inherited;
   FHitTest := ScreenToClient(SmallPointToPoint(Message.Pos));
 end;
 
-procedure TCustomGridView.WMSetCursor(var Message: TWMSetCursor);
-begin
-  with Message, FHitTest do
-    if not (csDesigning in ComponentState) then
-    begin
-      if FColResizing then
-      begin
-        Windows.SetCursor(Screen.Cursors[crHeaderSplit]);
-        Exit;
-      end;
-      if (HitTest = HTCLIENT) and ShowHeader then
-        if PtInRect(GetHeaderRect, FHitTest) and (GetResizeSectionAt(X, Y) <> nil) then
-        begin
-          Windows.SetCursor(Screen.Cursors[crHeaderSplit]);
-          Exit;
-        end;
-    end;
-  inherited;
-end;
-
-procedure TCustomGridView.WMEraseBkgnd(var Message: TWMEraseBkgnd);
+procedure TCustomGridView.LMEraseBkgnd(var Message: TLMessage);
 begin
   Message.Result := 1;
 end;
 
-procedure TCustomGridView.WMThemeThanged(var Message: TMessage);
-begin
-  inherited;
-  { immediate processing of a Windows theme change message is not allowed,
-    because ThemesServices.ThemesEnabled property has not yet been updated }
-  PostMessage(Handle, CN_THEMECHANGED, 0, 0);
-end;
-
-procedure TCustomGridView.WMTimer(var Message: TWMTimer);
+procedure TCustomGridView.LMTimer(var Message);
 begin
   KillTimer(Handle, 1);
   Editing := True;
 end;
 
-procedure TCustomGridView.WMUser(var Message: TMessage);
+procedure TCustomGridView.LMUser(var Message);
 begin
   UpdateEdit(AlwaysEdit);
 end;
 
-procedure TCustomGridView.CNThemeThanged(var Message: TMessage);
+procedure TCustomGridView.CMCancelMode(var Message: TLMessage);
 begin
-  inherited;
-  { the style of the sort arrow and the height of the header change in
-    Windows Vista when the theme changes }
-  UpdateHeader;
-end;
-
-procedure TCustomGridView.CMCancelMode(var Message: TCMCancelMode);
-begin
-  if FEdit <> nil then FEdit.WndProc(TMessage(Message));
+  if FEdit <> nil then FEdit.WndProc(Message);
   inherited;
 end;
 
-procedure TCustomGridView.CMEnabledChanged(var Message: TMessage);
+procedure TCustomGridView.CMEnabledChanged(var Message);
 begin
   inherited;
   Invalidate;
 end;
 
-procedure TCustomGridView.CMCtl3DChanged(var Message: TMessage);
+procedure TCustomGridView.CMFontChanged(var Message);
 begin
-  if NewStyleControls and (FBorderStyle = bsSingle) then RecreateWnd;
-  inherited;
-end;
-
-procedure TCustomGridView.CMFontChanged(var Message: TMessage);
-begin
+  { запоминаем шрифт }
   Canvas.Font := Font;
+  { подправляем шрифт у заголовка и фиксированных, высоту строк }
   UpdateFonts;
   UpdateRows;
+  { обработка по умолчанию }
   inherited;
 end;
 
-procedure TCustomGridView.CMColorChanged(var Message: TMessage);
+procedure TCustomGridView.CMColorChanged(var Message);
 begin
+  { запоминаем цвет }
   Brush.Color := Color;
+  { подправляем цвет у заголовка и фиксированных }
   UpdateColors;
+  { обработка по умолчанию }
   inherited;
 end;
 
-procedure TCustomGridView.CMShowHintChanged(var Message: TMessage);
+procedure TCustomGridView.CMShowHintChanged(var Message);
 begin
   ShowCellTips := ShowCellTips and ShowHint;
 end;
 
-procedure TCustomGridView.CMHintShow(var Message: TMessage);
+procedure TCustomGridView.CMHintShow(var Message: TLMessage);
 var
   AllowTips: Boolean;
   R, TR: TRect;
@@ -6226,23 +3985,28 @@ begin
       inherited;
       Exit;
     end;
+    { если не попали в таблицу - выход }
     if not PtInRect(GetGridRect, CursorPos) then
     begin
       Result := 1;
       Exit;
     end;
+    { ищем ячейку, на которую указывает курсор }
     FTipsCell := GetCellAt(CursorPos.X, CursorPos.Y);
+    { если не попали - подсказки нет, выход }
     if IsCellEmpty(FTipsCell) then
     begin
       Result := 1;
       Exit;
     end;
+    { а не идет ли редактирование этой ячейки }
     { hint is not allowed when editing cell text }
     if IsCellEditing(FTipsCell) then
     begin
       Result := 1;
       Exit;
     end;
+    { а нужны ли подсказки для ячейки }
     { hint can be disabled by OnCellTips event }
     CellTips(FTipsCell, AllowTips);
     if not AllowTips then
@@ -6251,8 +4015,11 @@ begin
       Exit;
     end;
     { hint is shown only if the cell text gets out of cell bounds }
+    { получаем прямоугольник ячейки (без картинки) }
     R := GetCellHintRect(FTipsCell);
+    { получаем прямоугольник текста ячейки }
     TR := GetCellTextBounds(FTipsCell);
+    { смещаем его в соотвествии с выравниванием }
     W := TR.Right - TR.Left;
     case Columns[FTipsCell.Col].Alignment of
       taCenter:
@@ -6269,45 +4036,47 @@ begin
       TR.Left := R.Left;
       TR.Right := TR.Left + W;
     end;
+    { учитываем видимую часть таблицы }
     IntersectRect(R, R, ClientRect);
     if ShowHeader then SubtractRect(R, R, GetHeaderRect);
     if FTipsCell.Col >= Fixed.Count then SubtractRect(R, R, GetFixedRect);
+    { а вылезает ли текст за ячейку (слева, справа или по высоте) }
     if (TR.Left >= R.Left) and (TR.Right <= R.Right) and
       (TR.Bottom - TR.Top <= R.Bottom - R.Top) then
     begin
       Result := 1;
       Exit;
     end;
-    { prepare the string to be displayed }
+    { получаем текст подсказки }
     FTipsText := GetTipsText(FTipsCell);
-    { prepare hint window position in screen coordinates }
+    { получаем прямоугольник подсказки }
     R := GetTipsRect(FTipsCell, FTipsText);
+    { настраиваем положение и текст подсказки }
     HintPos := ClientToScreen(R.TopLeft);
     HintStr := FTipsText;
-    { prepare the rectangle the user's mouse pointer must be in for the
-      hint window to appear }
+    { настраиваем прямоугольник реакции мышки }
     R := GetCellRect(FTipsCell);
     if FTipsCell.Col < Fixed.Count then
     begin
-      R.Left := Max(R.Left, GetFixedRect.Left);
-      R.Right := Min(R.Right, GetFixedRect.Right);
+      R.Left := MaxIntValue([R.Left, GetFixedRect.Left]);
+      R.Right := MinIntValue([R.Right, GetFixedRect.Right]);
     end
     else
     begin
-      R.Left := Max(R.Left, GetFixedRect.Right);
-      R.Right := Min(R.Right, GetGridRect.Right);
+      R.Left := MaxIntValue([R.Left, GetFixedRect.Right]);
+      R.Right := MinIntValue([R.Right, GetGridRect.Right]);
     end;
     InflateRect(R, 1, 1);
     CursorRect := R;
-    { set hint window class }
+    { тип окна подсказки }
     HintWindowClass := GetTipsWindowClass;
     HintData := Self;
-    { hint is allowed }
+    { хинт можно показать }
     Result := 0;
   end;
 end;
 
-procedure TCustomGridView.CMMouseLeave(var Message: TMessage);
+procedure TCustomGridView.CMMouseLeave(var Message);
 begin
   inherited;
   if FHotSection <> nil then
@@ -6317,7 +4086,7 @@ begin
   end;
 end;
 
-procedure TCustomGridView.CMWinIniChange(var Message: TWMWinIniChange);
+procedure TCustomGridView.CMWinIniChange(var Message);
 begin
   inherited;
   { i don't remember why, but the inplace editor needs to be updated
@@ -6330,6 +4099,7 @@ begin
   Result := True;
   { if the focus is now on the input line, then grid is in focus too }
   if (FEdit <> nil) and FEdit.Focused then Exit;
+  { можно ли устанавливать фокус }
   if not (csDesigning in ComponentState) and CanFocus then
   begin
     UpdateFocus;
@@ -6339,6 +4109,7 @@ end;
 
 procedure TCustomGridView.CancelCellTips;
 var
+  //P: TPoint;
   HintControl: TControl;
 
   function GetHintControl(Control: TControl): TControl;
@@ -6351,6 +4122,8 @@ var
 begin
   if ShowCellTips then
   begin
+    //Windows.GetCursorPos(P);
+    //HintControl := GetHintControl(FindDragTarget(P, False));
     HintControl := GetHintControl(FindDragTarget(Mouse.CursorPos, False));
     if HintControl = Self then Application.CancelHint;
   end;
@@ -6473,7 +4246,9 @@ end;
 
 function TCustomGridView.CreateEdit(EditClass: TGridEditClass): TCustomGridEdit;
 begin
+  { проверяем класс }
   if EditClass = nil then EditClass := TGridEdit;
+  { создаем строку }
   Result := EditClass.Create(Self);
 end;
 
@@ -6502,7 +4277,7 @@ begin
   begin
     Style := Style or WS_TABSTOP;
     Style := Style or BorderStyles[FBorderStyle];
-    if Ctl3D and NewStyleControls and (FBorderStyle = bsSingle) then
+    if NewStyleControls and (FBorderStyle = bsSingle) then
     begin
       Style := Style and not WS_BORDER;
       ExStyle := ExStyle or FlatBorders[FFlatBorder];
@@ -6526,10 +4301,12 @@ begin
   { window scroll bars must be updated after create window }
   FHorzScrollBar.Update;
   FVertScrollBar.Update;
-  { use the explorer theme to draw the selected cell (only if the uxtheme.dll
-    library loaded, from which the SetWindowTheme function is imported) }
-  if StyleServices.Available then
+{$IFDEF WINDOWS}
+{ use the explorer theme to draw the selected cell (only if the uxtheme.dll
+  library loaded, from which the SetWindowTheme function is imported) }
+  if ThemeServices.ThemesAvailable then
     SetWindowTheme(Handle, 'explorer', nil);
+{$ENDIF}
 end;
 
 procedure TCustomGridView.DoContextPopup(MousePos: TPoint;
@@ -6544,7 +4321,9 @@ end;
 procedure TCustomGridView.DoExit;
 begin
   ResetClickPos;
+  { устанавливаем текст и гасим строку редактирования }
   if CancelOnExit then Editing := False;
+  { обработка по умолчанию }
   inherited DoExit;
 end;
 
@@ -6552,11 +4331,11 @@ procedure TCustomGridView.DoHeaderPopup(MousePos: TPoint; var Handled: Boolean);
 var
   Menu: TPopupMenu;
   ClickEvent: TNotifyEvent;
-  I, H, N: Integer;
-  Column: TGridColumn;
+  I: Integer;
+  Column: TCustomGridColumn;
   Item: TMenuItem;
-  Monitor: TMonitor;
-  Rect: TRect;
+  //Monitor: TMonitor;
+  //Rect: TRect;
   Pt: TPoint;
 begin
   if ShowHeader and PtInRect(GetHeaderRect, MousePos) and
@@ -6584,7 +4363,7 @@ begin
         if FHeaderPopupMenu = nil then
         begin
           FHeaderPopupMenu := TPopupMenu.Create(Self);
-          FHeaderPopupMenu.AutoLineReduction := maManual;
+          //FHeaderPopupMenu.AutoLineReduction := maManual;
         end;
         Menu := FHeaderPopupMenu;
         Menu.Items.Clear;
@@ -6615,17 +4394,17 @@ begin
         how many menu items fit on the current monitor }
       if Menu.Items.Count <> 0 then
       begin
-        Monitor := Screen.MonitorFromPoint(ClientToScreen(MousePos));
-        if Monitor <> nil then Rect := Monitor.WorkareaRect
-        else Rect := Screen.WorkareaRect;
-        H := GetSystemMetrics(SM_CYMENUSIZE);
-        if H = 0 then N := 1024 else N := (Rect.Bottom - Rect.Top) div H;
-        for I := 0 to Menu.Items.Count - 1 do
-        begin
-          Item := Menu.Items[I];
-          if (I > 1) and (I mod N = 0) then Item.Break := mbBarBreak
-          else Item.Break := mbNone;
-        end;
+        //Monitor := Screen.MonitorFromPoint(ClientToScreen(MousePos));
+        //if Monitor <> nil then Rect := Monitor.WorkareaRect
+        //else Rect := Screen.WorkareaRect;
+        //H := GetSystemMetrics(SM_CYMENUSIZE);
+        //if H = 0 then N := 1024 else N := (Rect.Bottom - Rect.Top) div H;
+        //for I := 0 to Menu.Items.Count - 1 do
+        //begin
+        //  Item := Menu.Items[I];
+        //  if (I > 1) and (I mod N = 0) then Item.Break := mbBarBreak
+        //  else Item.Break := mbNone;
+        //end;
       end
       else
         Menu := nil;
@@ -6634,7 +4413,7 @@ begin
       Menu := Header.PopupMenu;
     if Menu <> nil then
     begin
-      SendCancelMode(Self);
+      //SendCancelMode(Self);
       Menu.PopupComponent := Self;
       Pt := ClientToScreen(MousePos);
       Menu.Popup(Pt.X, Pt.Y);
@@ -6649,9 +4428,9 @@ begin
   if (not Result) and (gkMouseWheel in CursorKeys) then
   begin
     if not (ssShift in Shift) then
-      SetCursor(GetCursorCell(CellFocused, goDown), True, True)
+      SetGridCursor(GetCursorCell(CellFocused, goDown), True, True)
     else if not RowSelect then
-      SetCursor(GetCursorCell(CellFocused, goRight), True, True)
+      SetGridCursor(GetCursorCell(CellFocused, goRight), True, True)
     else
       with HorzScrollBar do Position := Position + LineStep * LineSize;
     Result := True;
@@ -6664,9 +4443,9 @@ begin
   if (not Result) and (gkMouseWheel in CursorKeys) then
   begin
     if not (ssShift in Shift) then
-      SetCursor(GetCursorCell(CellFocused, goUp), True, True)
+      SetGridCursor(GetCursorCell(CellFocused, goUp), True, True)
     else if not RowSelect then
-      SetCursor(GetCursorCell(CellFocused, goLeft), True, True)
+      SetGridCursor(GetCursorCell(CellFocused, goLeft), True, True)
     else
       with HorzScrollBar do Position := Position - LineStep * LineSize;
     Result := True;
@@ -6720,21 +4499,20 @@ end;
 
 function TCustomGridView.EditCanShow(Cell: TGridCell): Boolean;
 begin
+  { проверяем режим дизайна и загрузки }
   if [csReading, csLoading, csDesigning, csDestroying] * ComponentState <> [] then
-  begin
-    Result := False;
-    Exit;
-  end;
+    Exit( False );
+  { а есть ли ячейки }
   if (Columns.Count - Fixed.Count = 0) or (Rows.Count = 0) then
-  begin
-    Result := False;
-    Exit;
-  end;
+    Exit( False );
+  { результат }
   Result := HandleAllocated and AllowEdit and (AlwaysEdit or IsActiveControl);
+  { разрешение колонки }
   if (Cell.Col >= Fixed.Count) and (Cell.Col < Columns.Count) then
     Result := Result and Columns[Cell.Col].AllowEdit;
+  { событие пользователя }
   if Result and Assigned(FOnEditCanShow) then
-    FOnEditCanShow(Self, Cell, Result);
+    FOnEditCanShow(Self, Cell, Result); 
 end;
 
 function TCustomGridView.EditCanUndo(Cell: TGridCell): Boolean;
@@ -6762,8 +4540,10 @@ begin
 end;
 
 procedure TCustomGridView.GetCellColors(Cell: TGridCell; Canvas: TCanvas);
+{$IFDEF WINDOWS}
 var
   Theme: HTHEME;
+{$ENDIF}
 begin
   if Cell.Col < Fixed.Count then
   begin
@@ -6772,16 +4552,16 @@ begin
     { if the button face color is used for a fixed cell, then with themes
       enabled it should be slightly discolored to match the highlighted
       row with the HighlightFocusRow turned on }
-    if (Fixed.Color = clBtnFace) and StyleServices.Enabled then
+    if (Fixed.Color = clBtnFace) and ThemeServices.ThemesEnabled then
       Canvas.Brush.Color := GetLightenColor(Canvas.Brush.Color, 8);
     { highlight every other row }
-    if Fixed.GridColor and StyleServices.Enabled and
+    if Fixed.GridColor and ThemeServices.ThemesEnabled and
       HighlightEvenRows and IsEvenRow(Cell) then
         Canvas.Brush.Color := GetLightenColor(Canvas.Brush.Color, -8);
     { highlight row with focused cell }
     if Fixed.GridColor and HighlightFocusRow then
       if (Cell.Row = CellFocused.Row) and ((Cell.Col <> CellFocused.Col) or not Editing) then
-        if StyleServices.Enabled then
+        if ThemeServices.ThemesEnabled then
           Canvas.Brush.Color := GetLightenColor(clBtnFace, 8)
         else
           Canvas.Brush.Color := clBtnFace;
@@ -6801,9 +4581,10 @@ begin
     { focused cell }
     if Enabled and IsCellHighlighted(Cell) and (not IsCellEditing(Cell)) then
     begin
+    {$IFDEF WINDOWS}
       { OpenThemeData function is available only if the uxtheme.dll
         library loaded and only in Windows Vista and above }
-      if StyleServices.Enabled and CheckWin32Version(6, 0) then
+      if ThemeServices.ThemesEnabled and CheckWin32Version(6, 0) then
         Theme := OpenThemeData(Handle, 'TREEVIEW')
       else
         Theme := 0;
@@ -6812,7 +4593,9 @@ begin
       begin
         CloseThemeData(Theme);
       end
-      else if Focused or EditFocused then
+      else
+    {$ENDIF}
+      if Focused or EditFocused then
       begin
         Canvas.Brush.Color := clHighlight;
         Canvas.Font.Color := clHighlightText;
@@ -6826,13 +4609,13 @@ begin
     else
     begin
       { highlight every other row without windows theme }
-      if StyleServices.Enabled then
+      if ThemeServices.ThemesEnabled then
         if HighlightEvenRows and IsEvenRow(Cell) then
           Canvas.Brush.Color := GetLightenColor(Canvas.Brush.Color, -8);
       { highlight row with focused cell }
       if HighlightFocusRow then
         if (Cell.Row = CellFocused.Row) and ((Cell.Col <> CellFocused.Col) or not Editing) then
-          if StyleServices.Enabled then
+          if ThemeServices.ThemesEnabled then
             Canvas.Brush.Color := GetLightenColor(clBtnFace, 8)
           else
             Canvas.Brush.Color := clBtnFace;
@@ -6856,8 +4639,10 @@ function TCustomGridView.GetCellImageIndent(Cell: TGridCell): TPoint;
 begin
   Result.X := ImageLeftIndent;
   Result.Y := ImageTopIndent;
+  { учитываем 3D эффект }
   if GridLines and (Fixed.Count > 0) and (not Fixed.Flat) and
-    (not StyleServices.Enabled) then Inc(Result.Y, 1);
+    (not ThemeServices.ThemesEnabled) then Inc(Result.Y, 1);
+  { событие пользователя }
   if Assigned(FOnGetCellImageIndent) then FOnGetCellImageIndent(Self, Cell, Result);
 end;
 
@@ -6866,14 +4651,15 @@ var
   II: TPoint;
   R: TRect;
 begin
+  { а есть ли картинка }
   if not IsCellHasImage(Cell) then
-  begin
-    Result := Rect(0, 0, 0, 0);
-    Exit;
-  end;
+    Exit( Classes.Rect(0, 0, 0, 0) );
+  { получаем прямоугольник ячейки }
   R := GetCellRect(Cell);
+  { учитываем флажок }
   if IsCellHasCheck(Cell) then
     Inc(R.Left, CheckWidth + GetCheckIndent(Cell).X);
+  { прямоугольник картинки }
   with Result do
   begin
     II := GetCellImageIndent(Cell);
@@ -6904,19 +4690,18 @@ var
   WR, WW: Boolean;
   T: string;
 begin
+  { проверяем колонку ячейки }
   if (Cell.Col < 0) or (Cell.Col > Columns.Count - 1) then
-  begin
-    Result := Rect(0, 0, 0, 0);
-    Exit;
-  end;
-  { bounds depend on cell font }
+    Exit( Classes.Rect(0, 0, 0, 0) );
+  { определяем цвета }
   if (Cell.Row >= 0) and (Cell.Row < Rows.Count) then
   begin
     GetCellColors(Cell, Canvas);
     TI := GetCellTextIndent(Cell);
     T := GetCellText(Cell);
   end;
-  R := Rect(0, 0, 0, 0);
+  { параметры отрисовки }
+  R := Classes.Rect(0, 0, 0, 0);
   if Columns[Cell.Col].WordWrap then
   begin
     R := GetEditRect(Cell);
@@ -6926,17 +4711,22 @@ begin
   A := Columns[Cell.Col].Alignment;
   WR := Columns[Cell.Col].WantReturns;
   WW := Columns[Cell.Col].WordWrap;
+  { вычисляем прямоугольник текста }
   Result := GetTextRect(Canvas, R, TI.X, TI.Y, A, WR, WW, T);
+  { устанавливаем левый верхний угол в (0, 0) }
   OffsetRect(Result, -Result.Left, -Result.Top);
 end;
 
 function TCustomGridView.GetCellTextIndent(Cell: TGridCell): TPoint;
 begin
+  { значение по умолчанию }
   Result.X := TextLeftIndent;
   Result.Y := TextTopIndent;
+  { учитываем картинки и 3D эффект }
   if IsCellHasCheck(Cell) or IsCellHasImage(Cell) then Result.X := 2;
   if GridLines and (Fixed.Count > 0) and (not Fixed.Flat) and
-    (not StyleServices.Enabled) then Inc(Result.Y, 1);
+    (not ThemeServices.ThemesEnabled) then Inc(Result.Y, 1);
+  { событие пользователя }
   if Assigned(FOnGetCellTextIndent) then FOnGetCellTextIndent(Self, Cell, Result);
 end;
 
@@ -6950,7 +4740,7 @@ begin
   end;
 end;
 
-procedure TCustomGridView.GetCheckImage(Cell: TGridCell; CheckImage: TBitmap);
+procedure TCustomGridView.GetCheckImage(Cell: TGridCell; CheckImage: Graphics.TBitmap);
 begin
   if Assigned(FOnGetCheckImage) then FOnGetCheckImage(Self, Cell, CheckImage);
 end;
@@ -6959,9 +4749,12 @@ function TCustomGridView.GetCheckIndent(Cell: TGridCell): TPoint;
 begin
   Result.X := CheckLeftIndent;
   Result.Y := CheckTopIndent;
+  { учитываем 3D эффект }
   if GridLines and (Fixed.Count > 0) and (not Fixed.Flat) and
-    (not StyleServices.Enabled) then Inc(Result.Y, 1);
+    (not ThemeServices.ThemesEnabled) then Inc(Result.Y, 1);
+  { учитываем выравнивание флажка }
   if GetCheckAlignment(Cell) = taCenter then Result.X := (Columns[Cell.Col].Width - CheckWidth) div 2 - 1;
+  { событие пользователя }
   if Assigned(FOnGetCheckIndent) then FOnGetCheckIndent(Self, Cell, Result);
 end;
 
@@ -6980,12 +4773,12 @@ var
   IC: TPoint;
   R: TRect;
 begin
+  { а есть ли флажок }
   if not IsCellHasCheck(Cell) then
-  begin
-    Result := Rect(0, 0, 0, 0);
-    Exit;
-  end;
+    Exit( Classes.Rect(0, 0, 0, 0) );
+  { получаем прямоугольник ячейки }
   R := GetCellRect(Cell);
+  { прямоугольник флажка }
   with Result do
   begin
     IC := GetCheckIndent(Cell);
@@ -7017,7 +4810,7 @@ end;
 function TCustomGridView.GetClientOrigin: TPoint;
 begin
   if Parent = nil then
-    Result := Point(0, 0)
+    Result := Classes.Point(0, 0) // GetClientRect.TopLeft
   else
     Result := inherited GetClientOrigin;
 end;
@@ -7042,17 +4835,19 @@ function TCustomGridView.GetCursorCell(Cell: TGridCell; Offset: TGridCursorOffse
     I: Integer;
     C: TGridCell;
   begin
-    I := Max(Cell.Col - O, Fixed.Count);
+    { новая активная колонка }
+    I := MaxIntValue([Cell.Col - O, Fixed.Count]);
+    { перебираем колонки до фиксированных, пока не устанвится активная }
     while I >= Fixed.Count do
     begin
       C := GridCell(I, Cell.Row);
+      { пытаемся установить курсор }
       if IsCellAcceptCursor(C) then
-      begin
-        Result := C;
-        Exit;
-      end;
+        Exit( C );
+      { предыдущая колонка }
       Dec(I);
     end;
+    { результат }
     Result := Cell;
   end;
 
@@ -7061,17 +4856,19 @@ function TCustomGridView.GetCursorCell(Cell: TGridCell; Offset: TGridCursorOffse
     I: Integer;
     C: TGridCell;
   begin
-    I := Min(Cell.Col + O, Columns.Count - 1);
+    { новая активная колонка }
+    I := MinIntValue([Cell.Col + O, Columns.Count - 1]);
+    { перебираем колонки до последней, пока не устанвится активная }
     while I <= Columns.Count - 1 do
     begin
       C := GridCell(I, Cell.Row);
+      { пытаемся установить курсор }
       if IsCellAcceptCursor(C) then
-      begin
-        Result := C;
-        Exit;
-      end;
+        Exit( C );
+      { следующая колонка }
       Inc(I);
     end;
+    { результат }
     Result := Cell;
   end;
 
@@ -7080,17 +4877,19 @@ function TCustomGridView.GetCursorCell(Cell: TGridCell; Offset: TGridCursorOffse
     J: Integer;
     C: TGridCell;
   begin
-    J := Max(Cell.Row - O, 0);
+    { новая активная строка }
+    J := MaxIntValue([Cell.Row - O, 0]);
+    { перебираем строки до первой, пока не устанвится активная }
     while J >= 0 do
     begin
       C := GridCell(Cell.Col, J);
+      { пытаемся установить курсор }
       if IsCellAcceptCursor(C) then
-      begin
-        Result := C;
-        Exit;
-      end;
+        Exit( C );
+      { предыдущая строка }
       Dec(J);
     end;
+    { результат }
     Result := Cell;
   end;
 
@@ -7099,17 +4898,19 @@ function TCustomGridView.GetCursorCell(Cell: TGridCell; Offset: TGridCursorOffse
     J: Integer;
     C: TGridCell;
   begin
-    J := Min(Cell.Row + O, Rows.Count - 1);
+    { новая активная строка }
+    J := MinIntValue([Cell.Row + O, Rows.Count - 1]);
+    { перебираем строки до последней, пока не устанвится активная }
     while J <= Rows.Count - 1 do
     begin
       C := GridCell(Cell.Col, J);
+      { пытаемся установить курсор }
       if IsCellAcceptCursor(C) then
-      begin
-        Result := C;
-        Exit;
-      end;
+        Exit( C );
+      { следующая строка }
       Inc(J);
     end;
+    { результат }
     Result := Cell;
   end;
 
@@ -7144,22 +4945,27 @@ function TCustomGridView.GetCursorCell(Cell: TGridCell; Offset: TGridCursorOffse
     I, J: Integer;
     C: TGridCell;
   begin
+    { новая активная колонка }
     I := Fixed.Count;
+    { перебираем колонки до текущей, пока не устанвится активная }
     while I <= Cell.Col do
     begin
+      { новая активная строка }
       J := 0;
+      { перебираем строки до текущей, пока не устанвится активная }
       while J <= Cell.Row do
       begin
         C := GridCell(I, J);
+        { пытаемся установить курсор }
         if IsCellAcceptCursor(C) then
-        begin
-          Result := C;
-          Exit;
-        end;
+          Exit( C );
+        { следующая строка }
         Inc(J);
       end;
+      { следующая колонка }
       Inc(I);
     end;
+    { результат }
     Result := Cell;
   end;
 
@@ -7168,22 +4974,26 @@ function TCustomGridView.GetCursorCell(Cell: TGridCell; Offset: TGridCursorOffse
     I, J: Integer;
     C: TGridCell;
   begin
+    { новая активная колонка }
     I := Columns.Count - 1;
+    { перебираем колонки до текущей, пока не устанвится активная }
     while I >= Cell.Col do
     begin
       J := Rows.Count - 1;
+      { перебираем строки до текущей, пока не устанвится активная }
       while J >= Cell.Row do
       begin
         C := GridCell(I, J);
+        { пытаемся установить курсор }
         if IsCellAcceptCursor(C) then
-        begin
-          Result := C;
-          Exit;
-        end;
+          Exit( C );
+        { предыдущая строка }
         Dec(J);
       end;
+      { предыдущая колонка }
       Dec(I);
     end;
+    { результат }
     Result := Cell;
   end;
 
@@ -7197,10 +5007,7 @@ function TCustomGridView.GetCursorCell(Cell: TGridCell; Offset: TGridCursorOffse
     begin
       C := GridCell(Cell.Col, J);
       if IsCellAcceptCursor(C) then
-      begin
-        Result := C;
-        Exit;
-      end;
+        Exit( C );
       Inc(J);
     end;
     Result := Cell;
@@ -7216,10 +5023,7 @@ function TCustomGridView.GetCursorCell(Cell: TGridCell; Offset: TGridCursorOffse
     begin
       C := GridCell(Cell.Col, J);
       if IsCellAcceptCursor(C) then
-      begin
-        Result := C;
-        Exit;
-      end;
+        Exit( C );
       Dec(J);
     end;
     Result := Cell;
@@ -7232,17 +5036,18 @@ function TCustomGridView.GetCursorCell(Cell: TGridCell; Offset: TGridCursorOffse
       I: Integer;
       C: TGridCell;
     begin
-      I := Max(Cell.Col, Fixed.Count);
+      I := MaxIntValue([Cell.Col, Fixed.Count]);
+      { перебираем колонки до текущей, пока не устанвится активная }
       while I <= CellFocused.Col do
       begin
         C := GridCell(I, Cell.Row);
+        { пытаемся установить курсор }
         if IsCellAcceptCursor(C) then
-        begin
-          Result := C;
-          Exit;
-        end;
+          Exit( C );
+        { следующая колонка }
         Inc(I);
       end;
+      { ячейка не найдена }
       Result := Cell;
     end;
 
@@ -7251,17 +5056,18 @@ function TCustomGridView.GetCursorCell(Cell: TGridCell; Offset: TGridCursorOffse
       I: Integer;
       C: TGridCell;
     begin
-      I := Min(Cell.Col, Columns.Count - 1);
+      I := MinIntValue([Cell.Col, Columns.Count - 1]);
+      { перебираем колонки до текущей, пока не устанвится активная }
       while I >= CellFocused.Col do
       begin
         C := GridCell(I, Cell.Row);
+        { пытаемся установить курсор }
         if IsCellAcceptCursor(C) then
-        begin
-          Result := C;
-          Exit;
-        end;
+          Exit( C );
+        { предыдущая колонка }
         Dec(I);
       end;
+      { ячейка не найдена }
       Result := Cell;
     end;
 
@@ -7270,17 +5076,18 @@ function TCustomGridView.GetCursorCell(Cell: TGridCell; Offset: TGridCursorOffse
       J: Integer;
       C: TGridCell;
     begin
-      J := Max(Cell.Row, 0);
+      J := MaxIntValue([Cell.Row, 0]);
+      { перебираем строки до текущей, пока не устанвится активная }
       while J <= CellFocused.Row do
       begin
         C := GridCell(Cell.Col, J);
+        { пытаемся установить курсор }
         if IsCellAcceptCursor(C) then
-        begin
-          Result := C;
-          Exit;
-        end;
+          Exit( C );
+        { следующая строка }
         Inc(J);
       end;
+      { ячейка не найдена }
       Result := Cell;
     end;
 
@@ -7289,46 +5096,54 @@ function TCustomGridView.GetCursorCell(Cell: TGridCell; Offset: TGridCursorOffse
       J: Integer;
       C: TGridCell;
     begin
-      J := Min(Cell.Row, Rows.Count - 1);
+      J := MinIntValue([Cell.Row, Rows.Count - 1]);
+      { перебираем строки до текущей, пока не устанвится активная }
       while J >= CellFocused.Row do
       begin
         C := GridCell(Cell.Col, J);
+        { пытаемся установить курсор }
         if IsCellAcceptCursor(C) then
-        begin
-          Result := C;
-          Exit;
-        end;
+          Exit( C );
+        { предыдущая строка }
         Dec(J);
       end;
+      { ячейка не найдена }
       Result := Cell;
     end;
 
   begin
+    { а доступна ли указанная ячейка }
     if IsCellAcceptCursor(Cell) then
-    begin
-      Result := Cell;
-      Exit;
-    end;
+      Exit( Cell );
+    { если выделение слева от курсора - ищем слева }
     if Cell.Col < CellFocused.Col then
     begin
       Result := DoSelectLeft;
-      if IsCellAcceptCursor(Result) then Exit;
+      if IsCellAcceptCursor(Result) then
+        Exit;
     end;
+    { если выделение справа от курсора - ищем справа }
     if Cell.Col > CellFocused.Col then
     begin
       Result := DoSelectRight;
-      if IsCellAcceptCursor(Result) then Exit;
+      if IsCellAcceptCursor(Result) then
+        Exit;
     end;
+    { если выделение над курсором - ищем сверху }
     if Cell.Row < CellFocused.Row then
     begin
       Result := DoSelectUp;
-      if IsCellAcceptCursor(Result) then Exit;
+      if IsCellAcceptCursor(Result) then
+        Exit;
     end;
+    { выделение под курсором - ищем снизу }
     if Cell.Row > CellFocused.Row then
     begin
       Result := DoSelectDown;
-      if IsCellAcceptCursor(Result) then Exit;
+      if IsCellAcceptCursor(Result) then
+        Exit;
     end;
+    { ничего не изменилось }
     Result := CellFocused;
   end;
 
@@ -7338,21 +5153,24 @@ function TCustomGridView.GetCursorCell(Cell: TGridCell; Offset: TGridCursorOffse
     I, J: Integer;
   begin
     J := 0;
+    { перебираем строки до текущей, пока не устанвится активная }
     while J <= Rows.Count - 1 do
     begin
       I := Fixed.Count;
+      { перебираем колонки до последней, пока не устанвится активная }
       while I <= Columns.Count - 1 do
       begin
         C := GridCell(I, J);
+        { пытаемся установить курсор }
         if IsCellAcceptCursor(C) then
-        begin
-          Result := C;
-          Exit;
-        end;
+          Exit( C );
+        { следующая  колонка }
         Inc(I);
       end;
+      { следующая строка }
       Inc(J);
     end;
+    { результат по умолчанию }
     Result := CellFocused;
   end;
 
@@ -7363,21 +5181,24 @@ function TCustomGridView.GetCursorCell(Cell: TGridCell; Offset: TGridCursorOffse
   begin
     I := Cell.Col + 1;
     J := Cell.Row;
+    { перебираем строки до последней, пока не устанвится активная }
     while J <= Rows.Count - 1 do
     begin
+      { перебираем колонки до последней, пока не устанвится активная }
       while I <= Columns.Count - 1 do
       begin
         C := GridCell(I, J);
+        { пытаемся установить курсор, учитываем построчное выделение }
         if IsCellAcceptCursor(C) and ((not RowSelect) or (C.Row <> Cell.Row)) then
-        begin
-          Result := C;
-          Exit;
-        end;
+          Exit( C );
+        { следующая  колонка }
         Inc(I);
       end;
+      { следующая строка с первой колонки }
       I := Fixed.Count;
       Inc(J);
     end;
+    { результат по умолчанию }
     Result := CellFocused;
   end;
 
@@ -7388,44 +5209,47 @@ function TCustomGridView.GetCursorCell(Cell: TGridCell; Offset: TGridCursorOffse
   begin
     I := Cell.Col - 1;
     J := Cell.Row;
+    { перебираем строки до первой, пока не устанвится активная }
     while J >= 0 do
     begin
+      { перебираем колонки до последней, пока не устанвится активная }
       while I >= Fixed.Count do
       begin
         C := GridCell(I, J);
+        { пытаемся установить курсор, учитываем построчное выделение }
         if IsCellAcceptCursor(C) and ((not RowSelect) or (C.Row <> Cell.Row)) then
-        begin
-          Result := C;
-          Exit;
-        end;
+          Exit( C );
+        { предыдущая колонка }
         Dec(I);
       end;
+      { предыдущая строка с последней колонки }
       I := Columns.Count - 1;
       Dec(J);
     end;
+    { результат по умолчанию }
     Result := CellFocused;
   end;
 
 begin
   case Offset of
-    goLeft: Result := DoMoveLeft(1);
-    goRight: Result := DoMoveRight(1);
-    goUp: Result := DoMoveUp(1);
-    goDown: Result := DoMoveDown(1);
-    goPageUp: Result := DoMoveUp(VisSize.Row - 1);
-    goPageDown: Result := DoMoveDown(VisSize.Row - 1);
-    goHome: Result := DoMoveHome;
-    goEnd: Result := DoMoveEnd;
-    goGridHome: Result := DoMoveGridHome;
-    goGridEnd: Result := DoMoveGridEnd;
+    goLeft: Result := DoMoveLeft(1); // смещение на колонку влево
+    goRight: Result := DoMoveRight(1); // смещение вправо на одну колонку
+    goUp: Result := DoMoveUp(1); // смещение вверх на одну колонку     
+    goDown: Result := DoMoveDown(1); // смещение вниз на одну колонку      
+    goPageUp: Result := DoMoveUp(VisSize.Row - 1); // смещение на страницу вверх      
+    goPageDown: Result := DoMoveDown(VisSize.Row - 1); // смещение на страницу вниз      
+    goHome: Result := DoMoveHome; // в начало строки      
+    goEnd: Result := DoMoveEnd; // в конец строки      
+    goGridHome: Result := DoMoveGridHome; // в начало таблицы      
+    goGridEnd: Result := DoMoveGridEnd; // в конец таблицы      
     goGridTop: Result := DoMoveGridTop;
     goGridBottom: Result := DoMoveGridBottom;
-    goSelect: Result := DoSelect;
-    goFirst: Result := DoFirst;
-    goNext: Result := DoNext;
-    goPrev: Result := DoPrev;
-  else
-    Result := Cell;
+    goSelect: Result := DoSelect; // проверка ячейки      
+    goFirst: Result := DoFirst; // выбрать первую возможную ячейку      
+    goNext: Result := DoNext; // выбрать следующую ячейку      
+    goPrev: Result := DoPrev; // выбрать предыдущую возможную ячейку      
+  else    
+    Result := Cell; // остальное игнорируем
   end;
 end;
 
@@ -7464,6 +5288,7 @@ end;
 function TCustomGridView.GetEditMask(Cell: TGridCell): string;
 begin
   Result := '';
+  { проверяем колонку }
   if (Cell.Col >= 0) and (Cell.Col < Columns.Count) then
   begin
     Result := Columns[Cell.Col].EditMask;
@@ -7474,6 +5299,7 @@ end;
 function TCustomGridView.GetEditStyle(Cell: TGridCell): TGridEditStyle;
 begin
   Result := geSimple;
+  { проверяем колонку }
   if (Cell.Col >= 0) and (Cell.Col < Columns.Count) then
   begin
     Result := Columns[Cell.Col].EditStyle;
@@ -7495,15 +5321,19 @@ end;
 function TCustomGridView.GetFixedGridColor: TColor;
 begin
   if Fixed.GridColor then Result := GetGridLineColor(Color)
+{$IFDEF WINDOWS}
   else if CheckWin32Version(6, 0) then Result := cl3DLight
+{$ENDIF}
   else Result := clActiveBorder;
 end;
 
 procedure TCustomGridView.GetHeaderColors(Section: TGridHeaderSection; Canvas: TCanvas);
 begin
+  { стандартные цвета }
   Canvas.Brush.Color := Header.Color;
   Canvas.Font := Header.Font;
   if not Enabled then Canvas.Font.Color := clGrayText;
+  { событие пользователя }                                           
   if Assigned(FOnGetHeaderColors) then FOnGetHeaderColors(Self, Section, Canvas);
 end;
 
@@ -7515,7 +5345,7 @@ end;
 
 function TCustomGridView.GetGridLineColor(BkColor: TColor): TColor;
 begin
-  if StyleServices.Enabled then
+  if ThemeServices.ThemesEnabled then
     Result := GetLightenColor(Self.Color, -24)
   else
   begin
@@ -7527,19 +5357,18 @@ end;
 
 function TCustomGridView.GetHeaderImage(Section: TGridHeaderSection): Integer;
 begin
+  { а есть ли картинки }
   if not Assigned(Header.Images) then
-  begin
-    Result := -1;
-    Exit;
-  end;
-  { the default image index is the column index }
+    Exit( -1 );
+  { по умолчанию номер картинки - номер колонки }
   Result := Section.ColumnIndex;
+  { событие пользователя }
   if Assigned(FOnGetHeaderImage) then FOnGetHeaderImage(Self, Section, Result);
 end;
 
 function TCustomGridView.GetSortArrowSize: TSize;
 begin
-  if StyleServices.Enabled and CheckWin32Version(6, 0) then
+  if ThemeServices.ThemesEnabled {and CheckWin32Version(6, 0)} then
   begin
     Result.cx := 13;
     Result.cy := 5;
@@ -7557,7 +5386,7 @@ begin
   if Assigned(FOnGetSortDirection) then FOnGetSortDirection(Self, Section, Result);
 end;
 
-procedure TCustomGridView.GetSortImage(Section: TGridHeaderSection; SortImage: TBitmap);
+procedure TCustomGridView.GetSortImage(Section: TGridHeaderSection; SortImage: Graphics.TBitmap);
 begin
   if Assigned(FOnGetSortImage) then FOnGetSortImage(Self, Section, SortImage);
 end;
@@ -7567,39 +5396,43 @@ function TCustomGridView.GetTextRect(Canvas: TCanvas; Rect: TRect;
   WantReturns, WordWrap: Boolean; const Text: string): TRect;
 var
   R: TRect;
-  P: TDrawTextParams;
-  F, W, H, I: Integer;
+  F, W, H: Integer;
 begin
+  { проверяем, как выводится текст: с помощью DrawTextEx или TextOut }
   { there are different ways to draw text: using DrawTextEx for multiline
     text and TextOut for single line text (see PaintText) }
   if WantReturns or WordWrap or EndEllipsis then
   begin
-    FillChar(P, SizeOf(P), 0);
-    P.cbSize := SizeOf(P);
-    P.iLeftMargin := LeftIndent;
-    P.iRightMargin := TextRightIndent;
+    { атрибуты текста }
     F := DT_NOPREFIX;
+    { горизонтальное выравнивание }
     case Alignment of
       taLeftJustify: F := F or DT_LEFT;
       taCenter: F := F or DT_CENTER;
       taRightJustify: F := F or DT_RIGHT;
     end;
+    { вертикальное выравнивание }
     if not (WantReturns or WordWrap) then
     begin
-      F := F or DT_SINGLELINE or DT_VCENTER; // <- ellipsis style
+      { автоматическое выравнивание }
+      F := F or DT_SINGLELINE or DT_VCENTER;
+      { многоточие на конце не учитываем }
     end;
+    { перенос слов }
     if WordWrap then F := F or DT_WORDBREAK;
+    { вычисляем размеры текста }
     R := Rect;
-    DrawTextEx(Canvas.Handle, PChar(Text), Length(Text), R, F or DT_CALCRECT, @P);
-    W := Max(Rect.Right - Rect.Left, R.Right - R.Left);
-    H := Max(Rect.Bottom - Rect.Top, R.Bottom - R.Top);
+    DrawText(Canvas.Handle, PChar(Text), Length(Text), R, F or DT_CALCRECT);
+    W := MaxIntValue([Rect.Right - Rect.Left, R.Right - R.Left + LeftIndent + TextRightIndent]);
+    H := MaxIntValue([Rect.Bottom - Rect.Top, R.Bottom - R.Top]);
   end
   else
   begin
-    I := LeftIndent;
-    W := Max(Rect.Right - Rect.Left, I + Canvas.TextWidth(Text) + TextRightIndent);
-    H := Max(Rect.Bottom - Rect.Top, Canvas.TextHeight(Text));
+    { высота и ширина текста }
+    W := MaxIntValue([Rect.Right - Rect.Left, Canvas.TextWidth(Text) + LeftIndent + TextRightIndent]);
+    H := MaxIntValue([Rect.Bottom - Rect.Top, Canvas.TextHeight(Text)]);
   end;
+  { формируем прямоугольник }
   case Alignment of
     taCenter:
       begin
@@ -7617,6 +5450,7 @@ begin
   end;
   R.Top := Rect.Top;
   R.Bottom := R.Top + H;
+  { результат }
   Result := R;
 end;
 
@@ -7627,26 +5461,28 @@ var
   A: TAlignment;
   WR, WW: Boolean;
 begin
+  { проверяем ячейку }
   if not IsCellValid(Cell) then
-  begin
-    Result := Rect(0, 0, 0, 0);
-    Exit;
-  end;
+    Exit( Classes.Rect(0, 0, 0, 0) );
+  { вычисляем прямоугольник }
   with GetTipsWindowClass.Create(Self) do
   try
     GetCellColors(Cell, Canvas);
+    { параметры отрисовки }
     R := GetEditRect(Cell);
     TI := GetCellTextIndent(Cell);
     A := Columns[Cell.Col].Alignment;
     WR := Pos(#13, TipsText) <> 0; // Columns[Cell.Col].WantReturns;
     WW := Columns[Cell.Col].WordWrap;
+    { считаем прямоугольник }
     R := GetTextRect(Canvas, R, TI.X, TI.Y, A, WR, WW, TipsText);
   finally
     Free;
   end;
   if R.Bottom - R.Top > Rows.Height then
+    { NOTE !! для текста, больше, чем высота строки - поправка !! }
     { correction if text height is greater than the height of the row }
-    Inc(R.Bottom, TextTopIndent * 2); {!}
+    Inc(R.Bottom, TextTopIndent * 2);
   InflateRect(R, 1, 1); // <- border
   Result := R;
   if Assigned(FOnGetTipsRect) then FOnGetTipsRect(Self, Cell, Result);
@@ -7670,8 +5506,9 @@ end;
 
 procedure TCustomGridView.HeaderClicking(Section: TGridHeaderSection; var AllowClick: Boolean);
 begin
-  { by default, only the bottom sections can be pressed }
+  { по умолчанию можно нажимать только нижние секции }
   AllowClick := ColumnClick and Section.AllowClick and (Section.Sections.Count = 0);
+  { событие пользователя }
   if Assigned(FOnHeaderClicking) then FOnHeaderClicking(Self, Section, AllowClick);
 end;
 
@@ -7716,34 +5553,35 @@ const
 var
   Cell: TGridCell;
 begin
+  { событие - пользователю }
   inherited KeyDown(Key, Shift);
+  { разбираем стрелки }
   if gkArrows in CursorKeys then
     case Key of
-      VK_LEFT:
+      VK_LEFT: // курсор влево
         begin
-           SetCursor(GetCursorCell(CellFocused, goLeft), True, True);
-          { scroll grid left if selection is not allowed or whole row
-            selection enabled }
-          if RowSelect then
+          SetGridCursor(GetCursorCell(CellFocused, goLeft), True, True);
+          { если выделение построчное - скроллируем таблицу влево }
+          if RowSelect then 
             with HorzScrollBar do SetPosition(Position - LineStep);
         end;
-      VK_RIGHT:
+      VK_RIGHT: // курсор вправо
         begin
-          SetCursor(GetCursorCell(CellFocused, goRight), True, True);
-          { scroll grid right if selection is not allowed or whole row
-            selection enabled }
-          if RowSelect then
+          SetGridCursor(GetCursorCell(CellFocused, goRight), True, True);
+          { если выделение построчное - скроллируем таблицу вправо }
+          if RowSelect then 
             with HorzScrollBar do SetPosition(Position + LineStep);
         end;
-      VK_UP:
+      VK_UP: // курсор вверх
         begin
-          { scroll grid up if selection is not allowed }
+          { если фокуса нет, то смещаем всю таблицу }
           if not AllowSelect then Cell := VisOrigin else Cell := CellFocused;
-          SetCursor(GetCursorCell(Cell, goUp), True, True);
+          { меняем выделенный }
+          SetGridCursor(GetCursorCell(Cell, goUp), True, True);
         end;
-      VK_DOWN:
+      VK_DOWN: // курсор вниз
         begin
-          { scroll grid down if selection is not allowed }
+          { если фокуса нет, то смещаем всю таблицу }
           if not AllowSelect then
           begin
             Cell := GridCell(VisOrigin.Col, VisOrigin.Row + VisSize.Row - 1);
@@ -7751,35 +5589,30 @@ begin
           end
           else
             Cell := CellFocused;
-          SetCursor(GetCursorCell(Cell, goDown), True, True)
+          { меняем выделенный }
+          SetGridCursor(GetCursorCell(Cell, goDown), True, True)
         end;
-      VK_PRIOR:
-        begin
-          Cell := GetCursorCell(CellFocused, goPageUp);
-          SetCursor(Cell, True, True);
-        end;
-      VK_NEXT:
-        begin
-          Cell := GetCursorCell(CellFocused, goPageDown);
-          SetCursor(Cell, True, True);
-        end;
-      VK_HOME:
+      VK_PRIOR: // курсор на страницу вверх
+        SetGridCursor(GetCursorCell(CellFocused, goPageUp), True, True);
+      VK_NEXT: // курсор на страницу вниз
+        SetGridCursor(GetCursorCell(CellFocused, goPageDown), True, True);
+      VK_HOME: //курсор в начало строки или таблицы
         begin
           Cell := GetCursorCell(CellFocused, HomeOffsets[ssCtrl in Shift]);
-          SetCursor(Cell, True, True);
+          SetGridCursor(Cell, True, True);
         end;
-      VK_END:
+      VK_END: // курсор в конец строки или таблицы
         begin
           Cell := GetCursorCell(CellFocused, EndOffsets[ssCtrl in Shift]);
-          SetCursor(Cell, True, True);
+          SetGridCursor(Cell, True, True);
         end;
     end;
+  { курсор на следующую или предыдущую ячейку при нажатии TAB }
   if (gkTabs in CursorKeys) and (Key = VK_TAB) then
-  begin
-    SetCursor(GetCursorCell(CellFocused, TabOffsets[ssShift in Shift]), True, True);
-  end;
+    SetGridCursor(GetCursorCell(CellFocused, TabOffsets[ssShift in Shift]), True, True);
   case Key of
     VK_SPACE:
+      { нажат пробел - кликаем флажок }
       { if row selection is enabled then click check box of the first column }
       if CheckBoxes and (not EditCanShow(CellFocused) or (ssCtrl in Shift)) then
       begin
@@ -7787,7 +5620,7 @@ begin
         if RowSelect then Cell.Col := Fixed.Count;
         if GetCheckKind(Cell) <> gcNone then
         begin
-          SetCursor(Cell, True, True);
+          SetGridCursor(Cell, True, True);
           CheckClick(Cell);
         end;
       end;
@@ -7811,21 +5644,26 @@ begin
     Key := #0;
     if Editing then
     begin
-      ApplyEdit;
+      { вставляем текст, гасим строку ввода }
+      ApplyEdit; 
+      { курсор на следующую ячейку }
       if gkReturn in CursorKeys then
-        SetCursor(GetCursorCell(CellFocused, goNext), True, True);
+        SetGridCursor(GetCursorCell(CellFocused, goNext), True, True);
     end
     else if not AlwaysEdit then
     begin
-      SetCursor(CellFocused, True, True); {?}
+      { если строки ввода нет - показываем ее }
+      SetGridCursor(CellFocused, True, True); {?}
       Editing := True;
     end;
   end;
-  { ESCAPE: stop editing }
+  { нажат ESC - закрываем строку ввода }
   if Key = #27 then
   begin
     Key := #0;
+    { проверяем редактирование }
     if Editing then
+      { гасим строку или восстанавливаем значение }
       if not AlwaysEdit then
         CancelEdit
       else
@@ -7842,10 +5680,11 @@ begin
   UpdateColors;
   UpdateFonts;
   UpdateCursor;
+  { ищем первую ячейку фокуса }
   FCellSelected := AlwaysSelected;
   { show inplace editor asynchronously to avoid access violation if grid data
     is created in the FormCreate event handler }
-  if AlwaysSelected then PostMessage(Handle, WM_USER, 0, 0);
+  if AlwaysSelected then PostMessage(Handle, LM_USER, 0, 0);
 end;
 
 procedure TCustomGridView.MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
@@ -7855,15 +5694,18 @@ var
   AllowClicking: Boolean;
 begin
   KillTimer(Handle, 1);
+  { устанавливаем фокус на себя }
   if not AcquireFocus then
   begin
     MouseCapture := False;
     Exit;
   end;
-  { check clicking on the header }
+  { проверяем нажатие на заголовок }
   if Button = mbLeft then
-    if ShowHeader and PtInRect(GetHeaderRect, Point(X, Y)) then
+    { если заголовок виден и попали на него }
+    if ShowHeader and PtInRect(GetHeaderRect, Classes.Point(X, Y)) then
     begin
+      { попали ли мышкой на край секции заголовка }
       S := GetResizeSectionAt(X, Y);
       if S <> nil then
       begin
@@ -7872,11 +5714,16 @@ begin
         else
           StartColResize(S, X, Y);
       end
+      { щелчок на секции пока только одинарный, потом, когда понадобится,
+        можно сделать событие OnHeaderDblCkick }
       else if not (ssDouble in Shift) then
       begin
+        { попали ли мышкой на заголовок }
         S := GetSectionAt(X, Y);
         if S <> nil then
         begin
+          { на секцию нельзя нажимать если секция плоская или если так
+            решит пользователь }
           if not Header.Flat then
           begin
             AllowClicking := True;
@@ -7890,62 +5737,76 @@ begin
             if Header.Flat then HeaderClick(S)
             else StartHeaderClick(S, X, Y);
         end;
-      end
-      else
-      begin
-        { there is not OnHeaderDblCkick event yet }
       end;
+      { щелкнули на заголовок - не пускаем дальше }
       Exit;
     end;
   { select new cell by mouse }
+  { проверяем новую выделенную ячейку }
   if (Button = mbLeft) or ((Button = mbRight) and RightClickSelect) then
-    if (gkMouse in CursorKeys) and (PtInRect(GetGridRect, Point(X, Y))) then
+    { если можно выделять мышкой и попали на ячейки }
+    if (gkMouse in CursorKeys) and (PtInRect(GetGridRect, Classes.Point(X, Y))) then
     begin
       C := GetCellAt(X, Y);
+      { сбрасываем ячейку последнего щелчка (из-за возможности Exit) }
       { reset position of pending editing }
       P := FClickPos;
       ResetClickPos;
+      { смортим куда попали }
       { select cell or clear selection }
       if IsCellEmpty(C) then
       begin
+        { никуда - гасим выделение курсора }
         Editing := False;
-        SetCursor(CellFocused, False, False);
+        SetGridCursor(CellFocused, False, False);
       end
       else
       begin
-        SetCursor(C, True, True);
+        { в ячейку - выделяем ее }
+        SetGridCursor(C, True, True);
         CellClick(C, Shift, X, Y);
+        { проверяем попадание на флажок }
         { check clicking on the check box }
-        if PtInRect(GetCheckRect(C), Point(X, Y)) then
+        if PtInRect(GetCheckRect(C), Classes.Point(X, Y)) then
         begin
           CheckClick(C);
           Exit;
         end;
-        { start editing }
+        { проверяем начало редактирования (толко левой кнопкой) }
         if (Button = mbLeft) and IsCellEqual(C, CellFocused) and AllowEdit then
+          { редактирование по двойному или повторному щелчку на одной и
+            той же ячейке }
           { editing by repeated single click on the same cell is controlled
             with a timer, so as not to confuse the double click and single
             click }
           if (Shift * [ssCtrl, ssShift, ssDouble] = []) and IsCellEqual(C, P) then
             FEditPending := True;
       end;
-      { save the position for pending editing }
+      { запоминаем позицию последнего щелчка }
       FClickPos := C;
     end;
+  { правая клавиша }
   { abort actions }
   if Button = mbRight then
   begin
+    { если идет изменение размера - прекратить }
     if FColResizing then
     begin
+      { прекращаем изменение }
       StopColResize(True);
+      { не пускаем дальше }
       Exit;
     end;
+    { если идет нажатие на заголовок - прекратить }
     if FHeaderClicking then
     begin
+      { прекращаем изменение }
       StopHeaderClick(True);
+      { не пускаем дальше }
       Exit;
     end;
   end;
+  { обработчик по умолчанию }
   inherited MouseDown(Button, Shift, X, Y);
 end;
 
@@ -7955,12 +5816,25 @@ var
   S: TGridHeaderSection;
   AllowClicking: Boolean;
 begin
+  // перенесено из обработчика LM_SETCURSOR (там глючило)
+  if not (csDesigning in ComponentState) then
+  begin
+    { идет ли изменение размера колонки }
+    if FColResizing or
+    { проверяем попадание на резделительную линию заголовка }
+      (ShowHeader and
+       PtInRect(GetHeaderRect, Classes.Point(X, Y)) and
+       (GetResizeSectionAt(X, Y) <> nil)) then
+      Cursor := crHSplit
+    else
+      Cursor := crArrow;
+  end;
   { highlight "hot" header section }
-  if StyleServices.Enabled and ShowHeader and (not Header.Flat) then
+  if ThemeServices.ThemesEnabled and ShowHeader and (not Header.Flat) then
   begin
     S := nil;
     if FColResizing then S := FColResizeSection
-    else if PtInRect(GetHeaderRect, Point(X, Y)) then
+    else if PtInRect(GetHeaderRect, Classes.Point(X, Y)) then
     begin
       S := GetResizeSectionAt(X, Y);
       if S = nil then S := GetSectionAt(X, Y);
@@ -8003,7 +5877,7 @@ begin
       C := GetCellAt(X, Y);
       if (not IsCellEmpty(C)) and (not IsCellEqual(C, CellFocused)) then
       begin
-        SetCursor(C, True, True);
+        SetGridCursor(C, True, True);
         if IsCellEqual(C, CellFocused) and AlwaysEdit then
         begin
           Editing := True;
@@ -8021,14 +5895,20 @@ end;
 
 procedure TCustomGridView.MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 begin
+  { идет ли изменение размера колонки }
   if FColResizing then
   begin
+    { заканчиваем изменение }
     StopColResize(False);
+    { не пускаем дальше }
     Exit;
   end;
+  { идет ли нажатие на заголовок }
   if FHeaderClicking then
   begin
+    { заканчиваем нажатие }
     StopHeaderClick(False);
+    { не пускаем дальше }
     Exit;
   end;
   { delayed start editing }
@@ -8068,46 +5948,58 @@ var
   R: TRect;
   S: string;
 begin
-  { user draw }
+  { отрисовка пользователя }
   DefDraw := True;
   try
     if Assigned(FOnDraw) then FOnDraw(Self, DefDraw);
   except
     Application.HandleException(Self);
   end;
-  if not DefDraw then Exit;
-  { draw header }
+  { нужна ли отрисовка по умолчанию }
+  if not DefDraw then
+    Exit;
+  { заголовок }
   if ShowHeader and RectVisible(Canvas.Handle, GetHeaderRect) then
   begin
+    { фиксированная часть }
     PaintHeaders(True);
+    { отсекаем прямоугольник фиксированного заголовка }
     R := GetHeaderRect;
     R.Right := GetFixedRect.Right;
     ExcludeClipRect(Canvas.Handle, R.Left, R.Top, R.Right, R.Bottom);
+    { обычная часть }
     PaintHeaders(False);
+    { отсекаем прямоугольник заголовка }
     R := GetHeaderRect;
     ExcludeClipRect(Canvas.Handle, R.Left, R.Top, R.Right, R.Bottom);
   end;
-  { field to the right and bottom of the cells }
+  { поле справа и снизу }
   PaintFreeField;
-  { fixed cells }
+  { фиксированные ячейки }
   if (Fixed.Count > 0) and RectVisible(Canvas.Handle, GetFixedRect) then
   begin
+    { ячейки }
     PaintFixed;
     if GridLines then PaintFixedGridLines;
+    { отсекаем прямоугольник фиксированных }
     R := GetFixedRect;
     ExcludeClipRect(Canvas.Handle, R.Left, R.Top, R.Right, R.Bottom);
   end;
-  { cells }
+  { обычные ячейки }
   if (VisSize.Col > 0) and (VisSize.Row > 0) then
   begin
+    { ячейки }
 //  if Editing then
 //  begin
+//    { отсекаем прямоугольник строки редактирования }
 //    R := GetEditRect(EditCell);
 //    ExcludeClipRect(Canvas.Handle, R.Left, R.Top, R.Right, R.Bottom);
 //  end;
     PaintCells;
+    { прямоугольник фокуса }
     if IsFocusAllowed then PaintFocus;
   end;
+  { сетка }
   { grid lines over the cells }
   if GridLines then PaintGridLines;
   { hint for empty grid }
@@ -8120,8 +6012,8 @@ begin
     Canvas.Font.Color := GridHintColor;
     Canvas.TextOut(R.Left + 3, R.Top + 4, S);
   end;
-  { column resizing line }
-  if FColResizing and (FColResizeCount > 0) and not FColumnsFullDrag then
+  { линия изменения ширины столбца }
+  if FColResizing and (FColResizeCount > 0) and not FColumnsFullDrag then 
     PaintResizeLine;
 end;
 
@@ -8155,15 +6047,16 @@ procedure TCustomGridView.PaintCell(Cell: TGridCell; Rect: TRect);
 var
   DefDraw: Boolean;
 begin
+  { устанавливаем цвета и шрифт ячейки }
   GetCellColors(Cell, Canvas);
-  { user draw cells }
+  { отрисовка пользователя }
   DefDraw := True;
   try
     if Assigned(FOnDrawCell) then FOnDrawCell(Self, Cell, Rect, DefDraw);
   except
     Application.HandleException(Self);
   end;
-  { default draw }
+  { нужна ли отрисовка по умолчанию }
   if DefDraw then DefaultDrawCell(Cell, Rect);
 end;
 
@@ -8174,23 +6067,33 @@ var
   R: TRect;
   C: TGridCell;
 begin
+  { левая и верхняя краницы видимых ячеек }
   L := GetColumnLeftRight(VisOrigin.Col).Left;
   T := GetRowTopBottom(VisOrigin.Row).Top;
+  { инициализируем верхнюю границу }
   R.Bottom := T;
+  { перебираем строки }
   for J := 0 to FVisSize.Row - 1 do
   begin
+    { смещаем прямоугольник по вертикали }
     R.Top := R.Bottom;
     R.Bottom := R.Bottom + Rows.Height;
+    { инициализируем левую границу }
     R.Right := L;
+    { пребираем колонки }
     for I := 0 to FVisSize.Col - 1 do
     begin
+      { ячейка и ее ширина }
       C := GridCell(VisOrigin.Col + I, VisOrigin.Row + J);
       W := Columns[C.Col].Width;
+      { рисуем только видимые ячейки }
       { hidden columns have zero width }
       if W > 0 then
       begin
+        { смещаем прямоугольник по горизонтали }
         R.Left := R.Right;
         R.Right := R.Right + W;
+        { рисуем ячейку }
         if RectVisible(Canvas.Handle, R) then PaintCell(C, R);
       end;
     end;
@@ -8208,14 +6111,16 @@ begin
   begin
     CR := Rect;
     InflateRect(CR, -1, -1); Inc(CR.Left); Inc(CR.Top);
-    if not StyleServices.Enabled then
+    if not ThemeServices.ThemesEnabled then
     begin
       if CheckKind = gcCheckBox then
       begin
         DrawState := DFCS_BUTTONCHECK;
         case CheckState of
           cbChecked: DrawState := DrawState or DFCS_CHECKED;
-          cbGrayed: DrawState := DrawState or DFCS_CHECKED or DFCS_BUTTON3STATE;
+          cbGrayed:  DrawState := DrawState or DFCS_CHECKED or DFCS_BUTTON3STATE;
+        else
+          //
         end;
       end
       else
@@ -8259,7 +6164,7 @@ begin
           else
             Detail := tbRadioButtonUncheckedDisabled;
           end;
-      with StyleServices do
+      with ThemeServices do
         DrawElement(Handle, GetElementDetails(Detail), CR);
     end
   end
@@ -8276,9 +6181,11 @@ var
 begin
   PreparePatternBitmap(Canvas, GetGridLineColor(Color), False);
   try
+    { рисуем линии }
     I := 0;
     while I < Count * 2 do
     begin
+      { координаты линии }
       R.Left := P^[I];
       Inc(I);
       R.Top := P^[I];
@@ -8287,9 +6194,11 @@ begin
       Inc(I);
       R.Bottom := P^[I];
       Inc(I);
-      { FillRect will not work if the width or height of the rectangle is zero }
+      { заливка не будет рисоваться, если ширина или высота прямоугольника
+        нулевая }
       if (R.Left = R.Right) and (R.Top <> R.Bottom) then Inc(R.Right)
       else if (R.Left <> R.Right) and (R.Top = R.Bottom) then Inc(R.Bottom);
+      { рисуем линию }
       Canvas.FillRect(R);
     end;
   finally
@@ -8303,12 +6212,15 @@ var
   R: TRect;
   C: TGridCell;
 begin
+  { верхняя граница строк }
   R.Bottom := GetRowTopBottom(VisOrigin.Row).Top;
+  { перебираем строки }
   for J := 0 to FVisSize.Row - 1 do
   begin
     R.Top := R.Bottom;
     R.Bottom := R.Bottom + Rows.Height;
     R.Right := GetGridRect.Left;
+    { перебираем колонки }
     for I := 0 to Fixed.Count - 1 do
     begin
       C := GridCell(I, VisOrigin.Row + J);
@@ -8321,14 +6233,15 @@ begin
       end;
     end;
   end;
+  { полоска справа }
   { vertical separator line on the right }
-  if (Fixed.Flat or StyleServices.Enabled) and
+  if (Fixed.Flat or ThemeServices.ThemesEnabled) and
     (Fixed.ShowDivider or (gsFullVertLine in GridStyle)) then
   begin
     R := GetFixedRect;
     { if the colors of fixed cells and regular cells are the same - draw a
       separator from one line, otherwise draw a double line }
-    if Fixed.GridColor or StyleServices.Enabled then
+    if Fixed.GridColor or ThemeServices.ThemesEnabled then
     begin
       if not (gsDotLines in GridStyle) then
       begin
@@ -8361,7 +6274,7 @@ begin
       end;
     end;
   end;
-  { column resizing line }
+  { линия изменения ширины колонки }
   if FColResizing and (FColResizeCount > 0) and not FColumnsFullDrag then
     PaintResizeLine;
 end;
@@ -8458,7 +6371,7 @@ var
   end;
 
 begin
-  if StyleServices.Enabled or Fixed.Flat then
+  if ThemeServices.ThemesEnabled or Fixed.Flat then
   begin
     { the number of grid lines is equal to the number of visible rows plus
       one line to the right of each fixed column }
@@ -8520,7 +6433,7 @@ begin
         the grid, then the grid lines are the same, with the themes enabled
         always draw single lines, with the themes turned off on a gray
         background we draw double lines }
-      if Fixed.GridColor or StyleServices.Enabled then
+      if Fixed.GridColor or ThemeServices.ThemesEnabled then
       begin
         { shift the lines (they are calculated for the double line) }
         ShiftGridPoints(1, 0);
@@ -8528,7 +6441,11 @@ begin
         begin
           Canvas.Pen.Color := GetFixedGridColor;
           Canvas.Pen.Width := FGridLineWidth;
+        {$IFDEF WINDOWS}
           PolyPolyLine(Canvas.Handle, Pointer(Points)^, Pointer(StrokeList)^, PointCount shr 1);
+        {$ELSE}
+          dpPolyPolyLine(Canvas.Handle, Points, StrokeList);
+        {$ENDIF}
         end
         else
           PaintDotGridLines(Pointer(Points), PointCount);
@@ -8537,10 +6454,18 @@ begin
       begin
         Canvas.Pen.Color := clBtnShadow;
         Canvas.Pen.Width := 1;
+      {$IFDEF WINDOWS}
         PolyPolyLine(Canvas.Handle, Pointer(Points)^, Pointer(StrokeList)^, PointCount shr 1);
+      {$ELSE}
+        dpPolyPolyLine(Canvas.Handle, Points, StrokeList);
+      {$ENDIF}
         ShiftGridPoints(1, 1);
         Canvas.Pen.Color := clBtnHighlight;
+      {$IFDEF WINDOWS}
         PolyPolyLine(Canvas.Handle, Pointer(Points)^, Pointer(StrokeList)^, PointCount shr 1);
+      {$ELSE}
+        dpPolyPolyLine(Canvas.Handle, Points, StrokeList);
+      {$ENDIF}
       end;
     end;
   end
@@ -8620,7 +6545,7 @@ var
   X, Y: Integer;
   R: TRect;
 begin
-  { field to the right of the cells }
+  { поле справа от таблицы }
   X := GetColumnLeftRight(VisOrigin.Col + VisSize.Col).Left;
   R := GetGridRect;
   if X < R.Right then
@@ -8629,7 +6554,7 @@ begin
     Canvas.Brush.Color := Color;
     Canvas.FillRect(R);
   end;
-  { field to the bottom of cells }
+  { поле снизу от таблицы }
   Y := GetRowTopBottom(VisOrigin.Row + VisSize.Row).Top;
   R := GetGridRect;
   if Y < R.Bottom then
@@ -8638,14 +6563,14 @@ begin
     R.Top := Y;
     Canvas.Brush.Color := Color;
     Canvas.FillRect(R);
-    { field below fixed cells }
+    { поле под фиксированными }
     R.Right := R.Left;
     R.Left := GetFixedRect.Left;
     Inc(R.Bottom, 2);
     if (gsListViewLike in GridStyle) then Canvas.Brush.Color := Fixed.Color;
     Canvas.FillRect(R);
   end;
-  { column resizing line }
+  { линия изменения ширины столбца }
   if FColResizing and (FColResizeCount > 0) and not FColumnsFullDrag then
     PaintResizeLine;
 end;
@@ -8722,7 +6647,11 @@ begin
     begin
       Canvas.Pen.Color := GetGridLineColor(Color);
       Canvas.Pen.Width := FGridLineWidth;
+    {$IFDEF WINDOWS}
       PolyPolyLine(Canvas.Handle, Pointer(Points)^, Pointer(StrokeList)^, PointCount shr 1);
+    {$ELSE}
+      dpPolyPolyLine(Canvas.Handle, Points, StrokeList);
+    {$ENDIF}
     end
     else
       PaintDotGridLines(Pointer(Points), PointCount);
@@ -8733,26 +6662,31 @@ procedure TCustomGridView.PaintHeader(Section: TGridHeaderSection; Rect: TRect);
 var
   DefDraw: Boolean;
 begin
+  { устанавливаем цвет и шрифт секции }
   GetHeaderColors(Section, Canvas);
-  { user draw header }
+  { отрисовка пользователя }
   DefDraw := True;
   try
     if Assigned(FOnDrawHeader) then FOnDrawHeader(Self, Section, Rect, DefDraw);
   except
     Application.HandleException(Self);
   end;
-  { default draw }
+  { нужна ли отрисовка по умолчанию }
   if DefDraw then DefaultDrawHeader(Section, Rect);
 end;
 
-procedure TCustomGridView.PaintHeaderBackground(Rect: TRect; Color: TColor;
-  PaintState: TGridPaintStates);
+procedure TCustomGridView.PaintHeaderBackground(Rect: TRect; Color: TColor; PaintState: TGridPaintStates);
+// NOTE !! отрисовка в винде через ThemeServices глючит !!
+{$IFDEF UNIX}
 var
   Detail: TThemedHeader;
   Details: TThemedElementDetails;
+{$ENDIF}
 begin
   with Canvas do
-    if not StyleServices.Enabled then
+  {$IFDEF UNIX}
+    if not ThemeServices.ThemesEnabled then
+  {$ENDIF}
     begin
       Brush.Color := Color;
       FillRect(Rect);
@@ -8777,25 +6711,27 @@ begin
       else
         Paint3DFrame(Rect, BF_RECT);
     end
+  {$IFDEF UNIX}
     else
     begin
-      if (psSorted in PaintState) and CheckWin32Version(6, 0) then
-      begin
-        Details := StyleServices.GetElementDetails(thHeaderItemNormal);
-        if psPressed in PaintState then Details.State := HIS_SORTEDPRESSED
-        else if psHot in PaintState then Details.State := HIS_SORTEDHOT
-        else Details.State := HIS_SORTEDNORMAL;
-      end
-      else
+      //if (psSorted in PaintState) {and CheckWin32Version(6, 0)} then
+      //begin
+      //  Details := ThemeServices.GetElementDetails(thHeaderItemNormal);
+      //  if psPressed in PaintState then Details.State := HIS_SORTEDPRESSED
+      //  else if psHot in PaintState then Details.State := HIS_SORTEDHOT
+      //  else Details.State := HIS_SORTEDNORMAL;
+      //end
+      //else
       begin
         if psPressed in PaintState then Detail := thHeaderItemPressed
         else if psHot in PaintState then Detail := thHeaderItemHot
         else if psDontCare in PaintState then Detail := thHeaderDontCare
         else Detail := thHeaderItemNormal;
-        Details := StyleServices.GetElementDetails(Detail);
+        Details := ThemeServices.GetElementDetails(Detail);
       end;
-      StyleServices.DrawElement(Handle, Details, Rect);
+      ThemeServices.DrawElement(Handle, Details, Rect);
     end;
+  {$ENDIF}
 end;
 
 procedure TCustomGridView.PaintHeaders(DrawFixed: Boolean);
@@ -8804,19 +6740,21 @@ const
 var
   R: TRect;
 begin
+  { подзаголовки }
   PaintHeaderSections(Header.Sections, DrawFixed);
-  { field to the right of the header }
+  { оставшееся место справа }
   R := GetHeaderRect;
   R.Left := GetGridRect.Left + Header.Width + GetGridOrigin.X;
   if R.Left < R.Right then
   begin
-    Dec(R.Left, Ord(StyleServices.Enabled)); // <- double-line artifact with themes enabled
+    Dec(R.Left, Ord(ThemeServices.ThemesEnabled)); // <- double-line artifact with themes enabled
     Inc(R.Right, 2);
     PaintHeaderBackground(R, Header.Color, PaintState[Header.Flat]);
   end;
-  { gray line at the bottom of the header }
-  if Header.Flat and (not StyleServices.Enabled) then
+  { серая полоска снизу }
+  if Header.Flat and (not ThemeServices.ThemesEnabled) then
   begin
+    { подправляем края прямоугольника }
     if DrawFixed then
     begin
       R.Left := GetFixedRect.Left;
@@ -8827,7 +6765,9 @@ begin
       R.Left := GetFixedRect.Right;
       R.Right := GetGridRect.Right;
     end;
+    { рисуем }
     with Canvas do
+      { если цвета фиксированных и  таблицы совпадают - рисует обычную полоску }
       if Header.GridColor then
       begin
         Pen.Color := GetGridLineColor(Color);
@@ -8836,6 +6776,7 @@ begin
         LineTo(R.Right, R.Bottom - 1);
       end
       else
+      { иначе рисуем двойную полоску }
       begin
         Pen.Color := clBtnShadow;
         Pen.Width := 1;
@@ -8846,7 +6787,7 @@ begin
         LineTo(R.Right, R.Bottom - 1);
       end;
   end;
-  { column resizing line }
+  { линия изменения ширины колонки }
   if FColResizing and (FColResizeCount > 0) and not FColumnsFullDrag then
     PaintResizeLine;
 end;
@@ -8860,16 +6801,19 @@ begin
   for I := 0 to Sections.Count - 1 do
   begin
     S := Sections[I];
+    { рисуем только секции указанной "фиксированности" }
     { the header sections are drawn in two stages: the sections of fixed cells
       and the section of regular cells }
     if DrawFixed = S.FixedColumn then
     begin
       R := S.BoundsRect;
+      { не рисуем, секции ненулевой ширины }
       if R.Right > R.Left then
       begin
+        { вычисляем прямоугольник секции }
         SR := R;
         if S.Sections.Count > 0 then SR.Bottom := GetHeaderRect.Bottom;
-        { to speed up redrawing, skip sections that do not need to be redrawn }
+        { рисуем только те секции и поззаголовки, которые надо перерисовывать }
         if RectVisible(Canvas.Handle, SR) then
         begin
           PaintHeader(S, R);
@@ -8878,8 +6822,9 @@ begin
       end;
     end
     else
-      { multi-level header can have both fixed and non-fixed sections (although
-        this is wrong), so let's try drawing them too }
+      { некторые общие заголовки могут иметь одновременно фиксированные и
+        нефиксированные подзаголовки (хотя это и неправильно), поэтому
+        попробуем отрисовать их тоже }
       PaintHeaderSections(S.Sections, DrawFixed);
   end;
 end;
@@ -8915,61 +6860,47 @@ end;
 procedure TCustomGridView.PaintText(Canvas: TCanvas; Rect: TRect; LeftIndent, TopIndent: Integer;
   Alignment: TAlignment; WantReturns, WordWrap: Boolean; const Text: string);
 var
-  P: TDrawTextParams;
-  F, DX: Integer;
-  A: UINT;
+  ts: TTextStyle;
+  DX: Integer;
 begin
   { draw text using DrawTextEx for multiline text, draw text using TextOut
     for single line text }
+  // переписано для использования Canvas.TextRect
+  ts := Canvas.TextStyle;
+  ts.Opaque := False;
+  ts.Layout := tlCenter;
+  ts.Alignment := Alignment;
+  ts.Wordbreak := WordWrap;
   if WantReturns or WordWrap or EndEllipsis then
   begin
-    FillChar(P, SizeOf(P), 0);
-    P.cbSize := SizeOf(P);
-    P.iLeftMargin := LeftIndent;
-    P.iRightMargin := TextRightIndent;
-    F := DT_NOPREFIX;
-    case Alignment of
-      taLeftJustify: F := F or DT_LEFT;
-      taCenter: F := F or DT_CENTER;
-      taRightJustify: F := F or DT_RIGHT;
-    end;
+    ts.ShowPrefix := False;
+    ts.SingleLine := False;
+    ts.EndEllipsis := False;
     if not (WantReturns or WordWrap) then
     begin
-      F := F or DT_SINGLELINE;
-      if Alignment = taLeftJustify then F := F or DT_END_ELLIPSIS
+      ts.SingleLine := True;
+      { многоточие на конце }
+      if Alignment = taLeftJustify then ts.EndEllipsis := True
     end;
-    if WordWrap then F := F or DT_WORDBREAK;
-    Inc(Rect.Top, TopIndent);
-    with Canvas do
-    begin
-      SetBkMode(Handle, TRANSPARENT);
-      DrawTextEx(Handle, PChar(Text), Length(Text), Rect, F, @P);
-    end;
+    { отступ справа }
+    Dec(Rect.Right, TextRightIndent);
+    { выводим текст }
+    SetBkMode(Canvas.Handle, TRANSPARENT);
+    Canvas.TextRect(Rect, Rect.Left + LeftIndent, Rect.Top {+ TopIndent}, Text, ts);
   end
   else
   begin
+    { смещение по горизонтали }
     case Alignment of
-      taCenter:
-        begin
-          DX := LeftIndent + (Rect.Right - Rect.Left) div 2;
-          A := TA_CENTER;
-        end;
-      taRightJustify:
-        begin
-          DX := (Rect.Right - Rect.Left) - TextRightIndent;
-          A := TA_RIGHT;
-        end;
+      taCenter:       DX := LeftIndent + (Rect.Right - Rect.Left) div 2;
+      taRightJustify: DX := (Rect.Right - Rect.Left) - TextRightIndent;
     else
       DX := LeftIndent;
-      A := TA_LEFT;
     end;
-    with Canvas do
-    begin
-      SetBkMode(Handle, TRANSPARENT);
-      SetTextAlign(Handle, A);
-      ExtTextOut(Handle, Rect.Left + DX, Rect.Top + TopIndent, ETO_CLIPPED, @Rect, PChar(Text), Length(Text), nil);
-      SetTextAlign(Handle, TA_LEFT);
-    end;
+    ts.Clipping := True;
+    { стандартный вывод текста }
+    SetBkMode(Canvas.Handle, TRANSPARENT);
+    Canvas.TextRect(Rect, Rect.Left + DX, Rect.Top {+ TopIndent}, Text, ts);
   end;
 end;
 
@@ -8977,19 +6908,20 @@ procedure TCustomGridView.PreparePatternBitmap(Canvas: TCanvas; FillColor: TColo
 begin
   if Remove then
   begin
-    if Canvas.Brush.Bitmap = nil then Exit;
+    if Canvas.Brush.Bitmap = nil then
+      Exit;
     Canvas.Brush.Bitmap := nil;
   end
   else
   begin
     if Canvas.Brush.Bitmap = FPatternBitmap then Exit;
-    { Dotted lines are drawn using dotted fill 2x2. The fill format is set
-      immediately to the entire canvas relative to the upper left corner of
-      the component. Therefore, even filling in the line shifted by 1 pixel
-      from the previous one, we still get an alternating fill. When the grid
-      is horizontally shifted by 1 pixel, the old fill is shifted too, and
-      to draw a new fill alternating with the old one, you also need to shift
-      the fill format. }
+    { Линии точечками рисуются с использованием точечной заливки. Формат
+      заливки устанавливается сразу на весь Canvas относительно верхнего
+      левого угла компонента. Поэтому, даже заливая линию, сдвинутую на 1
+      пиксел от предыдущей, мы все равно получим чередующуюся заливку.
+      При горизонтальном смещение таблицы на 1 пиксел старая сетка смещается,
+      и чтобы новая сетка рисовалась также чередующейся со старой, необходимо
+      сместить и формат заливки. }
     if HorzScrollBar.Position mod 2 = 0 then
     begin
       FPatternBitmap.Canvas.Pixels[0, 0] := Color;
@@ -9004,8 +6936,10 @@ begin
       FPatternBitmap.Canvas.Pixels[0, 1] := Color;
       FPatternBitmap.Canvas.Pixels[1, 0] := Color;
     end;
+    { устанавливаем заливку }
     Canvas.Brush.Bitmap := FPatternBitmap;
   end;
+  { обновляем полотно }
   Canvas.Refresh;
 end;
 
@@ -9039,9 +6973,11 @@ end;
 
 procedure TCustomGridView.ShowEditChar(C: Char);
 begin
+  { показываем строку ввода }
   Editing := True;
+  { вставляем символ }
   if (Edit <> nil) and Editing then
-    PostMessage(Edit.Handle, WM_CHAR, Word(C), 0);
+    PostMessage(Edit.Handle, LM_CHAR, Word(C), 0);
 end;
 
 procedure TCustomGridView.ShowFocus;
@@ -9052,7 +6988,7 @@ end;
 procedure TCustomGridView.SizeAllColumnsToFit;
 var
   I: Integer;
-  Column: TGridColumn;
+  Column: TCustomGridColumn;
 begin
   if ColumnsResize then
     for I := 0 to Columns.Count - 1 do
@@ -9085,8 +7021,10 @@ begin
   FColResizeSection := Section;
   FColResizeIndex := Section.ResizeColumnIndex;
   FColResizeLevel := Section.Level;
+  { вычисляем граничный прямоугольник для изменения размера }
   with FColResizeSection do
   begin
+    { горизонтальные границы }
     if FColResizeIndex <= Columns.Count - 1 then
     begin
       FColResizeRect := GetColumnRect(FColResizeIndex);
@@ -9101,13 +7039,17 @@ begin
       FColResizeMinWidth := 0;
       FColResizeMaxWidth := 10000;
     end;
+    { вертикальне границы }
     FColResizeRect.Top := Level * Header.SectionHeight;
     FColResizeRect.Bottom := Height;
   end;
+  { положение линии размера }
   FColResizePos := FColResizeRect.Right;
   FColResizeOffset := FColResizePos - X;
+  { можно изменять размер колонки }
   FColResizeCount := 0;
   FColResizing := True;
+  { захватываем мышку }
   MouseCapture := True;
 end;
 
@@ -9117,49 +7059,58 @@ var
   R: TRect;
   S: TGridHeaderSection;
 begin
+  { а идёт ли изменение размера колонки }
   if FColResizing then
   begin
-    { get the current resize line position and new column width }
+    { текущее положение линии }
     X := X + FColResizeOffset;
+    { текущая ширина }
     W := X - FColResizeRect.Left;
-    { update new width }
+    { подправляем ширину в соотвествии с границами }
     if W < FColResizeMinWidth then W := FColResizeMinWidth;
     if W > FColResizeMaxWidth then W := FColResizeMaxWidth;
     ColumnResizing(FColResizeIndex, W);
+    { опять подправляем шщирину }
     if W < FColResizeMinWidth then W := FColResizeMinWidth;
     if W > FColResizeMaxWidth then W := FColResizeMaxWidth;
-    { calculate new resize line position }
+    { новое положение линии }
     X := FColResizeRect.Left + W;
+    { проводим линию }
     if FColResizePos <> X then
     begin
-      { hide the line in the old position }
+      { закрашиваем старую линию }
       if (FColResizeCount > 0) and not FColumnsFullDrag then PaintResizeLine;
       Inc(FColResizeCount);
+      { новое положение линии }
       FColResizePos := X;
+      { устанавливаем ширину }
       if FColumnsFullDrag and (FColResizeIndex < Columns.Count) then
       begin
+        { перед изменение ширины столбца вычисляем и обновляем изменяющуюся
+          часть ячеек таблицы }
         { calculate and update the changing part of the grid cells }
         UnionRect(R, GetHeaderRect, GetGridRect);
         R.Left := GetColumnLeftRight(FColResizeIndex).Left;
         if FColResizeIndex >= Fixed.Count then
         begin
-          { if a regular column is partially closed fixed, then this closed
-            part is not necessary to redraw }
-          R.Left := Max(R.Left, GetFixedRect.Right);
+          { если нефиксированная колонка частично закрыта фиксированными,
+            то эту закрытую часть перерисовывать не надо }
+          R.Left := MaxIntValue([R.Left, GetFixedRect.Right]);
         end;
         if (W < Columns[FColResizeIndex].Width) and
            (R.Right >= GetColumnLeftRight(Columns.Count - 1).Right) and
            (HorzScrollBar.Max - HorzScrollBar.Min > HorzScrollBar.PageStep) then
         begin
-          { if the horizontal scrollbar is in the rightmost position, then
-            decreasing the width of the column should shift to the right all
-            the columns that are to the left of the current }
+          { граничный случай: если горизонтальный скроллер в самом
+            правом положении, то уменьшение ширины колонки приводит к
+            сдвигу вправо всех нефиксированных колонок, расположенных
+            слева от текущей }
           R.Left := GetFixedRect.Right;
           R.Right := GetColumnLeftRight(FColResizeIndex + 1).Left;
         end;
         InvalidateRect(R);
-        { if the column has a multi-level header, then you need to redraw
-          the topmost section }
+        { если у колонки многоуровневый заголовок, то дополнительно
+          обновляем самую верхнюю секцию }
         S := GetHeaderSection(FColResizeIndex, 0);
         if S <> nil then
         begin
@@ -9167,21 +7118,26 @@ begin
           R.Bottom := GetHeaderRect.Bottom;
           InvalidateRect(R);
         end;
+        { запрещаем перерисовку всей таблицы, устанавливаем новую ширину
+          столбца  }
         LockUpdate;
         try
           Columns[FColResizeIndex].Width := W;
         finally
+          { теперь перерисовываем (лучше сразу - так меньше моргает) }
           { update grid instead of invalidate (blinks less) }
           UnlockUpdate(False);
           Update;
         end;
       end
       else
+        { рисуем новую линию }
         { hide the line in the new position }
         PaintResizeLine;
     end
     else
     begin
+      { рисуем линию первый раз }
       { show the resize line }
       if (FColResizeCount = 0) and not FColumnsFullDrag then PaintResizeLine;
       Inc(FColResizeCount);
@@ -9195,20 +7151,30 @@ var
 begin
   if FColResizing then
   try
+    { освобождаем мышку }
     MouseCapture := False;
-    { a simple click on the right sizde of the section does not change the size }
+    { было ли хотябы одно перемещение }
+    { a simple click on the right side of the section does not change the size }
     if FColResizeCount > 0 then
     begin
+      { закрашиваем линию }
       if not FColumnsFullDrag then PaintResizeLine;
+      { а не прервано ли изменение }
       if Abort then Exit;
+      { устанавливаем размер колонки }
       with FColResizeSection do
       begin
+        { новая ширина }
         W := FColResizePos - FColResizeRect.Left;
+        { подправляем ширину в соотвествии с границами }
         if W < FColResizeMinWidth then W := FColResizeMinWidth;
         if W > FColResizeMaxWidth then W := FColResizeMaxWidth;
+        { событие пользователя }
         ColumnResize(FColResizeIndex, W);
+        { опять подправляем шщирину }
         if W < FColResizeMinWidth then W := FColResizeMinWidth;
         if W > FColResizeMaxWidth then W := FColResizeMaxWidth;
+        { устанавливаем ширину }
         if FColResizeIndex < Columns.Count then
           Columns[FColResizeIndex].Width := W;
       end;
@@ -9220,11 +7186,14 @@ end;
 
 procedure TCustomGridView.StartHeaderClick(Section: TGridHeaderSection; X, Y: Integer);
 begin
+  { запоминаем параметры }
   FHeaderClickSection := Section;
   FHeaderClickRect := Section.BoundsRect;
   FHeaderClickState := False;
   FHeaderClicking := True;
+  { захватываем мышку }
   MouseCapture := True;
+  { нажимаем кнопку }
   StepHeaderClick(X, Y);
 end;
 
@@ -9232,9 +7201,12 @@ procedure TCustomGridView.StepHeaderClick(X, Y: Integer);
 var
   P: Boolean;
 begin
+  { а едет ли нажатие на секцию }
   if FHeaderClicking then
   begin
-    P := PtInRect(FHeaderClickRect, Point(X, Y));
+    { определяем признак нажатия }
+    P := PtInRect(FHeaderClickRect, Classes.Point(X, Y));
+    { изменилось ли что-нибудь }
     if FHeaderClickState <> P then
     begin
       FHeaderClickState := P;
@@ -9247,12 +7219,16 @@ procedure TCustomGridView.StopHeaderClick(Abort: Boolean);
 var
   P: Boolean;
 begin
+  { а едет ли нажатие на секцию }
   if FHeaderClicking then
   begin
     P := FHeaderClickState;
+    { отжимаем кнопку }
     StepHeaderClick(-1, -1);
+    { завершаем нажатие, отпускаем мышку }
     FHeaderClicking := False;
     MouseCapture := False;
+    { вызываем событие }
     if (not Abort) and P then HeaderClick(FHeaderClickSection);
   end;
 end;
@@ -9298,9 +7274,10 @@ var
 begin
   if Editing then
   begin
-    { save the edit cell because it will be reset after hiding the
-      inplace editor }
+    { запоминаем ячейку редактирвоания, т.к. она сбросится после
+      окончания редактирования }
     Cell := EditCell;
+    { гасим строку или восстанавливаем значение }
     if not AlwaysEdit then
     begin
       HideEdit;
@@ -9308,30 +7285,34 @@ begin
     end
     else
       UpdateEditContents(False);
-    { OnEditCanceled event }
+    { ввод текста отменен }
     EditCanceled(Cell);
   end;
 end;
 
 procedure TCustomGridView.DefaultDrawCell(Cell: TGridCell; Rect: TRect);
+{$IFDEF WINDOWS}
 const
   ILDS: array[Boolean] of Longint = (ILD_NORMAL, ILD_SELECTED);
   TVDS: array[Boolean] of Longint = (TREIS_SELECTEDNOTFOCUS, TREIS_SELECTED);
+{$ENDIF}
 var
   DefRect: TRect;
   CK: TGridCheckKind;
   CS: TCheckBoxState;
   CE: Boolean;
   CI, OI, X, Y, W, H: Integer;
-  IDS: Longint;
-  BKC, BLC: DWORD;
   R: TRect;
   RS, RH, CH, IH, SH: Boolean;
   IC, II, IT: TPoint;
   A: TAlignment;
   WR, WW: Boolean;
   T: string;
+{$IFDEF WINDOWS}
+  IDS: Longint;
+  BKC, BLC: DWORD;
   Theme: HTHEME;
+{$ENDIF}
 begin
   DefRect := Rect;
   CK := GetCheckKind(Cell);
@@ -9351,9 +7332,10 @@ begin
     if CI <> -1 then Inc(R.Left, II.X + Images.Width);
   end;
   Canvas.FillRect(R);
+{$IFDEF WINDOWS}
   { Window Vista themed focus }
   if Enabled and IsCellHighlighted(Cell) and (not IsCellEditing(Cell)) and
-    StyleServices.Enabled and CheckWin32Version(6, 0) and
+    ThemeServices.ThemesEnabled and CheckWin32Version(6, 0) and
     (Focused or EditFocused or (not HideSelection)) then
   begin
     Theme := OpenThemeData(Self.Handle, 'TREEVIEW');
@@ -9370,6 +7352,7 @@ begin
       CloseThemeData(Theme);
     end;
   end;
+{$ENDIF}
   { draw check box }
   if CK <> gcNone then
   begin
@@ -9418,11 +7401,13 @@ begin
       if X + W > R.Right then W := R.Right - X;
       H := Images.Height;
       if Y + H > R.Bottom then H := R.Bottom - Y;
+    {$IFDEF WINDOWS}
       IDS := ILDS[IsCellHighlighted(Cell) and (Focused or EditFocused) and IH];
       if OI <> -1 then IDS := ILD_OVERLAYMASK and IndexToOverlayMask(OI + 1);
       BKC := GetRGBColor(Images.BkColor);
       BLC := GetRGBColor(Images.BlendColor);
-      ImageList_DrawEx(Images.Handle, CI, Canvas.Handle, X, Y, W, H, BKC, BLC, IDS);
+      ImageList_DrawEx(Images.ResolutionByIndex[0].Reference.Handle, CI, Canvas.Handle, X, Y, W, H, BKC, BLC, IDS);
+    {$ENDIF}
       { exclude image rect from text rect }
       Rect.Left := R.Right;
     end;
@@ -9492,7 +7477,9 @@ begin
         if Y + H > R.Bottom then H := R.Bottom - Y;
         BKC := GetRGBColor(Header.Images.BkColor);
         BLC := GetRGBColor(Header.Images.BlendColor);
-        ImageList_DrawEx(Header.Images.Handle, I, Canvas.Handle, X, Y, W, H, BKC, BLC, ILD_NORMAL);
+      {$IFDEF WINDOWS}
+        ImageList_DrawEx(Header.Images.ResolutionByIndex[0].Reference.Handle, I, Canvas.Handle, X, Y, W, H, BKC, BLC, ILD_NORMAL);
+      {$ENDIF}
       end;
       { image is always on the left of the section rectangle }
       Rect.Left := R.Right;
@@ -9501,12 +7488,12 @@ begin
   if Rect.Left < Rect.Right then
   begin
     T := Section.DisplayText;
-    TL := Length(T);
+    TL := UTF8Length(T);
     { draw sort image before section text }
     if SD <> gsNone then
     begin
       SS := GetSortArrowSize;
-      if StyleServices.Enabled and CheckWin32Version(6, 0) then
+      if ThemeServices.ThemesEnabled {and CheckWin32Version(6, 0)} then
       begin
         SR.Left := Rect.Left + (Rect.Right - Rect.Left - SS.cx) div 2;
         SR.Right := SR.Left + SS.cx;
@@ -9515,10 +7502,10 @@ begin
         { sort image is never "pressed" (like in Explorer) }
         if IsPressed then OffsetRect(SR, -1, -1);
         if SD = gsAscending then
-          ElementDetails := StyleServices.GetElementDetails(thHeaderSortArrowSortedUp)
+          ElementDetails := ThemeServices.GetElementDetails(thHeaderSortArrowSortedUp)
         else
-          ElementDetails := StyleServices.GetElementDetails(thHeaderSortArrowSortedDown);
-        StyleServices.DrawElement(Canvas.Handle, ElementDetails, SR);
+          ElementDetails := ThemeServices.GetElementDetails(thHeaderSortArrowSortedDown);
+        ThemeServices.DrawElement(Canvas.Handle, ElementDetails, SR);
       end
       else
       begin
@@ -9530,16 +7517,16 @@ begin
         if SD = gsAscending then
         begin
           OffsetRect(SR, 0, -1);
-          Points[0] := Point(SR.Left, SR.Bottom);
-          Points[1] := Point(SR.Left + SS.cx div 2, SR.Top);
-          Points[2] := Point(SR.Right, SR.Bottom);
+          Points[0] := Classes.Point(SR.Left, SR.Bottom);
+          Points[1] := Classes.Point(SR.Left + SS.cx div 2, SR.Top);
+          Points[2] := Classes.Point(SR.Right, SR.Bottom);
         end
         else
         begin
           OffsetRect(SR, 0, 1);
-          Points[0] := Point(SR.Left + 1, SR.Top);
-          Points[1] := Point(SR.Right, SR.Top);
-          Points[2] := Point(SR.Left + SS.cx div 2, SR.Bottom - 1);
+          Points[0] := Classes.Point(SR.Left + 1, SR.Top);
+          Points[1] := Classes.Point(SR.Right, SR.Top);
+          Points[2] := Classes.Point(SR.Left + SS.cx div 2, SR.Bottom - 1);
         end;
         PS := Canvas.Pen.Style;
         Canvas.Pen.Style := psClear;
@@ -9569,13 +7556,18 @@ var
 begin
   if IsCellVisible(Cell, True) then
   begin
+    { прямоугольник ячейки }
     R := GetEditRect(Cell);
+    { цвета }
     GetCellColors(CellFocused, Canvas);
+    { рисуем }
     with Canvas do
     begin
+      { отсекаем место под заголовок и фиксированные }
       { cannot drag on fixed cells }
       R := GetGridRect;
       IntersectClipRect(Handle, GetFixedRect.Right, R.Top, R.Right, R.Bottom);
+      { фокус }
       DrawFocusRect(R);
     end;
   end;
@@ -9596,7 +7588,7 @@ function TCustomGridView.FindText(const FindText: string; Options: TFindOptions)
       T := GetCellText(C);
       if CompareStrings(FindText, T, frWholeWord in Options, frMatchCase in Options) then
       begin
-        SetCursor(C, True, True);
+        SetGridCursor(C, True, True);
         Result := True;
       end;
     end;
@@ -9681,9 +7673,9 @@ function TCustomGridView.GetCellRect(Cell: TGridCell): TRect;
 var
   CR, RR: TRect;
 begin
-  { a simple intersection of a rectangle of a column and a row is not
-    quite correct, because the left edge of the row rectangle cannot
-    be to the left of the last fixed column }
+  { простое пересечение прямоугольника колонки и строки не совсем правильное,
+    т.к. левый край прямоугольника строки не может быть левее последней
+    фиксированной колонки }
   CR := GetColumnLeftRight(Cell.Col);
   Result.Left := CR.Left;
   Result.Right := CR.Right;
@@ -9696,15 +7688,16 @@ function TCustomGridView.GetCellsRect(Cell1, Cell2: TGridCell): TRect;
 var
   CR, RR: TRect;
 begin
+  { проверяем границы }
   if (Cell2.Col < Cell1.Col) or (Cell2.Row < Cell1.Row) then
-  begin
-    Result := Rect(0, 0, 0, 0);
-    Exit;
-  end;
+    Exit( Classes.Rect(0, 0, 0, 0) );
+  { левая и правая границы }
   CR := GetColumnRect(Cell1.Col);
   if Cell2.Col > Cell1.Col then CR.Right := GetColumnRect(Cell2.Col).Right;
+  { верхняя и нижняя границы }
   RR := GetRowRect(Cell1.Row);
   if Cell2.Row > Cell1.Row then RR.Bottom := GetRowRect(Cell2.Row).Bottom;
+  { результат }
   Result.Left := CR.Left;
   Result.Right := CR.Right;
   Result.Top := CR.Top; // <- RR.Top ???
@@ -9716,6 +7709,7 @@ var
   L, R: Integer;
 begin
   Result := 0;
+  { ищем среди фиксированных }
   L := GetGridRect.Left;
   while Result <= Fixed.Count - 1 do
   begin
@@ -9724,6 +7718,7 @@ begin
     L := R;
     Inc(Result);
   end;
+  { ищем среди обычных }
   L := L + GetGridOrigin.X;
   while Result <= Columns.Count - 1 do
   begin
@@ -9737,23 +7732,28 @@ end;
 
 function TCustomGridView.GetColumnLeftRight(Column: Integer): TRect;
 begin
+  { проверяем колонку }
   if Columns.Count = 0 then
   begin
+    { колонок вообще нет }
     Result.Left := GetGridRect.Left;
     Result.Right := Result.Left;
   end
   else if Column < 0 then
   begin
+    { колонка левее самой первой }
     Result := GetColumnLeftRight(0);
     Result.Right := Result.Left;
   end
   else if Column > Columns.Count - 1 then
   begin
+    { колонка правее самой последей }
     Result := GetColumnLeftRight(Columns.Count - 1);
     Result.Left := Result.Right;
   end
   else
   begin
+    { обычная колонка }
     Result.Left := GetGridRect.Left + GetColumnsWidth(0, Column - 1);
     if Column >= Fixed.Count then Inc(Result.Left, GetGridOrigin.X);
     Result.Right := Result.Left + Columns[Column].Width;
@@ -9766,26 +7766,30 @@ var
   C: TGridCell;
   R: TRect;
 begin
+  { проверяем колонку }
   if (Column < 0) or (Column > Columns.Count - 1) then
-  begin
-    Result := 0;
-    Exit;
-  end;
+    Exit( 0 );
+  { а есть ли видимые строки }
   if FVisSize.Row = 0 then
-  begin
-    Result := Columns[Column].DefWidth;
-    Exit;
-  end;
-  { calculate autosize for visible rows only }
+    Exit( Columns[Column].DefWidth );
+
   Result := 0;
+  { вычисляем максимальную ширину по видимым строкам }
   for I := 0 to FVisSize.Row - 1 do
   begin
+    { колонка и текст ячейки }
     C := GridCell(Column, VisOrigin.Row + I);
+    { определяем прямоугольник текста }
     R := GetCellTextBounds(C);
+    { определяем ширину }
     W := R.Right - R.Left;
+    { место под флажок }
     if IsCellHasCheck(C) then Inc(W, CheckWidth + GetCheckIndent(C).X);
+    { место под картинку }
     if IsCellHasImage(C) then Inc(W, Images.Width + GetCellImageIndent(C).X);
+    { учитываем сетку }
     if GridLines and (gsVertLine in GridStyle) then Inc(W, FGridLineWidth);
+    { запоминаем }
     if Result < W then Result := W;
   end;
 end;
@@ -9793,6 +7797,8 @@ end;
 function TCustomGridView.GetColumnRect(Column: Integer): TRect;
 begin
   Result := GetColumnLeftRight(Column);
+  { верхний и нижний край строки определяется соответственно по верхнему
+    краю первой строки и по нижнему краю последней строки }
   Result.Top := GetRowTopBottom(0).Top;
   Result.Bottom := GetRowTopBottom(Rows.Count - 1).Bottom;
 end;
@@ -9811,21 +7817,27 @@ var
   I: Integer;
 begin
   Result := 0;
-  Column1 := Max(Column1, 0);
-  Column2 := Min(Column2, Columns.Count - 1);
+  { подправляем индексы }
+  Column1 := MaxIntValue([Column1, 0]);
+  Column2 := MinIntValue([Column2, Columns.Count - 1]);
+  { считаем }
   for I := Column1 to Column2 do Inc(Result, Columns[I].Width);
 end;
 
 function TCustomGridView.GetEditRect(Cell: TGridCell): TRect;
 begin
   Result := GetCellRect(Cell);
+  { место под флажок  }
   if IsCellHasCheck(Cell) then Inc(Result.Left, CheckWidth + GetCheckIndent(Cell).X);
+  { место под картинку }
   if IsCellHasImage(Cell) then Inc(Result.Left, Images.Width + GetCellImageIndent(Cell).X);
+  { учитываем сетку }
   if GridLines then
   begin
     if gsVertLine in GridStyle then Dec(Result.Right, FGridLineWidth);
     if gsHorzLine in GridStyle then Dec(Result.Bottom, FGridLineWidth);
   end;
+  { проверяем правый край }
   if Result.Left > Result.Right then Result.Left := Result.Right;
 end;
 
@@ -9855,13 +7867,10 @@ function TCustomGridView.GetFirstImageColumn: Integer;
 var
   I: Integer;
 begin
+  Result := -1;
   for I := Fixed.Count to Columns.Count - 1 do
     if Columns[I].Visible then
-    begin
-      Result := I;
-      Exit;
-    end;
-  Result := -1;
+      Exit( I );
 end;
 
 function TCustomGridView.GetFixedRect: TRect;
@@ -9880,6 +7889,7 @@ var
   C: TGridCell;
   L: Integer;
 begin
+  { получаем левую колонку и прямоугольник фокуса }
   if RowSelect then
   begin
     C := GridCell(Fixed.Count, CellFocused.Row);
@@ -9891,12 +7901,16 @@ begin
     C := CellFocused;
     Result := GetCellRect(CellFocused);
   end;
+  { выделяется ли картинка ячейки }
   if not ImageHighlight then
   begin
     { neither the picture nor the check box are highlighted }
+    { место под флажок }
     if IsCellHasCheck(C) then Inc(Result.Left, CheckWidth + GetCheckIndent(C).X);
+    { место под картинку }
     if IsCellHasImage(C) then Inc(Result.Left, Images.Width + GetCellImageIndent(C).X);
   end;
+  { проверяем правый край результата }
   L := GetColumnLeftRight(C.Col).Right;
   if Result.Left > L then Result.Left := L;
 end;
@@ -9965,20 +7979,18 @@ function TCustomGridView.GetHeaderSection(ColumnIndex, Level: Integer): TGridHea
     begin
       S := Sections[I];
       L := S.Level;
+      { сравниваем колонку и уровень }
       if (S.ColumnIndex >= ColumnIndex) and
         (((Level = -1) and (S.Sections.Count = 0)) or (L = Level)) then
-      begin
-        Result := S;
-        Exit;
-      end;
-      { recursion for nested sections }
+        { нашли }
+        Exit( S );
+      { рекурсия на все подзаголовки снизу }
       S := DoGetSection(S.Sections);
+      { нашли или нет }
       if S <> nil then
-      begin
-        Result := S;
-        Exit;
-      end;
+        Exit( S );
     end;
+    { секции нет }
     Result := nil;
   end;
 
@@ -9996,14 +8008,17 @@ function TCustomGridView.GetResizeSectionAt(X, Y: Integer): TGridHeaderSection;
   begin
     for I := Sections.Count - 1 downto 0 do
     begin
+      { получаем ячейку и ее колонку }
       S := Sections[I];
+      { ищем только для видимых колонок }
       if S.Visible then
       begin
         C := S.ResizeColumnIndex;
+        { получаем прямоугольник области изменения размера }
         R := S.BoundsRect;
-        { hit accuracy }
         with R do
         begin
+          { определяем погрешность попадания }
           DL := 7;
           if R.Right - R.Left < 20 then DL := 3;
           if R.Right - R.Left < 10 then DL := 1;
@@ -10013,11 +8028,14 @@ function TCustomGridView.GetResizeSectionAt(X, Y: Integer): TGridHeaderSection;
             if Columns[C + 1].DefWidth < 20 then DR := 3;
             if Columns[C + 1].DefWidth < 10 then DR := 1;
           end;
+          { подправляем прямоугольник попадания }
           if R.Right > R.Left then Left := Right - DL;
           Right := Right + DR;
         end;
-        if PtInRect(R, Point(X, Y)) then
+        { попала ли точка в него }
+        if PtInRect(R, Classes.Point(X, Y)) then
         begin
+          { проверяем колонку на фиксированный размер }
           { some columns cannot resize }
           if (C < Columns.Count) and (Columns[C].FixedSize or (not ColumnsResize)) then
           begin
@@ -10029,16 +8047,15 @@ function TCustomGridView.GetResizeSectionAt(X, Y: Integer): TGridHeaderSection;
             Section := S;
             Result := True;
           end;
+          { секцию нашли - выход }
           Exit;
         end;
-        { recursion for nested sections }
+        { ищем секцию в подзаголовках }
         if FindSection(S.Sections, Section) then
-        begin
-          Result := True;
-          Exit;
-        end;
+          Exit( True );
       end;
     end;
+    { ничего не нашли }
     Section := nil;
     Result := False;
   end;
@@ -10055,10 +8072,12 @@ begin
   Result := -1;
   GRT := GetGridRect.Top;
   GOY := GetGridOrigin.Y;
-  if Y - GRT - GOY < 0 then exit;    // <-- !!!
+  if Y - GRT - GOY < 0 then // NOTE !! вот это ключевой момент !!
+    Exit;
   if Rows.Height > 0 then
   begin
     Row := (Y - GRT - GOY) div Rows.Height;
+    { проверяем ячейку }
     if (Row >= 0) and (Row < Rows.Count) then Result := Row;
   end;
 end;
@@ -10066,7 +8085,10 @@ end;
 function TCustomGridView.GetRowRect(Row: Integer): TRect;
 begin
   Result := GetRowTopBottom(Row);
-  Result.Left := Min(GetGridRect.Left, GetColumnLeftRight(Fixed.Count).Left);
+  { левый и правый край строки определяется соответственно по левому
+    краю первой нефиксированной колонки и по правому краю последней
+    колонки }
+  Result.Left := MinIntValue([GetGridRect.Left, GetColumnLeftRight(Fixed.Count).Left]);
   Result.Right := GetColumnLeftRight(Columns.Count - 1).Right;
 end;
 
@@ -10087,7 +8109,7 @@ end;
 
 function TCustomGridView.GetRowTopBottom(Row: Integer): TRect;
 begin
-  { all rows have some height }
+  { верх и низ прямоугольника вычисляется по номеру и высоте строки }
   Result.Top := GetGridRect.Top + GetRowsHeight(0, Row - 1) + GetGridOrigin.Y;
   Result.Bottom := Result.Top + Rows.Height;
 end;
@@ -10102,24 +8124,27 @@ function TCustomGridView.GetSectionAt(X, Y: Integer): TGridHeaderSection;
   begin
     for I := 0 to Sections.Count - 1 do
     begin
+      { получаем секцию }
       S := Sections[I];
+      { проверяем ее }
+      { ищем только для видимых колонок }
       if S.Visible then
       begin
+        { получаем прямоугольник секции }
         R := S.BoundsRect;
-        if PtInRect(R, Point(X, Y)) then
+        { попала ли точка в него }
+        if PtInRect(R, Classes.Point(X, Y)) then
         begin
+          { секцию нашли }
           Section := S;
-          Result := True;
-          Exit;
+          Exit( True );
         end;
       end;
-      { recursion for nested sections }
+      { ищем секцию в подзаголовках }
       if FindSection(S.Sections, Section) then
-      begin
-        Result := True;
-        Exit;
-      end;
+        Exit( True );
     end;
+    { ничего не нашли }
     Section := nil;
     Result := False;
   end;
@@ -10193,7 +8218,7 @@ begin
   end;
   InvalidateRect(Rect);
   { invalidate header section too }
-  if HighlightFocusCol and ShowHeader and StyleServices.Enabled then
+  if HighlightFocusCol and ShowHeader and ThemeServices.ThemesEnabled then
   begin
     Rect := GetColumnRect(CellFocused.Col);
     Rect.Top := 0;
@@ -10216,7 +8241,7 @@ end;
 procedure TCustomGridView.InvalidateRect(Rect: TRect);
 begin
   if (FUpdateLock = 0) and HandleAllocated and Visible then
-    Windows.InvalidateRect(Handle, @Rect, False);
+    LCLIntf.InvalidateRect(Handle, @Rect, False);
 end;
 
 procedure TCustomGridView.InvalidateRow(Row: Integer);
@@ -10250,33 +8275,30 @@ var
   Form: TCustomForm;
   H: HWND;
 begin
+  { определяем активность по форме }
   Form := GetParentForm(Self);
   if (Form <> nil) and (Form.ActiveControl = Self) then
-  begin
-    Result := True;
-    Exit;
-  end;
+    Exit( True );
+  { определяем по описателю }
   H := GetFocus;
   while IsWindow(H) do
   begin
     if H = WindowHandle then
-    begin
-      Result := True;
-      Exit;
-    end;
+      Exit( True );
     H := GetParent(H);
   end;
+  { ничего не нашли }
   Result := False;
 end;
 
 function TCustomGridView.IsCellAcceptCursor(Cell: TGridCell): Boolean;
 begin
+  { а корректна ли ячейка }
   if not IsCellValid(Cell) then
-  begin
-    Result := False;
-    Exit;
-  end;
+    Exit( False );
+  { результат по умолчанию }
   Result := (Cell.Col >= Fixed.Count) and Columns[Cell.Col].TabStop;
+  { можно ли устанавливать курсор на ячейку }
   if Assigned(FOnCellAcceptCursor) then FOnCellAcceptCursor(Self, Cell, Result);
 end;
 
@@ -10312,8 +8334,11 @@ end;
 function TCustomGridView.IsCellReadOnly(Cell: TGridCell): Boolean;
 begin
   Result := True;
+  { а верна ли ячейка }
   if IsCellValid(Cell) then
   begin
+    { ячейку можно редактировать, если таблица не в режиме ReadOnly,
+      это не фиксированная колонка и сама колонка не ReadOnly }
     Result := ReadOnly or (Cell.Col < Fixed.Count) or Columns[Cell.Col].ReadOnly;
     if Assigned(FOnGetCellReadOnly) then FOnGetCellReadOnly(Self, Cell, Result);
   end;
@@ -10328,12 +8353,14 @@ function TCustomGridView.IsCellValidEx(Cell: TGridCell; CheckPosition, CheckVisi
 var
   C, R, V: Boolean;
 begin
+  { определяем видимость, ширину колонки и корректность ячейки }
   with Cell do
   begin
     C := (Col >= 0) and (Col < Columns.Count);
     R := (Row >= 0) and (Row < Rows.Count);
     V := C and Columns[Col].Visible and (Columns[Col].Width > 0);
   end;
+  { результат }
   Result := ((not CheckPosition) or (C and R)) and ((not CheckVisible) or V);
 end;
 
@@ -10341,11 +8368,16 @@ function TCustomGridView.IsCellVisible(Cell: TGridCell; PartialOK: Boolean): Boo
 var
   CR, GR, R: TRect;
 begin
+  { получаем границы ячейки и сетки }
   CR := GetCellRect(Cell);
   GR := GetGridRect;
+  { если есть фиксированные и ячейка нефиксирована, то левая граница есть
+    граница фиксированных, а не граница таблицы }
   if (Fixed.Count > 0) and (Cell.Col >= Fixed.Count) then
     GR.Left := GetFixedRect.Right;
+  { пересечение }
   Result := IntersectRect(R, CR, GR);
+  { полная видимость }
   if not PartialOK then Result := EqualRect(R, CR);
 end;
 
@@ -10414,6 +8446,7 @@ begin
     DY := 0;
     with GetGridRect do
     begin
+      { смещение по горизонтали }
       // if not RowSelect then
       begin
         R := GetColumnRect(Cell.Col);
@@ -10422,6 +8455,7 @@ begin
         if R.Left < X then DX := X - R.Left;
         if R.Right - R.Left > Right - X then DX := X - R.Left;
       end;
+      { смещение по вертикали }
       if Rows.Height > 0 then
       begin
         R := GetRowRect(Cell.Row);
@@ -10433,53 +8467,63 @@ begin
         DY := Y;
       end;
     end;
-    { make cell visible using scrollbars }
+    { изменяем положение }
     with VertScrollBar do Position := Position - DY;
     with HorzScrollBar do Position := Position - DX;
   end;
 end;
 
-procedure TCustomGridView.SetCursor(Cell: TGridCell; Selected, Visible: Boolean);
+procedure TCustomGridView.SetGridCursor(Cell: TGridCell; IsSelected, IsVisible: Boolean);
 var
   PartialOK: Boolean;
 begin
-  UpdateSelection(Cell, Selected);
-  if (not IsCellEqual(FCellFocused, Cell)) or (FCellSelected <> Selected) then
+  { проверяем выделение }
+  UpdateSelection(Cell, IsSelected);
+  { изменилось ли что нибудь }
+  if (not IsCellEqual(FCellFocused, Cell)) or (FCellSelected <> IsSelected) then
   begin
-    Changing(Cell, Selected);
+    { ячейка меняется }
+    Changing(Cell, IsSelected);
+    { устанавливаем активную ячейку }
     if not IsCellEqual(FCellFocused, Cell) then
     begin
+      { при изменении положения курсора гасим подсказку }
       CancelCellTips;
+      { если идет редактирование - проверяем текст }
       Editing := False;
+      { меняем ячейку }
       HideCursor;
       PartialOK := RowSelect or (FCellFocused.Col = Cell.Col);
       FCellFocused := Cell;
-      FCellSelected := Selected;
-      if Visible then MakeCellVisible(CellFocused, PartialOK);
+      FCellSelected := IsSelected;
+      if IsVisible then MakeCellVisible(CellFocused, PartialOK);
       ShowCursor;
     end
-    else if FCellSelected <> Selected then
+    { устанавливаем выделение }
+    else if FCellSelected <> IsSelected then
     begin
+      { строка видна - фокус на нее, состояние не трогаем }
       if Editing then ShowEdit;
+      { если строка погасла - меняем состояние курсора }
       if not Editing then
       begin
         HideCursor;
-        FCellSelected := Selected;
-        if Visible then MakeCellVisible(CellFocused, True);
+        FCellSelected := IsSelected;
+        if IsVisible then MakeCellVisible(CellFocused, True);
         ShowCursor;
       end;
     end;
+    { ячейка сменилась }
     Change(FCellFocused, FCellSelected);
   end
   else
-    { the position of the cursor and the state of the selection do not
-      change - make the cursor visible }
+    { ячейка не изменилась - подправляем видимость }
     if Visible then MakeCellVisible(CellFocused, False);
 end;
 
 procedure TCustomGridView.ResetEdit;
 begin
-  if (FEdit <> nil) and EditCanUndo(EditCell) then FEdit.Perform(WM_UNDO, 0, 0);
+  if (FEdit <> nil) and EditCanUndo(EditCell) then FEdit.Undo;
 end;
 
 procedure TCustomGridView.UnLockUpdate(Redraw: Boolean);
@@ -10495,14 +8539,15 @@ var
 begin
   Cell := CellFocused;
   IsValidCell := IsCellValid(Cell) and IsCellAcceptCursor(Cell);
-  { if the current cell is not available, then search for an available
-    cell around then search the first available cell }
+  { если текущая ячейка недоступна, то ищем доступную ячейку вокруг или
+    первую попавшуюся, если таковой нет }
   if not IsValidCell then
   begin
     UpdateSelection(Cell, Dummy);
     if IsCellEqual(Cell, CellFocused) then Cell := GetCursorCell(Cell, goFirst);
   end;
-  SetCursor(Cell, CellSelected, not IsValidCell);
+  { подправляем выделение ячейки }
+  SetGridCursor(Cell, CellSelected, not IsValidCell);
 end;
 
 procedure TCustomGridView.UpdateColors;
@@ -10517,7 +8562,9 @@ procedure TCustomGridView.UpdateEdit(Activate: Boolean);
   var
     EditClass: TGridEditClass;
   begin
+    { получаем класс строки редактирования }
     EditClass := GetEditClass(FCellFocused);
+    { создаем или меняем строку }
     if (FEdit = nil) or (FEdit.ClassType <> EditClass) then
     begin
       FEdit.Free;
@@ -10538,13 +8585,16 @@ procedure TCustomGridView.UpdateEdit(Activate: Boolean);
   end;
 
 begin
+  { а разрешена ли строка ввода }
   if Activate and EditCanShow(FCellFocused) then
   begin
+    { если строки ввода нет - создаем ее }
     if FEdit = nil then
     begin
       DoValidateEdit;
       DoUpdateEdit;
     end
+    { если положение изменилось - гасим и обновляем строку }
     else if not IsCellEditing(FCellFocused) then
     begin
       Activate := Activate or Editing or AlwaysEdit;
@@ -10552,6 +8602,7 @@ begin
       DoValidateEdit;
       DoUpdateEdit;
     end;
+    { показываем строку }
     if Activate then
     begin
       CancelCellTips;
@@ -10559,6 +8610,7 @@ begin
     end;
   end
   else
+    { гасим строку }
     HideEdit;
 end;
 
@@ -10569,9 +8621,11 @@ begin
   if Editing then
   begin
     EditText := Edit.Text;
-    { inplace editor must be hidden to update completely }
+    { чтобы строка обновилась полностью, ее необходимо погасить }
     HideEdit;
+    { обновляем и вновь показываем строку }
     UpdateEdit(True);
+    { восстанавливаем текст }
     if SaveText then Edit.Text := EditText;
   end;
 end;
@@ -10581,14 +8635,14 @@ begin
   Fixed.SetCount(Fixed.Count);
 end;
 
-procedure TCustomGridView.UpdateFocus;
+procedure TCustomGridView.UpdateFocus;                           
 begin
   if csDesigning in ComponentState then Exit;
-  { if the grid is already active, focus on it again, otherwise there
-    may be problems with MDI forms }
+  { если таблица уже активна, то ставим фокус на нее еще раз насильно,
+    т.к. в противном случае могут быть глюки с MDI формами }
   if IsActiveControl then
   begin
-    Windows.SetFocus(Handle);
+    LCLIntf.SetFocus(Handle);
     if GetFocus = Handle then Perform(CM_UIACTIVATE, 0, 0);
   end
   else if IsWindowVisible(Handle) and TabStop and
@@ -10690,10 +8744,10 @@ end;
 
 procedure TCustomGridView.UpdateSelection(var Cell: TGridCell; var Selected: Boolean);
 begin
-  { update selection state }
+  { Проверка флага выделения }
   Selected := Selected or FAlwaysSelected;
   Selected := Selected and (Rows.Count > 0) and (Columns.Count > 0);
-  { update cell index }
+  { проверка ячейки на границы }
   with Cell do
   begin
     if Col < Fixed.Count then Col := Fixed.Count;
@@ -10702,7 +8756,7 @@ begin
     if Row < 0 then Row := 0;
     if Row > Rows.Count - 1 then Row := Rows.Count - 1;
   end;
-  { get the nearest cell, which can be selected }
+  { проверяем фокус }
   Cell := GetCursorCell(Cell, goSelect);
 end;
 
@@ -10718,7 +8772,7 @@ var
 begin
   if Columns.Count > 0 then
   begin
-    { search the first visible column by the scroller position }
+    { ищем первую попавшуюся видимую нефиксированную колонку }
     X := GetGridRect.Left + GetFixedWidth - HorzScrollBar.Position;
     R := GetFixedRect;
     I := Fixed.Count;
@@ -10729,7 +8783,7 @@ begin
       Inc(I);
     end;
     FVisOrigin.Col := I;
-    { the last column may be partially visible }
+    { считаем количество видимых колонок }
     R := GetGridRect;
     while I < Columns.Count - 1 do
     begin
@@ -10746,14 +8800,15 @@ begin
   end;
   if (Rows.Count > 0) and (Rows.Height > 0) then
   begin
-    { first visible row is the position of vertical scrollbar }
+    { вертикальный движок определяем номер первой видимой строки }
     FVisOrigin.Row := VertScrollBar.Position;
-    { the last row may be partially visible }
+    { считаем количество видимых (пусть даже и частично) строк }
     H := GetGridHeight;
     FVisSize.Row := H div Rows.Height + Ord(H mod Rows.Height > 0);
     if FVisSize.Row + FVisOrigin.Row  > Rows.Count then
       FVisSize.Row := Rows.Count - FVisOrigin.Row;
-    if FVisSize.Row < 0 then FVisSize.Row := 0;
+    { видимых строк не может быть меньше ноля }
+    if FVisSize.Row < 0 then FVisSize.Row := 0; 
   end
   else
   begin
@@ -10763,4 +8818,3 @@ begin
 end;
 
 end.
-

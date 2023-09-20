@@ -1,9 +1,7 @@
 {
   TGridView component (grid)
-
   (C) Roman M. Mochalov, 1997-2019
-  E-mail: checker@mail.ru
-
+  (C) Iluha Companets  , 2002-2023
   License: MIT
 }
 
@@ -12,8 +10,8 @@ unit Ex_RegGrid;
 interface
 
 uses
-  Windows, SysUtils, Classes, Forms, Dialogs, TypInfo, DesignIntf,
-  DesignEditors, WideStrings;
+  SysUtils, Classes, Forms, Dialogs, TypInfo,
+  LResources, ComponentEditors, PropEdits;
 
 type
 
@@ -22,10 +20,9 @@ type
   TGridEditor = class(TDefaultEditor)
   private
     FCollection: TCollection;
-    procedure FindCollectionEditor(const PropertyEditor: IProperty);
+    procedure FindCollectionEditor(const PropertyEditor: TPropertyEditor);
   protected
-    procedure EditProperty(const PropertyEditor: IProperty; var Continue: Boolean); override;
-    procedure ShowCollectionEditor(ACollection: TCollection);
+    procedure EditProperty(const PropertyEditor: TPropertyEditor; var Continue: Boolean); override;
   public
     procedure ExecuteVerb(Index: Integer); override;
     function GetVerb(Index: Integer): string; override;
@@ -67,51 +64,58 @@ uses
 
 { TGridEditor }
 
-procedure TGridEditor.FindCollectionEditor(const PropertyEditor: IProperty);
+procedure TGridEditor.FindCollectionEditor(const PropertyEditor: TPropertyEditor);
 var
   P: PTypeInfo;
 begin
+  { если редактор свойства найден, то значение FCollection будет
+    сброшено в nil }
   if FCollection <> nil then
   begin
     P := PropertyEditor.GetPropType;
-    if (P <> nil) and (P.Kind = tkClass) and (CompareText(string(P.Name), FCollection.ClassName) = 0) then
+    { проверяем тип и название свойства }
+    if (P <> nil) and (P.Kind = tkClass) and (CompareText(P.Name, FCollection.ClassName) = 0) then
     begin
       PropertyEditor.Edit;
       FCollection := nil;
     end;
   end;
-{  if FContinue then
-    EditProperty(Prop, FContinue);!!!}
+  //if FContinue then
+  //  EditProperty(Prop, FContinue);
+  // NOTE !! об освобождении редактора свойства необходимо заботится самим? !!
+  //PropertyEditor.Free;
 end;
 
-procedure TGridEditor.EditProperty(const PropertyEditor: IProperty; var Continue: Boolean);
+procedure TGridEditor.EditProperty(const PropertyEditor: TPropertyEditor; var Continue: Boolean);
 begin
+  inherited EditProperty(PropertyEditor, Continue);
+  { Двойной щелчок на компоненте в дизайнере Delphi приводит к вызову
+    метода Edit у TDefaultEditor. TDefaultEditor перебирает внутри Edit
+    все свойства компонента, ищет свойство-метод с именем OnCreate,
+    OnChange или OnClick (или первый попавшийся, если указанных нет) и
+    вызывает Edit соответствующего редактор свойства. Редактор свойтва в
+    свою очередь ставит курсор на обработчик данного метода в тексте.
+    Поэтому, если мы хотим, чтобы двойной щелчок на таблице автоматически
+    ставил курсор на OnGetCellText, то нам необходимо самим найти редактор
+    свойства этого свойства и "выполнить" его. }
   if CompareText(PropertyEditor.GetName, 'ONGETCELLTEXT') = 0 then
   begin
     PropertyEditor.Edit;
+    { говорим стандартному обработчику, что исполнять найденный им
+      редактор свойства не надо }
     Continue := False;
   end;
-end;
-
-procedure TGridEditor.ShowCollectionEditor(ACollection: TCollection);
-var
-  List: IDesignerSelections;
-begin
-  FCollection := ACollection;
-  List := TDesignerSelections.Create;
-  List.Add(Self.Component);
-  GetComponentProperties(List, [tkClass], Self.Designer, FindCollectionEditor);
 end;
 
 procedure TGridEditor.ExecuteVerb(Index: Integer);
 begin
   case Index of
-    0: ShowCollectionEditor(TCustomGridView(Component).Columns);
+    0: if EditGridColumns(TCustomGridView(Component)) then Designer.Modified;
     1: if EditGridHeader(TCustomGridView(Component)) then Designer.Modified;
   end;
 end;
 
-function TGridEditor.GetVerb(Index: Integer): string;
+function TGridEditor.GetVerb(Index: Integer): String;
 begin
   case Index of
     0: Result := 'Columns Editor...';
@@ -179,8 +183,8 @@ begin
   RegisterComponents('GridView', [TGridView, TDBGridView]);
 
   RegisterComponentEditor(TGridView, TGridEditor);
+  RegisterPropertyEditor(TypeInfo(TGridHeaderSections), TGridHeader, 'Sections', TGridHeaderProperty);
   //RegisterPropertyEditor(TypeInfo(TGridColumns), TGridView, 'Columns', TGridColumnsProperty);
-  //RegisterPropertyEditor(TypeInfo(TGridHeaderSections), TGridHeader, 'Sections', TGridHeaderProperty);
 
   RegisterComponentEditor(TDBGridView, TGridEditor);
   RegisterPropertyEditor(TypeInfo(string), TDBGridColumn, 'FieldName', TDBGridFieldNameProperty);

@@ -1,24 +1,19 @@
-﻿{
-  TDBGridView component (data-aware grid)
-
+{
+  TDBGridView component (descendant of TGridView)
   (C) Roman M. Mochalov, 1997-2019
-  E-mail: checker@mail.ru
-
+  (C) Iluha Companets  , 2002-2023
   License: MIT
 }
-
+                                            
 unit Ex_DBGrid;
 
 interface
 
 uses
-  Windows, Messages, SysUtils, CommCtrl, Classes, Controls, Graphics, Forms,
-  Dialogs, StdCtrls, Math, ImgList, Ex_Grid, Db, DBCtrls, Types, UITypes;
-
-const
-  DBGRID_BOF = -MaxInt;
-  DBGRID_EOF = MaxInt;
-
+  LCLType, LCLIntf, LMessages, SysUtils, Classes, Controls, Graphics, Forms, Themes,
+  Dialogs, StdCtrls, Math, ImgList, Ex_Grid, DB, DBCtrls,
+  Ex_Utils;
+  
 type
   TCustomDBGridView = class;
 
@@ -39,6 +34,25 @@ type
   end;
 
 { TDBGridColumn }
+
+  {
+    Колонка таблицы с дополнительным свойством: ссылкой на поле источника
+    данных. Умеет автоматически определять название, выравнивание, маску
+    и тип строки редактирования, максимальную длину строки, ширину и признак 
+    редактирования от указанного поля.
+
+    Методы:
+
+    RestoreDefaults - Восстановить значения колонки по умолчанию.
+
+    Свойства:
+
+    DefaultColumn -   Признак использования колонкой параметров связанного
+                      с ней поля источника данных.
+    Field -           Ссылка на поле источника данных, отображаемого в
+                      данной колонке.
+    FieldName -       Название поля колонки.
+  }
 
   {
     TDBGridColumn represents the data binding of a column in the grid.
@@ -127,6 +141,12 @@ type
 
 { TDBGridRows }
 
+  {
+    Строки таблицы. Отличаются от строк стандарного TGridView только
+    тем, что не имеют published свойства Count, т.к. количество строк
+    устанавливается таблицей автоматически и не подлежит изменению вручную.
+  }
+
   TDBGridRows = class(TCustomGridRows)
   private
     FRowsFromGrid: Integer;
@@ -142,6 +162,13 @@ type
   end;
 
 { TDBGridFixed }
+
+  {
+    Параметры фиксированных колонок таблицы. Имеют дополнительно свойство
+    DefCount - количество фиксированных колонок, т.к. свойство Count
+    зависит от количества колонок и может быть сброшено в 0 при
+    автоматическом создании колонок таблицей по полям источника данных. 
+  }
 
   TDBGridFixed = class(TCustomGridFixed)
   private
@@ -162,13 +189,20 @@ type
 
 { TDBGridScrollBar }
 
+  {
+    Вертикальный скроллер таблицы. Имеет позицию всегда 0, чтобы не
+    скроллировать строки в TGridView. Сам заботится об установке положения
+    движка строллера в зависимости от текущей записи источника. Отлавливает
+    события скроллера и смещает текущую запись источника данных.
+  }
+
   TDBGridScrollBar = class(TGridScrollBar)
   private
     FRowMin: Integer;
     FRowMax: Integer;
     function GetGrid: TCustomDBGridView;
   protected
-    procedure ScrollMessage(var Message: TWMScroll); override;
+    procedure ScrollMessage(var Message: TLMScroll); override;
     procedure SetParams(AMin, AMax, APageStep, ALineStep: Integer); override;
     procedure SetPositionEx(Value: Integer; ScrollCode: Integer); override;
     procedure Update; override;
@@ -178,7 +212,13 @@ type
 
 { TDBGridEdit }
 
-  TDBGridListBox = class(TPopupDataList)
+  {
+    Строка редактирования таблицы. Умеет показывать выпадающий список
+    для Lookup полей. Убирает кнопки списка или "...", если поле колонки
+    нельзя редактировать (ReadOnly, вычисляемое, BLOB поле и т.п.).
+  }
+
+  TDBGridListBox = class(TDBLookupListBox) // was class(TCustomDBListBox)
   private
     FLookupSource: TDataSource;
   public
@@ -190,7 +230,7 @@ type
   private
     FDataList: TDBGridListBox;
     function GetGrid: TCustomDBGridView;
-    procedure WMKillFocus(var Message: TWMSetFocus); message WM_KILLFOCUS;
+    procedure LMKillFocus(var Message); message LM_KILLFOCUS;
   protected
     procedure ApplyListValue(Accept: Boolean); override;
     function GetDropList: TWinControl; override;
@@ -203,6 +243,11 @@ type
   end;
 
 { TDBGridDataLink }
+
+  {
+    Связка таблицы с источником данных. Перехватывает события изменения
+    источника и передает их для обработки таблице.
+  }
 
   TDBGridDataLink = class(TDataLink)
   private
@@ -250,7 +295,7 @@ type
     constructor Create(AGrid: TCustomDBGridView);
     procedure Clear; override;
     function Compare(const S1, S2: string): Integer;
-    function Find(const S: string; var Index: Integer): Boolean; override;
+    function Find(const S: string; out Index: Integer): Boolean; override;
     function IndexOf(const S: string): Integer; override;
     procedure UpdateSelectionMark;
     property Bookmarks[Index: Integer]: TBookmark read GetBookmark; default;
@@ -261,6 +306,72 @@ type
   end;
 
 { TCustomDBGridView }
+
+  {
+    Таблица для отображения содержимого указанного источника данных.
+    Реализует возможности, аналогичные DBGrid: отображение данных из
+    указанного DataSet, автоматическая расладка колонок по полям
+    источника, редактирование записей, выпадающий список зачений для
+    lookup полей, индикатор, вставка и удаление записей.
+
+    Методы:
+
+    ChangeEditText -    Изменить текущее значение редактируемого поля
+                        с обновлением строки редактирования. Перед
+                        установкой нового значения проверяет возможность
+                        редактирования поля. Используется, когда значение
+                        поля требуется изменить извне (например, после
+                        нажатия кнопки ... (с многоточием)).
+
+    Свойства:
+
+    AllowInsertRecord - Можно ли вставлять новые записи в таблице при
+                        нажатии клавиши INSERT или по достижении конца
+                        таблицы.
+    AllowDeleteRecord - Можно ли удалять записи из таблицы при нажатии
+                        клавиши DELETE;
+    DataSource -        Связка с источником данных.
+    DefaultLayout -     Признак автоматической раскладки колонок таблицы в
+                        соответствии с набором полей источника данных.
+    EditColumn -        Текущая редактируемая колонка. Соотвествует
+                        колонке, в которой находится строка ввода.
+    EditField -         Текущее редактируемое поле источника. Соотвествует
+                        полю колонки текущей редактируемой ячейки.
+    IndicatorImages -   Ссылка на список картинок индикатора. По умолчанию
+                        сответствие между состоянием индикатора и индексом
+                        картинки следующее:
+                          -1 - Нет индикатора.
+                           0 - Текущая запись.
+                           1 - Идет редактирование.
+                           2 - Новая запись.
+                           3 - Зарезервировано.
+                           4 - Зарезервировано.
+    IndicatorWidth -    Ширина столбца индикатора.
+    SelectedField -     Текущее выделенное поле источника. Соотвествует
+                        полю текущей колонки выделенной ячейки.
+    ShowIndicator -     Признак отображения индикатора.
+
+    События:
+
+    Все наследуемые события аналогичны событиям TGridView за одним
+    исключением: значение строки ячейки, указанной в событии (т.е. Cell.Row),
+    всегда изменяется от 0 до количества видимых столбцов. Для получения поля
+    (значения поля) источника данных, соотвествующего указанной ячейке,
+    необходимо воспользоваться свойством Columns[Cell.Col].Field.
+
+    OnDataDeleteRecord -  Запрос на удаление записи записи источника при
+                          нажатии клавиши Delete.
+    OnDataEditError -     Обработчик ошибки начала редактирования записи
+                          источника.
+    OnDataInsertRecord -  Запрос на вставку записи в источник при нажатии
+                          клавиши Insert.
+    OnDataUpdateError -   Обработчик ошибки обновления значения поля                            
+                          источника при завершении редактирования.
+    OnDataUpdateField -   Событие на изменение значения текущего поля.
+                          Вызывается после записи в поле нового значения из
+                          строки ввода (выпадающего списка).
+    OnGetIndicatorImage - Получить индекс картинки индикатора.
+  }
 
   {
     TDBGridView is a data-aware grid to display and edit the records from a
@@ -405,9 +516,9 @@ type
     procedure SetShowIndicator(Value: Boolean);
     procedure ReadColumns(Reader: TReader);
     procedure WriteColumns(Writer: TWriter);
-    procedure CMExit(var Message: TMessage); message CM_EXIT;
-    procedure WMKillFocus(var Message: TWMKillFocus); message WM_KILLFOCUS;
-    procedure WMSetFocus(var Message: TWMSetFocus); message WM_SETFOCUS;
+    procedure CMExit(var Message); message CM_EXIT;
+    procedure LMKillFocus(var Message); message LM_KILLFOCUS;
+    procedure LMSetFocus(var Message); message LM_SETFOCUS;
   protected
     FSelectPending: Boolean;
     FSelectPos: TPoint;
@@ -496,7 +607,7 @@ type
     procedure MakeCellVisible(Cell: TGridCell; PartialOK: Boolean); override;
     procedure ResetEdit; override;
     procedure SelectAll;
-    procedure SetCursor(Cell: TGridCell; Selected, Visible: Boolean); override;
+    procedure SetGridCursor(Cell: TGridCell; IsSelected, IsVisible: Boolean); override;
     procedure UnLockLayout(CancelChanges: Boolean);
     procedure UnLockScroll(CancelScroll: Boolean);
     procedure UpdateCursorPos(ShowCursor: Boolean); virtual;
@@ -557,7 +668,6 @@ type
     property Columns;
     property ColumnsFullDrag;
     property Constraints;
-    property Ctl3D;
     property CursorKeys;
     property DataSource;
     property DefaultEditMenu;
@@ -592,7 +702,6 @@ type
     property IndicatorWidth;
     property MultiSelect;
     property ParentColor default False;
-    property ParentCtl3D;
     property ParentFont;
     property ParentShowHint;
     property PopupMenu;
@@ -696,17 +805,19 @@ type
     property OnStartDrag;
   end;
 
-{ Bookmark utilities }
-
-function StrToBookmark(const S: string): TBookmark;
-function BookmarkToStr(const Bookmark: TBookmark): string;
 
 implementation
 
+{$IFDEF WINDOWS}
 uses
-  Themes, DBConsts;
+  Windows;
+{$ENDIF}
 
-{$R *.RES}
+{$R *.res}
+
+const
+  DBGRID_BOF = -MaxInt;
+  DBGRID_EOF = MaxInt;
 
 { TDBGridColumn }
 
@@ -733,11 +844,12 @@ end;
 
 function TDBGridColumn.GetField: TField;
 begin
-  if (FField = nil) and (Length(FFieldName) > 0) then
-    if Assigned(Grid) and Assigned(Grid.DataLink.DataSet) then
-      with Grid.Datalink.Dataset do
-        if Active or (lcPersistent in Fields.LifeCycles) then
-          SetField(FindField(FFieldName));
+  if (FField = nil) and (FFieldName <> '') and
+     Assigned(Grid) and Assigned(Grid.DataLink.DataSet) then
+    with Grid.Datalink.Dataset do
+      //if Active or (lcPersistent in Fields.LifeCycles) then
+      if Active or (not DefaultFields) then
+        SetField(FindField(FFieldName));
   Result := FField;
 end;
 
@@ -764,7 +876,7 @@ begin
     if FField <> nil then
     begin
       if Grid <> nil then FField.FreeNotification(Grid);
-      FFieldName := FField.FullName;
+      FFieldName := FField.FieldName;
     end;
   end;
 end;
@@ -774,17 +886,19 @@ var
   AField: TField;
 begin
   AField := nil;
-  if Length(Value) > 0 then
-    if Assigned(Grid) and (not (csLoading in Grid.ComponentState)) then
-      if Assigned(Grid.DataLink.DataSet) then
-        AField := Grid.DataLink.DataSet.FindField(Value);
+  if (Value <> '') and
+     Assigned(Grid) and (not (csLoading in Grid.ComponentState)) and
+     Assigned(Grid.DataLink.DataSet) then
+    AField := Grid.DataLink.DataSet.FindField(Value);
   FFieldName := Value;
   SetField(AField);
+  { восстанавливаем значения по умолчанию }
   if FDefaultColumn then
   begin
     RestoreDefaults;
     FDefaultColumn := True;
   end;
+  { колонка изменена }
   Changed(False);
 end;
 
@@ -857,10 +971,13 @@ end;
 
 function IsReadOnlyField(Field: TField): Boolean;
 const
-  fkReadOnly = [fkLookup, fkCalculated];
+  fkReadOnly = [fkLookup, fkCalculated, fkInternalCalc{, fkAggregate}];
 begin
-  Result := (Field = nil) or Field.ReadOnly or (Field.FieldKind in fkReadOnly) or
-    ((Field.DataType in ftNonTextTypes) and (not Assigned(Field.OnSetText)));
+  if Field = nil then
+    Result := False
+  else
+    Result := Field.ReadOnly or (Field.FieldKind in fkReadOnly);
+   // or  ((Field.DataType in ftNonTextTypes) and (not Assigned(Field.OnSetText)));
 end;
 
 procedure TDBGridColumn.RestoreDefaults;
@@ -880,6 +997,7 @@ begin
     Caption := Field.DisplayLabel;
     EditMask := Field.EditMask;
     Visible := Field.Visible;
+    { тип строки для Lookup полей }
     { the geEllipsis inplace editor style is only allowed in a custom layout,
       so no need to change it }
     if EditStyle <> geEllipsis then
@@ -889,17 +1007,20 @@ begin
         EditStyle := gePickList
       else
         EditStyle := geSimple;
+    { возможность редактирования и максимальная длина строки }
     ReadOnly := IsReadOnlyField(Field);
     MaxLength := 0;
     if Field.DataType in [ftString, ftWideString] then MaxLength := Field.Size;
-    { like DBGrid, the default column width is determined by the width
-      of the field name }
+    { ширина колонки по длине поля }
     if Grid <> nil then
     begin
       Grid.GetCellColors(GridCell(Self.Index, 0), Grid.Canvas);
       Width := Grid.GetFontWidth(Grid.Canvas.Font, Field.DisplayWidth);
+      { по аналогии с DBGrid ширина колонки (т.е. ширина по умолчанию,
+        т.к. свойство Width возвращает 0 для невидимой колонки) должна быть
+        такой, чтобы в заголовке умещалось название колонки }
       with Grid do
-        R := GetTextRect(Canvas, Rect(0, 0, 0, 0), TextLeftIndent, TextTopIndent,
+        R := GetTextRect(Canvas, Classes.Rect(0, 0, 0, 0), TextLeftIndent, TextTopIndent,
           Self.Alignment, False, False, Self.Caption);
       Width := MaxIntValue([DefWidth, R.Right - R.Left]);
     end;
@@ -973,7 +1094,7 @@ end;
 
 procedure TDBGridEdit.UpdateListBounds;
 var
-  I, ItemHeight: Integer;
+  I, IH: Integer;
   R, Rect: TRect;
   P: TPoint;
   Monitor: TMonitor;
@@ -987,8 +1108,8 @@ begin
       else
       begin
         Canvas.Font := Font;
-        ItemHeight := Canvas.TextHeight('Wq');
-        if ItemHeight <> 0 then
+        IH := Canvas.TextHeight('Wq');
+        if IH <> 0 then
         begin
           R := Self.ClientRect;
           P := Self.ClientOrigin;
@@ -998,7 +1119,7 @@ begin
             Rect := Monitor.WorkareaRect
           else
             Rect := Screen.WorkareaRect;
-          I := ((Rect.Bottom - Rect.Top) div 3) div ItemHeight;
+          I := ((Rect.Bottom - Rect.Top) div 3) div IH;
           if (ListSource <> nil) and (ListSource.DataSet <> nil) and
             ListSource.DataSet.Active and (I > ListSource.DataSet.RecordCount) then
             I := ListSource.DataSet.RecordCount;
@@ -1007,7 +1128,8 @@ begin
           I := 0;
       end;
       if I < 7 then I := 7;
-      RowCount := I;
+      // TODO !!! проверить !!!
+      //RowCount := I;
     end;
 end;
 
@@ -1021,8 +1143,9 @@ begin
     inherited;
     Exit;
   end;
+  { проверяем таблицу и текущее поле }
   if (Grid = nil) or (Grid.EditField = nil) then Exit;
-  { setup lookup list }
+  { настраиваем lookup список }
   Field := Grid.EditField;
   ListBox := TDBGridListBox(ActiveList);
   ListBox.ListSource := nil; // <- to avoid the exception in the next line
@@ -1040,7 +1163,9 @@ var
 begin
   if (ActiveList <> nil) and Accept and (Grid <> nil) then
   begin
+    { DataList и PickList обрабатываются каждый по своему }
     if ActiveList is TDBGridListBox then
+      { lookup список }
       with TDBGridListBox(ActiveList) do
       begin
         ListValue := KeyValue;
@@ -1049,10 +1174,11 @@ begin
         if IsLookupField(Grid.EditField, MasterField) and Grid.DataLink.Edit then
         begin
           MasterField.Value := ListValue;
-          Grid.EditField.Value := SelectedItem;
+          Grid.EditField.Value := KeyValue; // NOTE !! was SelectedItem !!
         end;
       end
     else if ActiveList is TGridListBox then
+      { выпадающий список  }
       if EditCanModify then
       begin
         inherited;
@@ -1066,22 +1192,26 @@ end;
 procedure TDBGridEdit.UpdateStyle;
 begin
   inherited UpdateStyle;
-  { remove the lookup list button and the ellipsis button from the inplace
-    editor for cells that cannot be modified }
+  { если строка имеет кнопку (списка или с многоточием), а модифицировать
+    содержимое ячейки нельзя, то кнопку убираем }
   if (EditStyle <> geSimple) and (Grid <> nil) then
+    { проверяем активность источника }
     if (not Grid.DataLink.Active) or Grid.DataLink.ReadOnly then
       EditStyle := geSimple
     else if (Grid.DataLink.DataSet <> nil) and (not Grid.DataLink.DataSet.CanModify) then
       EditStyle := geSimple
+    { если для lookup не указано Master поле или его нельзя изменять, то
+      кнопку тоже убираем }
     else if EditStyle = geDataList then
     begin
       if not IsLookupField(Grid.EditField) then EditStyle := geSimple;
     end
     else if Grid.IsCellReadOnly(Grid.EditCell) then
+      { PickList для ReadOnly ячейки не нужен }
       EditStyle := geSimple;
 end;
 
-procedure TDBGridEdit.WMKillFocus(var Message: TWMSetFocus);
+procedure TDBGridEdit.LMKillFocus(var Message);
 begin
   inherited;
   { if the focus is lost, except when the dialog box opens when user click
@@ -1105,13 +1235,15 @@ end;
 
 procedure TDBGridRows.Change;
 begin
+  { при изменении высоты строк необходимо обновить количество видимых
+    строк таблицы }
   if Grid <> nil then Grid.UpdateRowCount;
   inherited;
 end;
 
 procedure TDBGridRows.SetCount(Value: Integer);
 begin
-  { only the grid can change the number of rows }
+  { менять количество строк может только таблица }
   if FRowsFromGrid <> 0 then inherited;
 end;
 
@@ -1135,7 +1267,7 @@ begin
   Result := TCustomDBGridView(inherited Grid);
 end;
 
-procedure TDBGridScrollBar.ScrollMessage(var Message: TWMScroll);
+procedure TDBGridScrollBar.ScrollMessage(var Message: TLMScroll);
 var
   ScrollInfo: TScrollInfo;
   DataSet: TDataSet;
@@ -1287,6 +1419,8 @@ end;
 
 function TDBGridDataLink.GetActiveRecord: Integer;
 begin
+  { стандартный TDataLink почему-то не проверяет, а есть ли у него
+    источник данных или нет }
   { TDataLink.GetActiveRecord throws an AV exception if the data source
     does not have a data set }
   Result := 0;
@@ -1303,6 +1437,7 @@ end;
 procedure TDBGridDataLink.EditingChanged;
 begin
   FGrid.InvalidateIndicatorImage(FGrid.Row);
+  { если редактирование закончилось, то гасим строку ввода }
   if not Editing then FGrid.HideEdit;
 end;
 
@@ -1363,16 +1498,6 @@ end;
 
 { TDBGridSelectedRows }
 
-function StrToBookmark(const S: string): TBookmark;
-begin
-  Result := BytesOf(S);
-end;
-
-function BookmarkToStr(const Bookmark: TBookmark): string;
-begin
-  Result := StringOf(Bookmark);
-end;
-
 constructor TDBGridSelectedRows.Create(AGrid: TCustomDBGridView);
 begin
   inherited Create;
@@ -1402,8 +1527,8 @@ var
 begin
   if FGrid.DataLink.Active then
   begin
-    Bookmark1 := StrToBookmark(S1);
-    Bookmark2 := StrToBookmark(S2);
+    Bookmark1 := BytesOf(S1);
+    Bookmark2 := BytesOf(S2);
     Result := FGrid.DataLink.DataSet.CompareBookmarks(Bookmark1, Bookmark2);
   end
   else
@@ -1415,29 +1540,21 @@ begin
   Result := Compare(S1, S2);
 end;
 
-function TDBGridSelectedRows.Find(const S: string; var Index: Integer): Boolean;
+function TDBGridSelectedRows.Find(const S: string; out Index: Integer): Boolean;
 begin
-  if (S = FCache) and (FCacheIndex >= 0) then
-  begin
-    Index := FCacheIndex;
-    Result := FCacheFind;
-    Exit;
-  end;
-  Result := inherited Find(S, Index);
-  FCache := S;
-  FCacheIndex := Index;
-  FCacheFind := Result;
+  Index := IndexOf(S);
+  Result := (Index <> -1);
 end;
 
 function TDBGridSelectedRows.GetBookmark(Index: Integer): TBookmark;
 begin
-  Result := StrToBookmark(inherited Get(Index));
+  Result := BytesOf(inherited Get(Index));
 end;
 
 function TDBGridSelectedRows.GetCurrentRow: string;
 begin
   if FGrid.DataLink.Active then
-    Result := BookmarkToStr(FGrid.DataLink.DataSet.Bookmark)
+    Result := StringOf(FGrid.DataLink.DataSet.Bookmark)
   else
     Result := '';
 end;
@@ -1449,7 +1566,13 @@ end;
 
 function TDBGridSelectedRows.IndexOf(const S: string): Integer;
 begin
-  if not Find(S, Result) then Result := -1;
+  if (S = FCache) and (FCacheIndex >= 0) then
+    Exit( FCacheIndex );
+
+  Result := inherited IndexOf(S);
+  FCache := S;
+  FCacheIndex := Result;
+  FCacheFind := (Result <> -1);
 end;
 
 procedure TDBGridSelectedRows.SetCurrentRowSelected(Value: Boolean);
@@ -1483,7 +1606,9 @@ begin
   FIndicatorsLink.OnChange := IndicatorsChange;
   FIndicatorsDef := TImageList.CreateSize(16, 16);
   FIndicatorsDef.BkColor := clFuchsia;
-  FIndicatorsDef.ResInstLoad(HInstance, rtBitmap, 'BM_GRIDVIEW_DB', clFuchsia);
+  //FIndicatorsDef.GetResource(rtBitmap, 'BM_GRIDVIEW_DB', 0, [], clFuchsia);
+  //FIndicatorsDef.ResInstLoad(HInstance, rtBitmap, 'BM_GRIDVIEW_DB', clFuchsia);
+  FIndicatorsDef.AddResourceName(HInstance, 'BM_GRIDVIEW_DB', clFuchsia); // TODO !!! check !!!
   FAllowDeleteRecord := True;
   FAllowInsertRecord := True;
   FSelectedRows := TDBGridSelectedRows.Create(Self);
@@ -1740,7 +1865,7 @@ begin
   Writer.WriteCollection(Columns);
 end;
 
-procedure TCustomDBGridView.CMExit(var Message: TMessage);
+procedure TCustomDBGridView.CMExit(var Message);
 begin
   if CancelOnExit then
   try
@@ -1752,13 +1877,13 @@ begin
   inherited;
 end;
 
-procedure TCustomDBGridView.WMKillFocus(var Message: TWMKillFocus);
+procedure TCustomDBGridView.LMKillFocus(var Message);
 begin
   inherited;
   if FSelectedRows.Count > 0 then InvalidateSelected;
 end;
 
-procedure TCustomDBGridView.WMSetFocus(var Message: TWMSetFocus);
+procedure TCustomDBGridView.LMSetFocus(var Message);
 begin
   inherited;
   if FSelectedRows.Count > 0 then InvalidateSelected;
@@ -1772,17 +1897,20 @@ end;
 
 procedure TCustomDBGridView.ChangeIndicator;
 begin
+  { подправляем параметры таблицы }
   UpdateHeader;
   UpdateScrollBars;
   UpdateVisOriginSize;
   UpdateCursorPos(False);
   UpdateEdit(Editing);
+  { перерисовываем таблицу }
   Invalidate;
 end;
 
 procedure TCustomDBGridView.ChangeScale(M, D: Integer);
 begin
   inherited ChangeScale(M, D);
+  { подправляем ширину индикатора }
   if M <> D then FIndicatorWidth := MulDiv(FIndicatorWidth, M, D);
 end;
 
@@ -1793,6 +1921,7 @@ end;
 
 function TCustomDBGridView.CreateColumns: TGridColumns;
 begin
+  { TCustomDBGridView имеет свой набор колонок }
   Result := TDBGridColumns.Create(Self);
 end;
 
@@ -1803,22 +1932,26 @@ end;
 
 function TCustomDBGridView.CreateFixed: TCustomGridFixed;
 begin
+  { TCustomDBGridView имеет свои фиксированные колонки }
   Result := TDBGridFixed.Create(Self);
 end;
 
 function TCustomDBGridView.CreateHeader: TCustomGridHeader;
 begin
+  { TCustomDBGridView имеет свой заголовок }
   Result := TDBGridHeader.Create(Self);
 end;
 
 function TCustomDBGridView.CreateRows: TCustomGridRows;
 begin
+  { TCustomDBGridView имеет свой список строк }
   Result := TDBGridRows.Create(Self);
 end;
 
 function TCustomDBGridView.CreateScrollBar(Kind: TScrollBarKind): TGridScrollBar;
 begin
   if Kind = sbVertical then
+    { TCustomDBGridView имеет свой вертикальный скроллер }
     Result := TDBGridScrollBar.Create(Self, Kind)
   else
     Result := inherited CreateScrollBar(Kind);
@@ -1843,6 +1976,8 @@ procedure TCustomDBGridView.DataLinkActivate(Active: Boolean);
 begin
   FSelectedRows.Clear;
   ResetClickPos;
+  { при изменении свойства Active источника данных необходимо обновить
+    раскладку колонок, вертикальный скроллер и содержимое строки ввода }
   DataLayoutChanged;
   UpdateScrollBars;
   UpdateScrollPos;
@@ -1862,12 +1997,13 @@ var
 begin
   if Field <> nil then
   begin
+    { перерисовываем колонку поля по окончании изменения }
     for I := 0 to Columns.Count - 1 do
       if Columns[I].Field = Field then InvalidateColumn(I);
-    { redraw the current row, because other calculated fields of the row
-      may depend on the value of the current field }
+    { перерисовываем текущую строку, т.к. от значения текущего поля
+      могут зависеть другие поля }
     InvalidateRow(CellFocused.Row);
-    { update the inplace editor if its field has changed }
+    { обновляем строку ввода, если изменилось текущее редактируемое поле }
     CField := EditField;
     if (CField = Field) and (CField.Text <> FFieldText) then
     begin
@@ -1876,6 +2012,7 @@ begin
     end;
   end
   else
+    { поле неизвестно - обновляем все }
     InvalidateGrid;
 end;
 
@@ -1886,7 +2023,9 @@ begin
   UpdateScrollBars;
   UpdateCursorPos(False);
   UpdateEditContents(False);
+{$IFDEF WINDOWS}
   ValidateRect(Handle, nil);
+{$ENDIF}
   Invalidate;
   if Assigned(FOnDataChange) then FOnDataChange(Self);
 end;
@@ -1937,9 +2076,7 @@ end;
 
 procedure TCustomDBGridView.Delete;
 const
-  SDeleteMsg: array[Boolean] of string = (SDeleteRecordQuestion, SDeleteMultipleRecordsQuestion);
-const
-  Flags = MB_ICONQUESTION or MB_YESNO;
+  SDeleteMsg: array[Boolean] of string = ('Delete record?', 'Delete all selected records?');
 var
   AllowDelete: Boolean;
   Msg: string;
@@ -1955,7 +2092,7 @@ begin
       begin
         Msg := SDeleteMsg[FSelectedRows.Count > 1];
         with Application do
-          AllowDelete := AllowDelete and (MessageBox(PChar(Msg), PChar(Title), Flags) = ID_YES);
+          AllowDelete := AllowDelete and (MessageBox(PChar(Msg), PChar(Title), MB_ICONQUESTION or MB_YESNO) = ID_YES);
       end
       else
         FOnDataDeleteRecord(Self, AllowDelete);
@@ -1990,13 +2127,13 @@ begin
     begin
       MoveBy(1, Shift);
       KeepSelected := FSelectedRows.CurrentRowSelected;
-      SetCursor(CellFocused, KeepSelected, True);
+      SetGridCursor(CellFocused, KeepSelected, True);
     end
     else if not RowSelect then
     begin
       MoveBy(0, Shift - [ssShift]);
       KeepSelected := FSelectedRows.CurrentRowSelected;
-      SetCursor(CellFocused, KeepSelected, True)
+      SetGridCursor(CellFocused, KeepSelected, True)
     end;
   end;
 end;
@@ -2012,13 +2149,13 @@ begin
     begin
       MoveBy(-1, Shift);
       KeepSelected := FSelectedRows.CurrentRowSelected;
-      SetCursor(CellFocused, KeepSelected, True)
+      SetGridCursor(CellFocused, KeepSelected, True)
     end
     else if not RowSelect then
     begin
       MoveBy(0, Shift - [ssShift]);
       KeepSelected := FSelectedRows.CurrentRowSelected;
-      SetCursor(CellFocused, KeepSelected, True)
+      SetGridCursor(CellFocused, KeepSelected, True)
     end;
   end;
 end;
@@ -2038,9 +2175,11 @@ function TCustomDBGridView.EditCanModify(Cell: TGridCell): Boolean;
 var
   Action: TDBGridDataAction;
 begin
+  { проверяем возможность изменения ячейки, источника и поля }
   Result := inherited EditCanModify(Cell) and DataLink.Active and
     (not Datalink.ReadOnly) and (not IsReadOnlyField(EditField)) and
     (EditField <> nil) and (EditField.CanModify);
+  { если редактировать можно, то переводим источник в режим редактирования }
   if Result then
   try
     if not Datalink.Editing then Result := DataLink.Edit;
@@ -2048,6 +2187,7 @@ begin
   except
     on E: Exception do
     begin
+      { событие (кроме EAbort) }
       if not (E is EAbort) then
       begin
         Action := gdaFail;
@@ -2055,6 +2195,7 @@ begin
       end
       else
         Action := gdaAbort;
+      { обработка исключения }
       if Action = gdaFail then raise;
       if Action = gdaAbort then SysUtils.Abort;
     end;
@@ -2081,7 +2222,7 @@ function TCustomDBGridView.FindText(const FindText: string; Options: TFindOption
       T := GetCellText(C);
       if CompareStrings(FindText, T, frWholeWord in Options, frMatchCase in Options) then
       begin
-        SetCursor(C, True, True);
+        SetGridCursor(C, True, True);
         Result := True;
       end;
     end;
@@ -2151,6 +2292,8 @@ procedure TCustomDBGridView.GetCellColors(Cell: TGridCell; Canvas: TCanvas);
 var
   OldActive: Integer;
 begin
+  { перед получением цвета ячейки ставим текущую запись активного
+    источника на строку ячейки }
   if DataLink.Active and IsCellValidEx(Cell, True, False) then
   begin
     OldActive := DataLink.ActiveRecord;
@@ -2199,6 +2342,8 @@ end;
 function TCustomDBGridView.GetEditText(Cell: TGridCell): string;
 begin
   Result := inherited GetEditText(Cell);
+  { запоминаем значение (поля, а не то, что пользователь подставил в
+    строку в событии OnGetCellText или OnGetEditText }
   { the value displayed in the inplace editor may differ from the value
     of the its field. therefore, to check the change, we need to remember
     the value of the field instead of the value that the OnGetEditText
@@ -2268,60 +2413,60 @@ begin
             begin
               MoveBy(0, Shift);
               KeepSelected := (not CtrlSelected) or FSelectedRows.CurrentRowSelected;
-              SetCursor(CellFocused, KeepSelected, True);
+              SetGridCursor(CellFocused, KeepSelected, True);
             end;
           VK_RIGHT:
             begin
               MoveBy(0, Shift);
               KeepSelected := (not CtrlSelected) or FSelectedRows.CurrentRowSelected;
-              SetCursor(CellFocused, KeepSelected, True);
+              SetGridCursor(CellFocused, KeepSelected, True);
             end;
           VK_UP:
             { cancel insertion and move to the previous record }
             begin
               MoveBy(-1, Shift);
               KeepSelected := (not CtrlSelected) or FSelectedRows.CurrentRowSelected;
-              SetCursor(CellFocused, KeepSelected, True);
+              SetGridCursor(CellFocused, KeepSelected, True);
             end;
           VK_DOWN:
             { move to the next record or insert new record }
             begin
               MoveBy(1, Shift);
               KeepSelected := (not CtrlSelected) or FSelectedRows.CurrentRowSelected;
-              SetCursor(CellFocused, KeepSelected, True);
+              SetGridCursor(CellFocused, KeepSelected, True);
             end;
           VK_PRIOR:
             begin
               MoveBy(-VisSize.Row, Shift);
               KeepSelected := (not CtrlSelected) or FSelectedRows.CurrentRowSelected;
-              SetCursor(FScrollCell, KeepSelected, True);
+              SetGridCursor(FScrollCell, KeepSelected, True);
             end;
           VK_NEXT:
             begin
               MoveBy(VisSize.Row, Shift);
               KeepSelected := (not CtrlSelected) or FSelectedRows.CurrentRowSelected;
-              SetCursor(FScrollCell, KeepSelected, True);
+              SetGridCursor(FScrollCell, KeepSelected, True);
             end;
           VK_HOME:
             if ssCtrl in Shift then
             begin
               MoveBy(DBGRID_BOF, Shift);
               KeepSelected := (not CtrlSelected) or FSelectedRows.CurrentRowSelected;
-              SetCursor(FScrollCell, KeepSelected, True);
+              SetGridCursor(FScrollCell, KeepSelected, True);
             end;
           VK_END:
             if ssCtrl in Shift then
             begin
               MoveBy(DBGRID_EOF, Shift);
               KeepSelected := (not CtrlSelected) or FSelectedRows.CurrentRowSelected;
-              SetCursor(FScrollCell, KeepSelected, True);
+              SetGridCursor(FScrollCell, KeepSelected, True);
             end;
           VK_SPACE:
             if ssCtrl in Shift then
             begin
               MoveBy(0, Shift + [ssMiddle]);
               KeepSelected := FSelectedRows.CurrentRowSelected;
-              SetCursor(CellFocused, KeepSelected, True);
+              SetGridCursor(CellFocused, KeepSelected, True);
             end;
         end;
       end;
@@ -2332,14 +2477,14 @@ begin
         if (CellFocused.Col = Columns.Count - 1) and (not (ssShift in Shift)) then
         begin
           MoveBy(1, []);
-          SetCursor(GetCursorCell(CellFocused, goHome), True, True);
+          SetGridCursor(GetCursorCell(CellFocused, goHome), True, True);
         end;
         { move to the prior record by pressing the SHIFT+TAB key on the
           first column }
         if (CellFocused.Col = Fixed.Count) and (ssShift in Shift) then
         begin
           MoveBy(-1, []);
-          SetCursor(GetCursorCell(CellFocused, goEnd), True, True);
+          SetGridCursor(GetCursorCell(CellFocused, goEnd), True, True);
         end;
       end;
       { other keys }
@@ -2347,7 +2492,7 @@ begin
         VK_ESCAPE:
           begin
             CancelEdit;
-            SetCursor(CellFocused, True, True);
+            SetGridCursor(CellFocused, True, True);
           end;
         VK_INSERT:
           if (Shift = []) and (not Editing) then Insert(False);
@@ -2355,11 +2500,11 @@ begin
           if (Shift = []) and (not Editing) then
           begin
             Delete;
-            SetCursor(CellFocused, True, True);
+            SetGridCursor(CellFocused, True, True);
           end;
       end;
     except
-      SetCursor(CellFocused, True, True);
+      SetGridCursor(CellFocused, True, True);
       raise;
     end;
   finally
@@ -2369,6 +2514,10 @@ end;
 
 procedure TCustomDBGridView.KeyPress(var Key: Char);
 begin
+  { если нажали RETURN и надо переходить на следующую ячейку, то не
+    дадим сменить ячейку в стандартном обработчике, а сделаем это сами,
+    т.к. перед сменой ячейки надо отследить вставку в конец таблицы
+    новой записи }
   if (Key = #13) and (gkReturn in CursorKeys) and Editing then
   begin
     LockScroll;
@@ -2378,7 +2527,7 @@ begin
       if CellFocused.Col = Columns.Count - 1 then
       begin
         MoveBy(1, []);
-        SetCursor(GetCursorCell(CellFocused, goHome), True, True);
+        SetGridCursor(GetCursorCell(CellFocused, goHome), True, True);
       end;
     finally
       UnLockScroll(False);
@@ -2396,6 +2545,7 @@ end;
 
 procedure TCustomDBGridView.MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 begin
+  { устанавливаем фокус на себя }
   if not AcquireFocus then
   begin
     MouseCapture := False;
@@ -2409,12 +2559,13 @@ begin
       { we cannot start the selection immediately by clicking on the selected
         cell, otherwise the grid will not be able to start dragging }
       FSelectPending := True;
-      FSelectPos := Point(X, Y);
+      FSelectPos := Classes.Point(X, Y);
       FSelectShift := Shift;
     end
     else
       MoveByXY(X, Y, Shift);
   end;
+  { стандартная обработка с событием выделениея ячейки и MouseDown }
   inherited;
 end;
 
@@ -2447,6 +2598,7 @@ var
   RowCount, Direction, Direction2: Integer;
   OldCurrent: TBookmark;
   I, Index1, Index2: Integer;
+  IsCtrl: Boolean;
 begin
   if not Datalink.Active then Exit;
   { cancel insertion of a record when user presses the DOWN key in the
@@ -2498,6 +2650,7 @@ begin
   begin
     Direction := Sign(Distance);
     RowCount := Abs(Distance);
+    IsCtrl:= (ssCtrl in Shift);
     with DataLink.DataSet, FSelectedRows do
     begin
       DisableControls;
@@ -2508,7 +2661,7 @@ begin
             a selection marker }
           UpdateSelectionMark;
         end
-        else if (Distance <> 0) and not (ssCtrl in Shift) then
+        else if (Distance <> 0) and not IsCtrl then
         begin
           { like Expolrer, the grid should allow to select several groups of
             rows while holding down the CTRL key, but if the CTRL key is not
@@ -2525,7 +2678,7 @@ begin
         if Direction2 = Direction then
           while (Direction2 <> 0) and (RowCount > 0) do
           begin
-            CurrentRowSelected := ssCtrl in Shift; // <- CTRL does not reset selection
+            CurrentRowSelected := IsCtrl; // <- CTRL does not reset selection
             DataLink.MoveBy(Direction);
             Dec(RowCount);
             if BOF or EOF then Break;
@@ -2601,12 +2754,12 @@ var
 begin
   if (gkMouse in CursorKeys) and IsLeftButtonPressed then
   begin
-    if PtInRect(GetIndicatorFixedRect, Point(X, Y)) then
+    if PtInRect(GetIndicatorFixedRect, Classes.Point(X, Y)) then
     begin
       C.Col := CellFocused.Col;
       C.Row := GetRowAt(X, Y);
     end
-    else if PtInRect(GetGridRect, Point(X, Y)) then
+    else if PtInRect(GetGridRect, Classes.Point(X, Y)) then
       C := GetCellAt(X, Y)
     else
       Exit;
@@ -2621,7 +2774,7 @@ begin
     try
       MoveBy(C.Row - CellFocused.Row, Shift);
       KeepSelected := (not (ssCtrl in Shift)) or FSelectedRows.CurrentRowSelected;
-      SetCursor(C, KeepSelected, True);
+      SetGridCursor(C, KeepSelected, True);
     finally
       UnLockScroll(False);
     end;
@@ -2689,6 +2842,9 @@ var
 begin
   OldActive := DataLink.ActiveRecord;
   try
+    { перед отрисовкой ячейки устанавливаем источника текущую запись на
+      строку ячейки, чтобы свойство Columns[Cell.Row].Field соотвествовало
+      именно этой ячейке }
     DataLink.ActiveRecord := Cell.Row;
     inherited;
   finally
@@ -2701,21 +2857,24 @@ var
   J: Integer;
   R: TRect;
 begin
+  { границы строк }
   R := GetIndicatorFixedRect;
   R.Bottom := GetRowRect(VisOrigin.Row).Top;
-  { indicator pseudo cells }
+  { перебираем строки }
   for J := 0 to VisSize.Row - 1 do
   begin
     R.Top := R.Bottom;
     R.Bottom := R.Bottom + Rows.Height;
+    { рисуем псевдоячейку индикатора }
     if RectVisible(Canvas.Handle, R) then
     begin
       Canvas.Brush.Color := Fixed.Color;
       Canvas.FillRect(R);
+      { рисуем картинку индикатора }
       PaintIndicatorImage(R, J);
     end;
   end;
-  { field to the bottom of the indicator }
+  { пустое поле снизу }
   R.Top := R.Bottom;
   R.Bottom := GetIndicatorFixedRect.Bottom + 2;
   if not (gsListViewLike in GridStyle) then
@@ -2723,17 +2882,21 @@ begin
   else
     Canvas.Brush.Color := Fixed.Color;
   Canvas.FillRect(R);
+  { полоска справа }
   { vertical separator line on the right }
-  if Fixed.Flat or StyleServices.Enabled then
+  if Fixed.Flat or ThemeServices.ThemesEnabled then
   begin
     R := GetIndicatorFixedRect;
+    { если фиксированные не видны, то полоску рисуем до последней строки }
     if not (IsFixedVisible or (gsListViewLike in GridStyle) or
       (gsFullVertLine in GridStyle)) then
     begin
       if VisSize.Row = 0 then Exit;
       R.Bottom := GetRowRect(VisOrigin.Row + VisSize.Row).Top;
     end;
-    if Fixed.GridColor or StyleServices.Enabled then
+    { если цвета фиксированных и таблицы совпадают - рисуем полоску
+      из одной линии  }
+    if Fixed.GridColor or ThemeServices.ThemesEnabled then
     begin
       if not (gsDotLines in GridStyle) then
       begin
@@ -2749,6 +2912,7 @@ begin
       end;
     end
     else
+      { иначе рисуем двойную полоску }
       with Canvas do
       begin
         Pen.Color := clBtnShadow;
@@ -2775,6 +2939,7 @@ var
   var
     I: Integer;
   begin
+    { сдвигаем горизонтальные линии по оси Y }
     for I := 0 to PointCount - 1 do
       Points[I].Y := Points[I].Y + DY;
   end;
@@ -2785,6 +2950,7 @@ var
   begin
     R := Rect;
     R.Bottom := R.Top;
+    { строки }
     while R.Bottom < Rect.Bottom do
     begin
       R.Top := R.Bottom;
@@ -2799,6 +2965,7 @@ var
   begin
     R := Rect;
     R.Bottom := R.Top;
+    { строки }
     repeat
       R.Top := R.Bottom;
       R.Bottom := R.Bottom + Rows.Height;
@@ -2813,7 +2980,7 @@ var
   end;
 
 begin
-  if StyleServices.Enabled or Fixed.Flat then
+  if ThemeServices.ThemesEnabled or Fixed.Flat then
   begin
     { the number of grid lines is equal to the number of visible rows }
     StrokeCount := 0;
@@ -2822,15 +2989,17 @@ begin
       if gsListViewLike in GridStyle then StrokeCount := GetGridHeight div Rows.Height
       else StrokeCount := VisSize.Row;
     end;
+    { а есть ли сетка }
     if StrokeCount > 0 then
     begin
       { malloc two points on each line }
       SetLength(Points, StrokeCount * 2);
       SetLength(StrokeList, StrokeCount);
+      { инициализация массива количества точек полилиний }
       for I := 0 to StrokeCount - 1 do StrokeList[I] := 2;
-      { fill the points of horisontal lines }
       Rect := GetIndicatorFixedRect;
       PointCount := 0;
+      { точки горизонтальных линий }
       if gsHorzLine in GridStyle then
       begin
         L := Rect.Left;
@@ -2849,12 +3018,15 @@ begin
           Inc(PointCount);
         end;
       end;
+      { а двойные или одинарные линии }
       { if the color of the fixed cells does not differ from the color of
         the grid, then the grid lines are the same, with the themes enabled
         always draw single lines, with the themes turned off on a gray
         background we draw double lines }
-      if Fixed.GridColor or StyleServices.Enabled then
+      if Fixed.GridColor or ThemeServices.ThemesEnabled then
       begin
+        { рисуем одинарную полоску }
+        { сдвигаем линии (они расчитаны для первой двойной линии) }
         { shift the lines (they are calculated for the double line) }
         //ShiftGridPoints(1, 1);
         { draw the single line }
@@ -2862,33 +3034,51 @@ begin
         begin
           Canvas.Pen.Color := GetFixedGridColor;
           Canvas.Pen.Width := GridLineWidth;
+        {$IFDEF WINDOWS}
           PolyPolyLine(Canvas.Handle, Pointer(Points)^, Pointer(StrokeList)^, PointCount shr 1);
+        {$ELSE}
+          dpPolyPolyLine(Canvas.Handle, Points, StrokeList);
+        {$ENDIF}
         end
         else
           PaintDotGridLines(Pointer(Points), PointCount);
       end
       else
       begin
+        { рисуем двойную полоску }
+        { темные линии }
         Canvas.Pen.Color := clBtnShadow;
         Canvas.Pen.Width := 1;
+      {$IFDEF WINDOWS}
         PolyPolyLine(Canvas.Handle, Pointer(Points)^, Pointer(StrokeList)^, PointCount shr 1);
+      {$ELSE}
+        dpPolyPolyLine(Canvas.Handle, Points, StrokeList);
+      {$ENDIF}
+        { сдвигаем линии }
         ShiftGridPoints(1, 1);
+        { светлые линии }
         Canvas.Pen.Color := clBtnHighlight;
+      {$IFDEF WINDOWS}
         PolyPolyLine(Canvas.Handle, Pointer(Points)^, Pointer(StrokeList)^, PointCount shr 1);
+      {$ELSE}
+        dpPolyPolyLine(Canvas.Handle, Points, StrokeList);
+      {$ENDIF}
       end;
     end;
   end
+  { надо ли рисовать 3D ячейки }
   else if gsHorzLine in GridStyle then
   begin
-    { only horizontal 3D lines }
     Rect := GetIndicatorFixedRect;
     if not (gsListViewLike in GridStyle) then Rect.Bottom := GetRowRect(VisOrigin.Row + VisSize.Row).Top;
+    { 3D ячейки }
     Paint3DCells(Rect);
   end
   else
+  { просто 3D рамка вокруг индикатора }
   begin
-    { only 3D frame around indicator }
     Rect := GetIndicatorFixedRect;
+    { рамка снизу }
     if not IsFixedVisible then
     begin
       Rect.Bottom := GetRowRect(VisOrigin.Row + VisSize.Row).Top;
@@ -2911,24 +3101,32 @@ var
   I, X, Y, W, H: Integer;
   IL: TImageList;
 begin
+  { получаем картинку индикатора }
   I := GetIndicatorImage(DataRow);
   if I = -1 then Exit;
+  { получаем список картинок индикатора }
   IL := FIndicatorImages;
   if IL = nil then IL := FIndicatorsDef;
+  { размер картинки }
   W := IL.Width;
   H := IL.Height;
+  { положение картинки }
   X := Rect.Right - Rect.Left - W;
   X := Rect.Left + X div 2 - Ord(Fixed.Flat);
+  if X + W > Rect.Right then W := Rect.Right - X;
   Y := Rect.Bottom - Rect.Top - H;
   Y := Rect.Top + Y div 2 - Ord(Fixed.Flat);
+  if Y + H > Rect.Bottom then H := Rect.Bottom - Y;
   IL.BkColor := Canvas.Brush.Color;
   IL.Draw(Canvas, X, Y, I, True);
 end;
 
 procedure TCustomDBGridView.ChangeEditText(const S: string);
 begin
+  { проверяем возможность изменения текста в ячейке }
   if Editing and EditCanModify(EditCell) then
   begin
+    { вставляем текст в ячейку, взводим влаг изменения данных }
     Edit.Text := S;
     DataLink.Modified;
   end;
@@ -2936,7 +3134,8 @@ end;
 
 function TCustomDBGridView.IsCellReadOnly(Cell: TGridCell): Boolean;
 begin
-  { lookup and non-text fields are read only }
+  { менять содержимое строки редактирования для lookup или не текстовых
+    полей нельзя }
   Result := inherited IsCellReadOnly(Cell) or IsReadOnlyField(Columns[Cell.Col].Field);
 end;
 
@@ -2979,9 +3178,12 @@ end;
 
 procedure TCustomDBGridView.SetEditText(Cell: TGridCell; var Value: string);
 begin
+  { устанавливать текст можно только в текущую ячейку редактирования }
   if IsCellEqual(Cell, EditCell) and DataLink.Active and EditCanModify(Cell) and
     (Edit <> nil) then
   begin
+    { SetEditText вызывается автоматически при смене текущей ячейки или
+      по завершению редактирования - обновляем источника данных }
     Edit.Text := Value;
     DataLink.UpdateData;
   end;
@@ -3010,6 +3212,9 @@ begin
     (CField <> nil) and (not IsReadOnlyField(CField)) and (Edit <> nil) then
   begin
     try
+      { т.к. в событии SetEditText может быть осуществлен перевод текста
+        строки в значение, то в поле надо установить уже переведенное
+        значение, а не из строки ввода }
       Value := Edit.Text;
       inherited SetEditText(EditCell, Value);
       SetFieldText(CField, Value);
@@ -3034,7 +3239,8 @@ end;
 
 procedure TCustomDBGridView.ApplyEdit;
 begin
-  { the update of the data source is called in SetEditText }
+  { по завершению редактирования автоматически вызовется SetEditText,
+    внутри которого происходит вызов обновления источника данных }
   inherited;
 end;
 
@@ -3045,6 +3251,8 @@ end;
 
 procedure TCustomDBGridView.CancelEdit;
 begin
+  { при отмене редактирования сбрасываем режим редактирования текущего
+    поля источника }
   DataLink.Reset;
   inherited;
 end;
@@ -3062,6 +3270,7 @@ end;
 function TCustomDBGridView.GetGridRect: TRect;
 begin
   Result := inherited GetGridRect;
+  { слева от таблицы рисуется индикатор }
   if ShowIndicator then Inc(Result.Left, GetIndicatorWidth);
 end;
 
@@ -3088,13 +3297,17 @@ end;
 function TCustomDBGridView.GetIndicatorImage(DataRow: Integer): Integer;
 begin
   Result := -1;
+  { картинку имеет только текущая строка }
   if DataRow = DataLink.ActiveRecord then
   begin
     Result := 0;
+    { смотрим редактирование или вставку записи источника }
     if DataLink.DataSet <> nil then
       case DataLink.DataSet.State of
-        dsEdit: Result := 1;
+        dsEdit:   Result := 1;
         dsInsert: Result := 2;
+      else
+        //
       end;
   end
   else if IsRowHighlighted(DataRow) then
@@ -3136,32 +3349,32 @@ end;
 
 procedure TCustomDBGridView.MakeCellVisible(Cell: TGridCell; PartialOK: Boolean);
 begin
+  { т.к. вертикальные перемещения по таблице осуществляются за счет
+    перемещения по записям источника данных, то сделать видимой ячейку,
+    находящуюся не на текущей строке, нельзя }
   { a cell that is not equal to the current record is not visible }
   if Cell.Row = CellFocused.Row then
     inherited MakeCellVisible(Cell, PartialOK);
 end;
 
-procedure TCustomDBGridView.SetCursor(Cell: TGridCell; Selected, Visible: Boolean);
-var
-  IC: TGridCell;
+procedure TCustomDBGridView.SetGridCursor(Cell: TGridCell; IsSelected, IsVisible: Boolean);
 begin
-  IC := CellFocused;
-  { if the cursor scrolling is locked, the new position should be
-    stored in the buffer }
+  { если смещение курсора блокировано, то просто запоминаем новое положение }
   if (FScrollLock <> 0) and (FCursorFromDataSet = 0) then
   begin
     FScrollCell := Cell;
-    FScrollSelected := Selected;
+    FScrollSelected := IsSelected;
     Exit;
   end;
-  { vertical movements in the grid are allowed only when navigating data
-    source records }
+  { вертикальные перемещения по таблице осуществляются только при
+    перемещении по записям источника данных }
   if FCursorFromDataSet = 0 then Cell.Row := CellFocused.Row;
-  inherited SetCursor(Cell, Selected, Visible);
+  inherited SetGridCursor(Cell, IsSelected, IsVisible);
 end;
 
 procedure TCustomDBGridView.ResetEdit;
 begin
+  { если поле изменено, то отменяем изменения }
   if DataLink.FModified then DataLink.Reset;
 end;
 
@@ -3179,10 +3392,13 @@ end;
 procedure TCustomDBGridView.UnLockScroll(CancelScroll: Boolean);
 begin
   Dec(FScrollLock);
+  { проверяем изменение фокуса }
   if (FScrollLock = 0) and ((not IsCellEqual(FScrollCell, CellFocused)) or
     (FScrollSelected <> CellSelected)) then
   begin
-    SetCursor(GridCell(FScrollCell.Col, CellFocused.Row), FScrollSelected, True);
+    { устанавливаем фокус на ячейку }
+    SetGridCursor(GridCell(FScrollCell.Col, CellFocused.Row), FScrollSelected, True);
+    { сдвигаем источник данных }
     if (not CancelScroll) and (FScrollCell.Row <> CellFocused.Row) then
     begin
       if DataLink.Active then
@@ -3197,6 +3413,7 @@ var
 begin
   Inc(FCursorFromDataSet);
   try
+    { проверяем активность источника }
     if DataLink.Active then
     begin
       Cell.Col := CellFocused.Col;
@@ -3204,7 +3421,8 @@ begin
     end
     else
       Cell := GridCell(0, 0);
-    SetCursor(Cell, CellSelected, ShowCursor);
+    { ставим курсор на текущую запись }
+    SetGridCursor(Cell, CellSelected, True);
   finally
     Dec(FCursorFromDataSet);
   end;
@@ -3227,29 +3445,34 @@ var
       if Field.Visible then
       begin
         List.Add(Field);
-        if Field.DataType in [ftADT, ftArray] then
-          GetFields((Field as TObjectField).Fields);
+        //if Field.DataType in [ftADT, ftArray] then
+        //  GetFields((Field as TObjectField).Fields);
       end;
     end;
   end;
 
 begin
   if ([csLoading, csDestroying] * ComponentState) <> [] then Exit;
+  { если используются колонки по молчанию, то пересоздаем их }
   if FDefaultLayout then
   begin
     if DataLink.Active then
     begin
       List := TList.Create;
       try
+        { получаем список всех полей источника данных }
         GetFields(DataLink.DataSet.Fields);
-        { avoid clearing the list of columns here, as this causes an AV
-          exception when editing columns in Design mode }
+        { уравниваем количество колонок и количество полей источника
+          (конечно, можно просто очистить список колонок и заполнить
+          его заново, но тогда вылезают глюки типа AV в Delphi при
+          редактировании колонок в Design mode) }
         while (List.Count > 0) and (Columns.Count < List.Count) do Columns.Add;
         while (Columns.Count > 0) and (Columns.Count > List.Count) do Columns[0].Free;
+        { сбрасываем поля остальных колонок в значения по умолчанию }
         for I := 0 to List.Count - 1 do
         begin
           Column := Columns[I];
-          Column.FieldName := TField(List[I]).FullName;
+          Column.FieldName := TField(List[I]).FieldName;
           Column.Field := nil;
           Column.RestoreDefaults;
           Column.FDefaultColumn := True;
@@ -3263,19 +3486,21 @@ begin
     Header.SynchronizeSections;
   end
   else
-  begin
+    { сбрасываем ссылку на поле существующих колонок }
     for I := 0 to Columns.Count - 1 do
     begin
       Column := Columns[I];
       Column.Field := nil;
+      { если это колонка по умолчанию, то обновляем ее поля }
       if Column.DefaultColumn then
       begin
         Column.RestoreDefaults;
         Column.FDefaultColumn := True;
       end;
     end;
-  end;
+  { подправляем количество фиксированных }
   Fixed.SetCount(Fixed.Count);
+  { обновляем количество строк, положение курсора }
   UpdateRowCount;
   UpdateCursorPos(True);
 end;
@@ -3298,7 +3523,8 @@ procedure TCustomDBGridView.UpdateRowCount;
 begin
   if DataLink.Active then
   begin
-    { DataLink buffer size should be equal to the number of visible lines }
+    { размер буфера DataLink устанавливаем равным количеству целиком
+      видимых строк }
     DataLink.BufferCount := GetGridHeight div Rows.Height;
     SetRowsCount(DataLink.RecordCount);
   end
@@ -3309,9 +3535,9 @@ end;
 procedure TCustomDBGridView.UpdateSelection(var Cell: TGridCell; var Selected: Boolean);
 begin
   inherited;
-  { in any way, the selected row must be equal to the active record }
+  { выделенная строка таблицы всегда должна соотвествовать текущей записи
+    источника данных, несмотря ни на какие запреты }
   Cell.Row := DataLink.ActiveRecord;
 end;
 
 end.
-

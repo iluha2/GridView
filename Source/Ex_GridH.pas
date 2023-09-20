@@ -1,9 +1,7 @@
 {
   TGridView component (grid)
-
   (C) Roman M. Mochalov, 1997-2019
-  E-mail: checker@mail.ru
-
+  (C) Iluha Companets  , 2002-2023
   License: MIT
 }
 
@@ -12,10 +10,13 @@ unit Ex_GridH;
 interface
 
 uses
-  Windows, SysUtils, Classes, Controls, Forms, Graphics, StdCtrls, ComCtrls,
+  LCLIntf, LCLType, SysUtils, Classes, Controls, Forms, Graphics, StdCtrls, ComCtrls,
   Ex_Grid;
 
 type
+
+{ THeaderEditorForm }
+
   THeaderEditorForm = class(TForm)
     SectionssGroup: TGroupBox;
     SectionsTree: TTreeView;
@@ -53,7 +54,6 @@ type
     procedure AddSection;
     procedure DeleteAllSections;
     procedure DeleteSection;
-    procedure CheckSection;
     procedure GetSection;
     procedure GetParams;
     procedure MoveSectionDown;
@@ -72,21 +72,21 @@ function EditGridHeader(Grid: TCustomGridView): Boolean;
 
 implementation
 
-{$R *.DFM}
+{$R *.lfm}
 
 function EditGridHeader(Grid: TCustomGridView): Boolean;
 begin
   with THeaderEditorForm.Create(nil) do
   try
+    { показываем диалог }
     Execute(Grid);
+    { результат }
     Result := FChangeCount > 0;
   finally
     Free;
   end;
 end;
 
-type
-  EHeaderError = class(Exception);
 
 { THeadersEditorForm }
 
@@ -96,32 +96,44 @@ var
   SS: TGridHeaderSections;
 begin
   with SectionsTree do
+    { есть ли выделенный узел }
     if Selected <> nil then
     begin
+      { определяем секции, к которым следует добавлять }
       S := TGridHeaderSection(Selected.Data);
       if S <> nil then SS := S.Sections else SS := FSections;
+      { добавляем секцию }
       SS.Add;
+      { обновляем дерево заголовков }
       RefreshView;
+      { фокус на строку с названием }
       CaptionEdit.SetFocus;
+      { доступ к кнопке "Применить" }
       EnableApply(Self);
     end;
 end;
 
 procedure THeaderEditorForm.DeleteAllSections;
 const
-  Message = 'Delete sections?';
+  Message = 'Удалить все секции текущего уровня?';
   Flags = MB_YESNO or MB_ICONQUESTION;
 var
   S: TGridHeaderSection;
 begin
   with SectionsTree do
+    { есть ли выделенная секция }
     if (Selected <> nil) and (Selected.Data <> nil) then
     begin
+      { получаем выделенную секцию }
       S := TGridHeaderSection(Selected.Data);
+      { спрашиваем разрешение на удаление }
       if Application.MessageBox(Message, PChar(Caption), Flags) = IDYES then
       begin
+        { удаляем секции }
         S.ParentSections.Clear;
+        { обновляем дерево заголовков }
         RefreshView;
+        { доступ к кнопке "Применить" }
         EnableApply(nil);
       end;
     end;
@@ -132,29 +144,20 @@ var
   S: TGridHeaderSection;
 begin
   with SectionsTree do
+    { есть ли выделенная секция }
     if (Selected <> nil) and (Selected.Data <> nil) then
     begin
+      { получаем выделенную секцию }
       S := TGridHeaderSection(Selected.Data);
+      { удаляем ее }
       S.Free;
+      { обновляем дерево заголовков }
       RefreshView;
+      { фокус на дерево }
       SetFocus;
+      { доступ к кнопке "Применить" }
       EnableApply(nil);
     end;
-end;
-
-procedure THeaderEditorForm.CheckSection;
-begin
-  if PropertiesGroup.Enabled then
-  begin
-    with IndexEdit do
-    try
-      if StrToIntDef(Text, -1) < 0 then
-        raise EHeaderError.CreateFmt('Invalid index (%s)', [Text]);
-    except
-      SetFocus;
-      raise;
-    end;
-  end;
 end;
 
 procedure THeaderEditorForm.GetSection;
@@ -162,9 +165,12 @@ var
   S: TGridHeaderSection;
 begin
   with SectionsTree do
+    { есть ли выделенная секция }
     if (Selected <> nil) and (Selected.Data <> nil) then
     begin
+      { получаем выделенную секцию }
       S := TGridHeaderSection(Selected.Data);
+      { считываем ее параметры }
       IndexEdit.Text := IntToStr(S.Index);
       CaptionEdit.Text := S.Caption;
       AlignmentCombo.ItemIndex := Ord(S.Alignment);
@@ -174,7 +180,9 @@ end;
 
 procedure THeaderEditorForm.GetParams;
 begin
+  { запоминаем список секций }
   FSections.Assign(FGrid.Header.Sections);
+  { обновляем дерево заголовков }
   RefreshView;
 end;
 
@@ -183,14 +191,21 @@ var
   S: TGridHeaderSection;
 begin
   with SectionsTree do
+    { есть ли выделенная секция }
     if (Selected <> nil) and (Selected.Data <> nil) then
     begin
+      { получаем выделенную секцию }
       S := TGridHeaderSection(Selected.Data);
+      { можно ли двигать ее вниз }
       if S.Index < S.ParentSections.Count - 1 then
       begin
+        { перемещаем вниз }
         S.Index := S.Index + 1;
+        { обновляем дерево заголовков }
         RefreshView;
+        { подправляем выделенный узел }
         SelectSection(S);
+        { доступ к кнопке "Применить" }
         EnableApply(nil);
       end;
     end;
@@ -201,16 +216,23 @@ var
   S, O: TGridHeaderSection;
 begin
   with SectionsTree do
+    { есть ли выделенная секция }
     if (Selected <> nil) and (Selected.Data <> nil) then
     begin
+      { получаем выделенную секцию }
       S := TGridHeaderSection(Selected.Data);
       O := S.ParentSections.OwnerSection;
+      { можно ли двигать ее влево }
       if (O <> nil) and (O.ParentSections <> nil) then
       begin
+        { перемещаем влево }
         S.Collection := O.ParentSections;
         S.Index := O.Index;
+        { обновляем дерево заголовков }
         RefreshView;
+        { подправляем выделенный узел }
         SelectSection(S);
+        { доступ к кнопке "Применить" }
         EnableApply(nil);
       end;
     end;
@@ -221,15 +243,22 @@ var
   S: TGridHeaderSection;
 begin
   with SectionsTree do
+    { есть ли выделенная секция }
     if (Selected <> nil) and (Selected.Data <> nil) then
     begin
+      { получаем выделенную секцию }
       S := TGridHeaderSection(Selected.Data);
+      { можно ли двигать ее влево }
       if S.Index < S.ParentSections.Count - 1 then
       begin
+        { перемещаем влево }
         S.Collection := S.ParentSections[S.Index + 1].Sections;
         S.Index := 0;
+        { обновляем дерево заголовков }
         RefreshView;
+        { подправляем выделенный узел }
         SelectSection(S);
+        { доступ к кнопке "Применить" }
         EnableApply(nil);
       end;
     end;
@@ -240,14 +269,21 @@ var
   S: TGridHeaderSection;
 begin
   with SectionsTree do
+    { есть ли выделенная секция }
     if (Selected <> nil) and (Selected.Data <> nil) then
     begin
+      { получаем выделенную секцию }
       S := TGridHeaderSection(Selected.Data);
+      { можно ли двигать ее вверх }
       if S.Index > 0 then
       begin
+        { перемещаем вверх }
         S.Index := S.Index - 1;
+        { обновляем дерево заголовков }
         RefreshView;
+        { подправляем выделенный узел }
         SelectSection(S);
+        { доступ к кнопке "Применить" }
         EnableApply(nil);
       end;
     end;
@@ -258,9 +294,12 @@ var
   S: TGridHeaderSection;
 begin
   with SectionsTree do
+    { есть ли выделенная секция }
     if (Selected <> nil) and (Selected.Data <> nil) then
     begin
+      { получаем выделенную секцию }
       S := TGridHeaderSection(Selected.Data);
+      { устанавливаем параметры }
       S.Index := StrToIntDef(IndexEdit.Text, S.Index);
       S.Caption := CaptionEdit.Text;
       S.Alignment := TAlignment(AlignmentCombo.ItemIndex);
@@ -321,13 +360,14 @@ procedure THeaderEditorForm.RefreshView;
       I, J: Integer;
       S: string;
     begin
+      { уравниваем количество дочерних узлов с количеством секций }
       if Node.Count > Sections.Count then
       begin
         I := Node.Count;
         while I > Sections.Count do
         begin
           Dec(I);
-          Node.Item[I].Delete;
+          Node[I].Delete;
         end;
       end;
       if Node.Count < Sections.Count then
@@ -340,6 +380,7 @@ procedure THeaderEditorForm.RefreshView;
             Selected := Items.AddChild(Node, '');
         end;
       end;
+      { обновляем узлы }
       for I := 0 to Node.Count - 1 do
       begin
         S := Sections[I].Caption;
@@ -347,16 +388,18 @@ procedure THeaderEditorForm.RefreshView;
           their own captions (see DisplayText property) but internal
           FSections is not linked with grid, so section cannot get column
           caption, and we must calculate it manually }
-        if (Length(S) = 0) and (Sections[I].Sections.Count = 0) then
+        if (S = '') and (Sections[I].Sections.Count = 0) then
         begin
           J := CalcColumnIndex(Sections[I]);
           if J < FGrid.Columns.Count then S := FGrid.Columns[J].Caption;
+
         end;
-        Node.Item[I].Text := S;
-        Node.Item[I].Data := Sections[I];
+        Node[I].Text := S;
+        Node[I].Data := Sections[I];
       end;
+      { обновляем дочерние секции }
       for I := 0 to Node.Count - 1 do
-        ProcessNode(Node.Item[I], Sections[I].Sections);
+        ProcessNode(Node[I], Sections[I].Sections);
     end;
 
   begin
@@ -366,18 +409,23 @@ procedure THeaderEditorForm.RefreshView;
   procedure RefreshControls;
   begin
     with SectionsTree do
+      { есть ли выделенная секция }
       if (Selected <> nil) and (Selected.Data <> nil) then
       begin
+        { разрешаем изменение параметров }
         PropertiesGroup.Enabled := True;
         DeleteButton.Enabled := True;
+        { обновляем компоненты параметров }
         GetSection;
       end
       else
       begin
+        { очищаем компоненты параметров }
         WordWrapcheck.Checked := False;
         AlignmentCombo.ItemIndex := -1;
         CaptionEdit.Text := '';
         IndexEdit.Text := '';
+        { запрещаем изменение параметров }
         DeleteButton.Enabled := False;
         PropertiesGroup.Enabled := False;
       end;
@@ -399,15 +447,17 @@ procedure THeaderEditorForm.SelectSection(Section: TGridHeaderSection);
   begin
     while Node <> nil do
     begin
+      { проверяем узел }
       if Node.Data = Section then
-      begin
-        Result := Node;
-        Exit;
-      end;
+        Exit( Node );
+      { ищем среди дочерних узлов }
       Result := FindNode(Node.GetFirstChild);
-      if Result <> nil then Exit;
+      if Result <> nil then
+        Exit;
+      { следующий узел }
       Node := Node.GetNextSibling;
     end;
+    { узел не найден }
     Result := nil;
   end;
 
@@ -417,8 +467,11 @@ end;
 
 function THeaderEditorForm.Execute(Grid: TCustomGridView): Boolean;
 begin
+  { запоминаем ссылку на таблицу }
   FGrid := Grid;
+  { считываем заголовок }
   GetParams;
+  { показываем диалог }
   Result := ShowModal = mrOK;
 end;
 
@@ -439,7 +492,7 @@ end;
 procedure THeaderEditorForm.FormCreate(Sender: TObject);
 begin
   FSections := TGridHeaderSections.Create(nil, nil);
-  SectionsTree.Items.Add(nil, 'Sections');
+  SectionsTree.Items.Add(nil, 'Секции');
 end;
 
 procedure THeaderEditorForm.FormDestroy(Sender: TObject);
@@ -457,7 +510,6 @@ begin
   if not (csDestroying in ComponentState) then
   begin
     try
-      CheckSection;
       PutSection;
       RefreshView;
     except
@@ -497,28 +549,24 @@ begin
         end;
       VK_UP:
         begin
-          CheckSection;
           PutSection;
           MoveSectionUp;
           Key := 0;
         end;
       VK_DOWN:
         begin
-          CheckSection;
           PutSection;
           MoveSectionDown;
           Key := 0;
         end;
       VK_LEFT:
         begin
-          CheckSection;
           PutSection;
           MoveSectionLeft;
           Key := 0;
         end;
       VK_RIGHT:
         begin
-          CheckSection;
           PutSection;
           MoveSectionRight;
           Key := 0;
@@ -528,23 +576,21 @@ end;
 
 procedure THeaderEditorForm.AddButtonClick(Sender: TObject);
 begin
-  CheckSection;
   PutSection;
   AddSection;
 end;
 
 procedure THeaderEditorForm.DeleteButtonClick(Sender: TObject);
 begin
-  CheckSection;
   PutSection;
   DeleteSection;
 end;
 
 procedure THeaderEditorForm.IndexEditKeyPress(Sender: TObject; var Key: Char);
 begin
-  if not CharInSet(Key, [#8, '0'..'9']) then
+  if not (Key in [#8, '0'..'9']) then
   begin
-    MessageBeep(0);
+    Beep;
     Key := #0;
   end;
 end;
@@ -557,11 +603,13 @@ end;
 
 procedure THeaderEditorForm.ApplyButtonClick(Sender: TObject);
 begin
-  CheckSection;
+  { проверяем и вставляем параметры }
   PutSection;
   PutParams;
+  { обновлем компоненты }
   GetParams;
   DisableApply(nil);
+  { увеличиваем счетчик изменений }
   Inc(FChangeCount);
 end;
 

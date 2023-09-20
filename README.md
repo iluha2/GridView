@@ -1,24 +1,23 @@
 # GridView
 
-GridView is a Delphi VCL grid component for displaying records, arrays, collections, and any other data in the form of tables. It is a native and fast virtual grid without internal data storage designed to display external data using event handlers.
+GridView is a Lazarus grid component for displaying records, arrays, collections, and any other data in the form of tables. It is a native and fast virtual grid without internal data storage designed to display external data using event handlers.
 
 
-## Feautres
+## Features
 
 - Event-driven architecture.
 - Up to 2147483647 rows.
 - Multi-level header with column click support.
-- Windows themes support.
+- Windows/Linux support, with themes.
 - Unicode support.
 - DB version included with multiselecting.
 
 
 ## How to install
 
-1. Compile "Packages\Delphi\GridViewDR.dproj" package.
-2. Compile "Packages\Delphi\GridViewDD.dproj" package.
-3. Install "GridViewDD.dproj" package.
-4. Add "Source\\" library path.
+1. Compile "GridView.lpk" package.
+2. Install "GridView.lpk" package.
+3. Add "Source\\" library path.
 
 
 ## How to use
@@ -30,11 +29,12 @@ GridView is a Delphi VCL grid component for displaying records, arrays, collecti
 5. Use OnSetEditText to get text into your data.
 
 
-## Author
+## Authors
 
 Roman M. Mochalov (<checker@mail.ru>)
+Iluha Companets (<iluha2@e1.ru>)
 
 
 ## License
 
-[MIT](https://github.com/checker2/GridView/blob/master/LICENSE)
+[MIT](https://github.com/iluha2/GridView/blob/master/LICENSE)
