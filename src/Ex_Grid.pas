@@ -2747,11 +2747,9 @@ begin
   { обновляем прямоугольник таблицы }
   { grid under the inplace editor must be invalidated too }
   LCLIntf.GetClientRect(Handle, Cur);
-{$IFDEF WINDOWS}
   MapWindowPoints(Handle, Grid.Handle, Cur, 2);
+{$IFDEF WINDOWS}
   ValidateRect(Grid.Handle, @Cur);
-{$ELSE}
-  dpMapWindowPoints(Handle, Grid.Handle, Cur, 2);
 {$ENDIF}
   InvalidateRect(Grid.Handle, @Cur, False);
 end;
@@ -6444,7 +6442,7 @@ begin
         {$IFDEF WINDOWS}
           PolyPolyLine(Canvas.Handle, Pointer(Points)^, Pointer(StrokeList)^, PointCount shr 1);
         {$ELSE}
-          dpPolyPolyLine(Canvas.Handle, Points, StrokeList);
+          PolyPolyLine(Canvas.Handle, Points, StrokeList);
         {$ENDIF}
         end
         else
@@ -6457,14 +6455,14 @@ begin
       {$IFDEF WINDOWS}
         PolyPolyLine(Canvas.Handle, Pointer(Points)^, Pointer(StrokeList)^, PointCount shr 1);
       {$ELSE}
-        dpPolyPolyLine(Canvas.Handle, Points, StrokeList);
+        PolyPolyLine(Canvas.Handle, Points, StrokeList);
       {$ENDIF}
         ShiftGridPoints(1, 1);
         Canvas.Pen.Color := clBtnHighlight;
       {$IFDEF WINDOWS}
         PolyPolyLine(Canvas.Handle, Pointer(Points)^, Pointer(StrokeList)^, PointCount shr 1);
       {$ELSE}
-        dpPolyPolyLine(Canvas.Handle, Points, StrokeList);
+        PolyPolyLine(Canvas.Handle, Points, StrokeList);
       {$ENDIF}
       end;
     end;
@@ -6650,7 +6648,7 @@ begin
     {$IFDEF WINDOWS}
       PolyPolyLine(Canvas.Handle, Pointer(Points)^, Pointer(StrokeList)^, PointCount shr 1);
     {$ELSE}
-      dpPolyPolyLine(Canvas.Handle, Points, StrokeList);
+      PolyPolyLine(Canvas.Handle, Points, StrokeList);
     {$ENDIF}
     end
     else

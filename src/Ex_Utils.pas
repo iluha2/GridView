@@ -27,6 +27,11 @@ function OffsetCell(Cell: TGridCell; C, R: Longint): TGridCell;
 
 function FindInStrings(const s: string; ss: TStrings; const par: TFindStrParams = []): Integer;
 
+{$IFNDEF WINDOWS}
+function MapWindowPoints(hWndFrom, hWndTo: HWND; var Points; cPoints: UINT): Integer;
+procedure PolyPolyline(DC: HDC; const Points: array of TPoint; const PNums: array of DWORD);
+{$ENDIF}
+
 implementation
 
 function GridCell(Col, Row: Longint): TGridCell;
@@ -67,5 +72,48 @@ begin
       Exit( i );
   end;
 end;
+
+{$IFNDEF WINDOWS}
+
+function MapWindowPoints(hWndFrom, hWndTo: HWND; var Points; cPoints: UINT): Integer;
+var
+  PtsArr: array of TPoint absolute Points;
+  i: Integer;
+  XOffset, YOffset: SmallInt;
+  FromPoint, ToPoint: TPoint;
+begin
+  FromPoint := Point(0, 0);
+  ToPoint := Point(0, 0);
+  if hWndFrom <> 0 then
+    ClientToScreen(hWndFrom, FromPoint);
+  if hWndTo <> 0 then
+    ClientToScreen(hWndTo, ToPoint);
+  XOffset := (FromPoint.X - ToPoint.X);
+  YOffset := (FromPoint.Y - ToPoint.Y);
+  for i := 0 to cPoints - 1 do
+  begin
+    PtsArr[i].x := XOffset + PtsArr[i].x;
+    PtsArr[i].y := YOffset + PtsArr[i].y;
+  end;
+  Result := MakeLong(XOffset, YOffset);
+end;
+
+procedure PolyPolyline(DC: HDC; const Points: array of TPoint; const PNums: array of DWORD);
+var
+  len,i,j,p: DWORD;
+begin
+  len:= Length(Points);
+  p:= 0;
+  for i:= 0 to Length(PNums)-1 do
+  begin
+    j:= PNums[i];
+    if p + j > len then
+      Break;
+    Polyline(DC, @Points[p], j);
+    Inc(p, j);
+  end;
+end;
+
+{$ENDIF}
 
 end.

@@ -13,13 +13,6 @@ GridView is a Lazarus grid component for displaying records, arrays, collections
 - DB version included with multiselecting.
 
 
-## How to install
-
-1. Compile "GridView.lpk" package.
-2. Install "GridView.lpk" package.
-3. Add "Source\\" library path.
-
-
 ## How to use
 
 1. Place TGridView component on form.

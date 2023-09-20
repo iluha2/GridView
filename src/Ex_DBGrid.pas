@@ -3037,7 +3037,7 @@ begin
         {$IFDEF WINDOWS}
           PolyPolyLine(Canvas.Handle, Pointer(Points)^, Pointer(StrokeList)^, PointCount shr 1);
         {$ELSE}
-          dpPolyPolyLine(Canvas.Handle, Points, StrokeList);
+          PolyPolyLine(Canvas.Handle, Points, StrokeList);
         {$ENDIF}
         end
         else
@@ -3052,7 +3052,7 @@ begin
       {$IFDEF WINDOWS}
         PolyPolyLine(Canvas.Handle, Pointer(Points)^, Pointer(StrokeList)^, PointCount shr 1);
       {$ELSE}
-        dpPolyPolyLine(Canvas.Handle, Points, StrokeList);
+        PolyPolyLine(Canvas.Handle, Points, StrokeList);
       {$ENDIF}
         { сдвигаем линии }
         ShiftGridPoints(1, 1);
@@ -3061,7 +3061,7 @@ begin
       {$IFDEF WINDOWS}
         PolyPolyLine(Canvas.Handle, Pointer(Points)^, Pointer(StrokeList)^, PointCount shr 1);
       {$ELSE}
-        dpPolyPolyLine(Canvas.Handle, Points, StrokeList);
+        PolyPolyLine(Canvas.Handle, Points, StrokeList);
       {$ENDIF}
       end;
     end;
