@@ -10,7 +10,7 @@ unit Ex_Utils;
 interface
 
 uses
-  LazUTF8, Classes;
+  LazUTF8, LCLType, LCLIntf, Classes;
 
 type
   TGridCell = record
@@ -59,12 +59,14 @@ end;
 function FindInStrings(const s: string; ss: TStrings; const par: TFindStrParams = []): Integer;
 var
   i,p: Integer;
+  up_s: String;
 begin
   Result:= -1;
+  up_s:= UTF8Uppercase(s);
   for i := 0 to ss.Count-1 do
   begin
     if fsIgnoreCase in par then
-      p:= UTF8Pos(UTF8Uppercase(s), UTF8Uppercase(ss[i]))
+      p:= UTF8Pos(up_s, UTF8Uppercase(ss[i]))
     else
       p:= UTF8Pos(s, ss[i]);
     if (    (fsFromBegin in par) and (p = 1)) or
