@@ -10,9 +10,9 @@ unit Ex_DBGrid;
 interface
 
 uses
-  LCLType, LCLIntf, LMessages, SysUtils, Classes, Controls, Graphics, Forms, Themes,
-  Dialogs, StdCtrls, Math, ImgList, Ex_Grid, DB, DBCtrls,
-  Ex_Utils;
+  LCLType, LCLIntf, LMessages, SysUtils, Types, Classes, Controls, Graphics,
+  Forms, Themes, Dialogs, StdCtrls, Math, ImgList, DB, DBCtrls,
+  Ex_Grid, Ex_Utils;
   
 type
   TCustomDBGridView = class;

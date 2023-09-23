@@ -1,3 +1,5 @@
+{%MainUnit Ex_Grid.pas}
+
 uses
   LazUTF8, LazUtilities, LCLType, LCLIntf, LMessages, Themes,
 {$IFDEF WINDOWS}

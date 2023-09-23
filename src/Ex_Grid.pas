@@ -13,10 +13,6 @@ interface
 
 implementation
 
-resourcestring
-  SHeaderDetails = '&Details...';
-  STextNotFound = 'Can not find "%s".';
-
 { TGridHeaderSection }
 
 procedure TGridHeaderSection.DefineProperties(Filer: TFiler);
@@ -4382,7 +4378,7 @@ begin
           Item := NewItem(cLineCaption, 0, True, True, ClickEvent, 0, '');
           Menu.Items.Add(Item);
         end;
-        Item := NewItem(SHeaderDetails, 0, False, Columns.Count <> 0, ClickEvent, 0, '');
+        Item := NewItem('&Details...', 0, False, Columns.Count <> 0, ClickEvent, 0, '');
         Item.Tag := -1;
         Menu.Items.Add(Item);
       end;
@@ -4465,7 +4461,7 @@ begin
     FOnTextNotFound(Self, FindText)
   else
   begin
-    S := Format(STextNotFound, [FindText]);
+    S := Format('Can not find "%s".', [FindText]);
     Form := GetParentForm(Self);
     if Form <> nil then Caption := Form.Caption
     else Caption := Application.Title;
@@ -7429,7 +7425,9 @@ var
   PaintState: TGridPaintStates;
   IsPressed: Boolean;
   I, X, Y, W, H: Integer;
+{$IFDEF WINDOWS}
   BKC, BLC: DWORD;
+{$ENDIF}
   T: string;
   TL: Integer;
   R: TRect;
@@ -7473,9 +7471,9 @@ begin
         if X + W > R.Right then W := R.Right - X;
         H := Header.Images.Height;
         if Y + H > R.Bottom then H := R.Bottom - Y;
+      {$IFDEF WINDOWS}
         BKC := GetRGBColor(Header.Images.BkColor);
         BLC := GetRGBColor(Header.Images.BlendColor);
-      {$IFDEF WINDOWS}
         ImageList_DrawEx(Header.Images.ResolutionByIndex[0].Reference.Handle, I, Canvas.Handle, X, Y, W, H, BKC, BLC, ILD_NORMAL);
       {$ENDIF}
       end;
@@ -7684,7 +7682,7 @@ end;
 
 function TCustomGridView.GetCellsRect(Cell1, Cell2: TGridCell): TRect;
 var
-  CR, RR: TRect;
+  CR{, RR}: TRect;
 begin
   { проверяем границы }
   if (Cell2.Col < Cell1.Col) or (Cell2.Row < Cell1.Row) then
@@ -7692,9 +7690,9 @@ begin
   { левая и правая границы }
   CR := GetColumnRect(Cell1.Col);
   if Cell2.Col > Cell1.Col then CR.Right := GetColumnRect(Cell2.Col).Right;
-  { верхняя и нижняя границы }
-  RR := GetRowRect(Cell1.Row);
-  if Cell2.Row > Cell1.Row then RR.Bottom := GetRowRect(Cell2.Row).Bottom;
+  // { верхняя и нижняя границы }
+  // RR := GetRowRect(Cell1.Row);
+  // if Cell2.Row > Cell1.Row then RR.Bottom := GetRowRect(Cell2.Row).Bottom;
   { результат }
   Result.Left := CR.Left;
   Result.Right := CR.Right;
