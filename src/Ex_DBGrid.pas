@@ -950,7 +950,7 @@ begin
   inherited;
 end;
 
-function IsLookupField(Field: TField; var MasterField: TField): Boolean; overload;
+function IsLookupField(Field: TField; out MasterField: TField): Boolean; overload;
 begin
   if (Field <> nil) and (Field.FieldKind = fkLookup) and (Field.DataSet <> nil) then
   begin
@@ -1293,9 +1293,10 @@ var
   end;
 
 begin
-  if (Grid = nil) or (not Grid.DataLink.Active) then Exit;
+  if (Grid = nil) or (not Grid.DataLink.Active) then
+    Exit;
   { get the scroller position }
-  FillChar(ScrollInfo, SizeOf(ScrollInfo), 0);
+  ScrollInfo := Default(TScrollInfo);
   ScrollInfo.cbSize := SizeOf(ScrollInfo);
   ScrollInfo.fMask := SIF_TRACKPOS;
   if not GetScrollInfo(Grid.Handle, FBarCode, ScrollInfo) then
@@ -1554,7 +1555,7 @@ end;
 function TDBGridSelectedRows.GetCurrentRow: string;
 begin
   if FGrid.DataLink.Active then
-    Result := StringOf(FGrid.DataLink.DataSet.Bookmark)
+    Result := {%H-}StringOf(FGrid.DataLink.DataSet.Bookmark)
   else
     Result := '';
 end;

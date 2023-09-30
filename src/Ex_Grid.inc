@@ -1104,8 +1104,7 @@ type
     procedure LMLButtonDown(var Message: TLMLButtonDown); message LM_LBUTTONDOWN;
     procedure LMLButtonDblClk(var Message: TLMLButtonDblClk); message LM_LBUTTONDBLCLK;
     procedure LMSetCursor(var Message); message LM_SETCURSOR;
-    // NOTE !! `CM_CANCELMODE` is not implemented in Lazarus !!
-    procedure CMCancelMode(var Message: TCMCancelMode); message CM_CANCELMODE;
+    procedure CMCancelMode(var Message: TCMCancelMode); message CM_CANCELMODE{%H-}; // NOTE !! not implemented !!
     procedure CMEnabledChanged(var Message); message CM_ENABLEDCHANGED;
     procedure CMShowingChanged(var Message); message CM_SHOWINGCHANGED;
     procedure LMContextMenu(var Message: TLMessage); message LM_CONTEXTMENU;
@@ -2681,19 +2680,19 @@ type
     procedure LMEraseBkgnd(var Message: TLMessage); message LM_ERASEBKGND;
     procedure LMTimer(var Message); message LM_TIMER;
     procedure LMUser(var Message); message LM_USER;
-    procedure CMCancelMode(var Message: TLMessage); message CM_CANCELMODE;
+    procedure CMCancelMode(var Message: TLMessage); message CM_CANCELMODE{%H-}; // NOTE !! not implemented !!
     procedure CMEnabledChanged(var Message); message CM_ENABLEDCHANGED;
     procedure CMFontChanged(var Message); message CM_FONTCHANGED;
     procedure CMColorChanged(var Message); message CM_COLORCHANGED;
     procedure CMShowHintChanged(var Message); message CM_SHOWHINTCHANGED;
     procedure CMHintShow(var Message: TLMessage); message CM_HINTSHOW;
     procedure CMMouseLeave(var Message); message CM_MOUSELEAVE;
-    procedure CMWinIniChange(var Message); message CM_WININICHANGE;
+    procedure CMWinIniChange(var Message); message CM_WININICHANGE{%H-}; // NOTE !! not implemented !!
   protected
     FEditPending: Boolean;
     procedure CancelCellTips; virtual;
     procedure CellClick(Cell: TGridCell; Shift: TShiftState; X, Y: Integer); virtual;
-    procedure CellTips(Cell: TGridCell; var AllowTips: Boolean); virtual;
+    procedure CellTips(Cell: TGridCell; out AllowTips: Boolean); virtual;
     procedure Change(var Cell: TGridCell; var Selected: Boolean); virtual;
     procedure ChangeColumns; virtual;
     procedure ChangeEditing; virtual;
@@ -2737,7 +2736,7 @@ type
     procedure EditSelectNext(Cell: TGridCell; var Value: string); virtual;
     procedure FixedChange(Sender: TObject); virtual;
     procedure GetCellColors(Cell: TGridCell; Canvas: TCanvas); virtual;
-    function GetCellImage(Cell: TGridCell; var OverlayIndex: Integer): Integer; virtual;
+    function GetCellImage(Cell: TGridCell; out OverlayIndex: Integer): Integer; virtual;
     function GetCellImageIndent(Cell: TGridCell): TPoint; virtual;
     function GetCellImageRect(Cell: TGridCell): TRect; virtual;
     function GetCellHintRect(Cell: TGridCell): TRect; virtual;
@@ -2750,7 +2749,7 @@ type
     function GetCheckKind(Cell: TGridCell): TGridCheckKind; virtual;
     function GetCheckRect(Cell: TGridCell): TRect; virtual;
     function GetCheckState(Cell: TGridCell): TCheckBoxState; virtual;
-    function GetCheckStateEx(Cell: TGridCell; var CheckEnabled: Boolean): TCheckBoxState; virtual;
+    function GetCheckStateEx(Cell: TGridCell; out CheckEnabled: Boolean): TCheckBoxState; virtual;
     function GetClientOrigin: TPoint; override;
     function GetClientRect: TRect; override;
     function GetColumnClass: TGridColumnClass; virtual;

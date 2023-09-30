@@ -1534,7 +1534,7 @@ procedure TGridScrollBar.ScrollMessage(var Message: TLMScroll);
 var
   ScrollInfo: TScrollInfo;
 begin
-  FillChar(ScrollInfo, SizeOf(ScrollInfo), 0);
+  ScrollInfo := Default(TScrollInfo);
   ScrollInfo.cbSize := SizeOf(ScrollInfo);
   ScrollInfo.fMask := SIF_TRACKPOS;
   if GetScrollInfo(FGrid.Handle, FBarCode, ScrollInfo) then
@@ -1616,6 +1616,7 @@ begin
       { сдвигаем }
       if FKind = sbHorizontal then
       begin
+        R := Default(TRect);
         UnionRect(R, GetHeaderRect, GetGridRect);
         R.Left := GetFixedRect.Right;
         ScrollWindowEx(Handle, (FPosition - Value) * FLineSize, 0, @R, @R, 0, nil, SW_INVALIDATE);
@@ -1643,7 +1644,7 @@ var
 begin
   if FGrid.HandleAllocated and (FUpdateLock = 0) then
   begin
-    FillChar(ScrollInfo, SizeOf(ScrollInfo), 0);
+    ScrollInfo := Default(TScrollInfo);
     { параметры скроллера }
     ScrollInfo.cbSize := SizeOf(ScrollInfo);
     ScrollInfo.fMask := SIF_RANGE or SIF_PAGE or SIF_POS;
@@ -2742,6 +2743,7 @@ begin
   InvalidateRect(Handle, nil, True);
   { обновляем прямоугольник таблицы }
   { grid under the inplace editor must be invalidated too }
+  Cur := Default(TRect);
   LCLIntf.GetClientRect(Handle, Cur);
   MapWindowPoints(Handle, Grid.Handle, Cur, 2);
 {$IFDEF WINDOWS}
@@ -2840,6 +2842,7 @@ begin
     { получаем размеры }
     UpdateBounds(True, ScrollCaret);
     { hot flag to draw a button when themes are enabled }
+    CursorPos := Default(TPoint);
     if LCLIntf.GetCursorPos(CursorPos) then
     begin
       CursorPos := ScreenToClient(CursorPos);
@@ -4128,7 +4131,7 @@ begin
   if Assigned(FOnCellClick) then FOnCellClick(Self, Cell, Shift, X, Y);
 end;
 
-procedure TCustomGridView.CellTips(Cell: TGridCell; var AllowTips: Boolean);
+procedure TCustomGridView.CellTips(Cell: TGridCell; out AllowTips: Boolean);
 begin
   AllowTips := True;
   if Assigned(FOnCellTips) then FOnCellTips(self, Cell, AllowTips);
@@ -4618,7 +4621,7 @@ begin
   if Assigned(FOnGetCellColors) then FOnGetCellColors(Self, Cell, Canvas);
 end;
 
-function TCustomGridView.GetCellImage(Cell: TGridCell; var OverlayIndex: Integer): Integer;
+function TCustomGridView.GetCellImage(Cell: TGridCell; out OverlayIndex: Integer): Integer;
 begin
   OverlayIndex := -1;
   Result := -1;
@@ -4790,8 +4793,7 @@ begin
   Result := GetCheckStateEx(Cell, Dummy);
 end;
 
-function TCustomGridView.GetCheckStateEx(Cell: TGridCell;
-  var CheckEnabled: Boolean): TCheckBoxState;
+function TCustomGridView.GetCheckStateEx(Cell: TGridCell; out CheckEnabled: Boolean): TCheckBoxState;
 begin
   CheckEnabled := True;
   Result := cbUnchecked;
@@ -5242,8 +5244,8 @@ begin
     goFirst: Result := DoFirst; // выбрать первую возможную ячейку      
     goNext: Result := DoNext; // выбрать следующую ячейку      
     goPrev: Result := DoPrev; // выбрать предыдущую возможную ячейку      
-  else    
-    Result := Cell; // остальное игнорируем
+  //else    
+  //  Result := Cell; // остальное игнорируем
   end;
 end;
 
@@ -7083,6 +7085,7 @@ begin
         { перед изменение ширины столбца вычисляем и обновляем изменяющуюся
           часть ячеек таблицы }
         { calculate and update the changing part of the grid cells }
+        R := Default(TRect);
         UnionRect(R, GetHeaderRect, GetGridRect);
         R.Left := GetColumnLeftRight(FColResizeIndex).Left;
         if FColResizeIndex >= Fixed.Count then
@@ -7805,7 +7808,8 @@ var
 begin
   R1 := GetColumnRect(Column1);
   R2 := GetColumnRect(Column2);
-  UnionRect(Result, R1, R2); {!}
+  Result:= Default(TRect);
+  UnionRect(Result, R1, R2);
 end;
 
 function TCustomGridView.GetColumnsWidth(Column1, Column2: Integer): Integer;
@@ -7919,6 +7923,7 @@ var
 begin
   DC := GetDC(0);
   SaveFont := SelectObject(DC, Font.Handle);
+  Metrics := Default(TTextMetric);
   GetTextMetrics(DC, Metrics);
   SelectObject(DC, SaveFont);
   ReleaseDC(0, DC);
@@ -7937,6 +7942,7 @@ begin
     try
       Canvas.Handle := DC;
       Canvas.Font := Font;
+      TM := Default(TTextMetric);
       GetTextMetrics(DC, TM);
       Result := TextLength * (Canvas.TextWidth('0') - TM.tmOverhang) + TM.tmOverhang + 4;
     finally
@@ -7996,7 +8002,7 @@ end;
 
 function TCustomGridView.GetResizeSectionAt(X, Y: Integer): TGridHeaderSection;
 
-  function FindSection(Sections: TGridHeaderSections; var Section: TGridHeaderSection): Boolean;
+  function FindSection(Sections: TGridHeaderSections; out Section: TGridHeaderSection): Boolean;
   var
     I, C, DL, DR: Integer;
     R: TRect;
@@ -8094,6 +8100,7 @@ var
 begin
   R1 := GetRowRect(Row1);
   R2 := GetRowRect(Row2);
+  Result := Default(TRect);
   UnionRect(Result, R1, R2);
 end;
 
@@ -8112,7 +8119,7 @@ end;
 
 function TCustomGridView.GetSectionAt(X, Y: Integer): TGridHeaderSection;
 
-  function FindSection(Sections: TGridHeaderSections; var Section: TGridHeaderSection): Boolean;
+  function FindSection(Sections: TGridHeaderSections; out Section: TGridHeaderSection): Boolean;
   var
     I: Integer;
     S: TGridHeaderSection;
@@ -8372,6 +8379,7 @@ begin
   if (Fixed.Count > 0) and (Cell.Col >= Fixed.Count) then
     GR.Left := GetFixedRect.Right;
   { пересечение }
+  R := Default(TRect);
   Result := IntersectRect(R, CR, GR);
   { полная видимость }
   if not PartialOK then Result := EqualRect(R, CR);
@@ -8381,6 +8389,7 @@ function TCustomGridView.IsColumnVisible(Column: Integer): Boolean;
 var
   R: TRect;
 begin
+  R := Default(TRect);
   Result := IntersectRect(R, GetColumnRect(Column), GetGridRect);
 end;
 
@@ -8423,6 +8432,7 @@ function TCustomGridView.IsRowVisible(Row: Integer): Boolean;
 var
   R: TRect;
 begin
+  R := Default(TRect);
   Result := IntersectRect(R, GetRowRect(Row), GetGridRect);
 end;
 
@@ -8539,6 +8549,7 @@ begin
     первую попавшуюся, если таковой нет }
   if not IsValidCell then
   begin
+    Dummy := False;
     UpdateSelection(Cell, Dummy);
     if IsCellEqual(Cell, CellFocused) then Cell := GetCursorCell(Cell, goFirst);
   end;

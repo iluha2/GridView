@@ -4,7 +4,7 @@ interface
 
 uses
   LazUTF8, LazUtilities, LCLIntf, SysUtils, Classes, Graphics, Registry,
-  Ex_Grid, Ex_DBGrid, Ex_Utils;
+  Ex_Grid, Ex_Utils;
 
 function GV_IsCursorIn(Grid: TGridView): boolean;
 procedure GV_DrawStandartCell(Grid: TGridView; Cell: TGridCell; Canvas: TCanvas);
@@ -21,13 +21,14 @@ implementation
 
 {$IFDEF WINDOWS}
 uses
-  Forms, Controls, ComObj, Variants, DB;
+  Forms, Controls, ComObj, Variants, DB, Ex_DBGrid;
 {$ENDIF}
 
 function GV_IsCursorIn(Grid: TGridView): boolean;
 var
   Pt: TPoint;
 begin
+  Pt:= Default(TPoint);
   GetCursorPos(Pt);
   Pt := Grid.ScreenToClient(Pt);
   Result := (Pt.Y > Grid.Header.Height) and
