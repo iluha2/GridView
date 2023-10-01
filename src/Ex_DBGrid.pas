@@ -2929,9 +2929,9 @@ end;
 
 procedure TCustomDBGridView.PaintIndicatorGridLines;
 var
-  Points: array of TPoint;
+  Points: array of TPoint = [];
   PointCount: Integer;
-  StrokeList: array of DWORD;
+  StrokeList: array of DWORD = [];
   StrokeCount: Integer;
   I, L, R, Y, C: Integer;
   Rect: TRect;

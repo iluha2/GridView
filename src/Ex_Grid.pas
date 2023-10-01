@@ -2408,7 +2408,7 @@ begin
     if EditStyle <> geSimple then Dec(W, ButtonWidth + 4) else Dec(W, Grid.TextRightIndent);
     { устанавливаем границы текста }
     R := Bounds(L + TI.X, T + TI.Y, W - TI.X + Ord(Alignment = taRightJustify), H);
-    SendMessage(Handle, EM_SETRECTNP, 0, LPARAM(@R));
+    SendMessage(Handle, EM_SETRECTNP, 0, {%H-}LPARAM(@R));
     { курсор в конец строки }
     if ScrollCaret then SendMessage(Handle, EM_SCROLLCARET, 0, 0);
     { when scrolling the grid horizontally, inplace editor should be redrawn
@@ -3975,7 +3975,7 @@ var
   R, TR: TRect;
   W: Integer;
 begin
-  with Message, PHintInfo(LParam)^ do
+  with Message, {%H-}PHintInfo(LParam)^ do
   begin
     if not ShowCellTips then
     begin
@@ -6277,9 +6277,9 @@ end;
 
 procedure TCustomGridView.PaintFixedGridLines;
 var
-  Points: array of TPoint;
+  Points: array of TPoint = [];
   PointCount: Integer;
-  StrokeList: array of DWORD;
+  StrokeList: array of DWORD = [];
   StrokeCount: Integer;
   I, L, R, T, B, X, Y, C, W: Integer;
   Rect: TRect;
@@ -6573,9 +6573,9 @@ end;
 
 procedure TCustomGridView.PaintGridLines;
 var
-  Points: array of TPoint;
+  Points: array of TPoint = [];
   PointCount: Integer;
-  StrokeList: array of DWORD;
+  StrokeList: array of DWORD = [];
   StrokeCount: Integer;
   I: Integer;
   L, R, T, B, X, Y, C: Integer;
