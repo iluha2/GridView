@@ -2745,7 +2745,7 @@ begin
   { grid under the inplace editor must be invalidated too }
   Cur := Default(TRect);
   LCLIntf.GetClientRect(Handle, Cur);
-  MapWindowPoints(Handle, Grid.Handle, Cur, 2);
+  MapWindowPoints(Handle, Grid.Handle, @Cur, 2);
 {$IFDEF WINDOWS}
   ValidateRect(Grid.Handle, @Cur);
 {$ENDIF}
@@ -6167,29 +6167,22 @@ begin
 end;
 
 procedure TCustomGridView.PaintDotGridLines(Points: Pointer; Count: Integer);
-type
-  TIntArray = array of Integer;
-  PIntArray = ^TIntArray;
 var
-  P: PIntArray absolute Points;
-  I: Integer;
+  PtsArr: PPoint absolute Points;
+  i: Integer;
   R: TRect;
 begin
   PreparePatternBitmap(Canvas, GetGridLineColor(Color), False);
   try
     { рисуем линии }
-    I := 0;
-    while I < Count * 2 do
+    i := 0;
+    while i+1 < Count do
     begin
       { координаты линии }
-      R.Left := P^[I];
-      Inc(I);
-      R.Top := P^[I];
-      Inc(I);
-      R.Right := P^[I];
-      Inc(I);
-      R.Bottom := P^[I];
-      Inc(I);
+      R.TopLeft := PtsArr[i];
+      Inc(i);
+      R.BottomRight := PtsArr[i];
+      Inc(i);
       { заливка не будет рисоваться, если ширина или высота прямоугольника
         нулевая }
       if (R.Left = R.Right) and (R.Top <> R.Bottom) then Inc(R.Right)

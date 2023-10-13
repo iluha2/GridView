@@ -10,7 +10,7 @@ unit Ex_Utils;
 interface
 
 uses
-  LazUTF8, LCLType, LCLIntf, Classes;
+  LazUTF8, LCLType, LCLIntf, Types, Classes;
 
 type
   TGridCell = record
@@ -28,7 +28,7 @@ function OffsetCell(Cell: TGridCell; C, R: Longint): TGridCell;
 function FindInStrings(const s: string; ss: TStrings; const par: TFindStrParams = []): Integer;
 
 {$IFNDEF WINDOWS}
-function MapWindowPoints(hWndFrom, hWndTo: HWND; var Points; cPoints: UINT): Integer;
+function MapWindowPoints(hWndFrom, hWndTo: HWND; Points: Pointer; cPoints: UINT): Integer;
 procedure PolyPolyline(DC: HDC; const Points: array of TPoint; const PNums: array of DWORD);
 {$ENDIF}
 
@@ -77,19 +77,17 @@ end;
 
 {$IFNDEF WINDOWS}
 
-function MapWindowPoints(hWndFrom, hWndTo: HWND; var Points; cPoints: UINT): Integer;
+function MapWindowPoints(hWndFrom, hWndTo: HWND; Points: Pointer; cPoints: UINT): Integer;
 var
-  PtsArr: array of TPoint absolute Points;
+  PtsArr: PPoint absolute Points;
   i: Integer;
   XOffset, YOffset: SmallInt;
   FromPoint, ToPoint: TPoint;
 begin
   FromPoint := Point(0, 0);
-  ToPoint := Point(0, 0);
-  if hWndFrom <> 0 then
-    ClientToScreen(hWndFrom, FromPoint);
-  if hWndTo <> 0 then
-    ClientToScreen(hWndTo, ToPoint);
+  ToPoint   := Point(0, 0);
+  if hWndFrom <> 0 then ClientToScreen(hWndFrom, FromPoint);
+  if hWndTo   <> 0 then ClientToScreen(hWndTo,   ToPoint);
   XOffset := (FromPoint.X - ToPoint.X);
   YOffset := (FromPoint.Y - ToPoint.Y);
   for i := 0 to cPoints - 1 do
