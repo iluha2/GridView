@@ -38,7 +38,7 @@
       </Other>
     </CompilerOptions>
     <Description Value="GridView Component"/>
-    <Version Major="1"/>
+    <Version Major="1" Build="1"/>
     <Files>
       <Item>
         <Filename Value="Ex_RegGrid.pas"/>
