@@ -1200,7 +1200,7 @@ type
   public
     procedure DoClose; override;
     procedure DoShow; override;
-    procedure ShowModal(FindAsItemNo: Boolean = False);
+    procedure ShowModal;
     property Visible: Boolean read FVisible;
   end;
 
@@ -2771,9 +2771,8 @@ type
     function GetSortArrowSize: TSize; virtual;
     function GetSortDirection(Section: TGridHeaderSection): TGridSortDirection; virtual;
     procedure GetSortImage(Section: TGridHeaderSection; SortImage: TBitmap); virtual;
-    function GetTextRect(Canvas: TCanvas; Rect: TRect; LeftIndent,
-      TopIndent: Integer; Alignment: TAlignment; WantReturns, WordWrap: Boolean;
-      const Text: string): TRect; virtual;
+    function GetTextRect(Canvas: TCanvas; Rect: TRect; LeftIndent, TopIndent: Integer; Alignment: TAlignment;
+      WantReturns, WordWrap: Boolean; const Text: string): TRect; virtual;
     function GetTipsRect(Cell: TGridCell; const TipsText: string): TRect; virtual;
     function GetTipsText(Cell: TGridCell): string; virtual;
     function GetTipsWindowClass: TGridTipsWindowClass; virtual;
@@ -2807,7 +2806,8 @@ type
     procedure PaintHeaders(DrawFixed: Boolean); virtual;
     procedure PaintHeaderSections(Sections: TGridHeaderSections; DrawFixed: Boolean); virtual;
     procedure PaintResizeLine;
-    procedure PaintText(Canvas: TCanvas; Rect: TRect; LeftIndent, TopIndent: Integer; Alignment: TAlignment; WantReturns, WordWrap: Boolean; const Text: string); virtual;
+    procedure PaintText(Canvas: TCanvas; Rect: TRect; LeftIndent, TopIndent: Integer; Alignment: TAlignment;
+      WantReturns, WordWrap: Boolean; const Text: string); virtual;
     procedure PreparePatternBitmap(Canvas: TCanvas; FillColor: TColor; Remove: Boolean); virtual;
     procedure ResetClickPos; virtual;
     procedure Resize; override;
@@ -2818,9 +2818,9 @@ type
     procedure ShowEdit; virtual;
     procedure ShowEditChar(C: Char); virtual;
     procedure ShowFocus; virtual;
-    procedure StartColResize(Section: TGridHeaderSection; X, Y: Integer);
+    procedure StartColResizeX(Section: TGridHeaderSection; X: Integer);
     procedure StartHeaderClick(Section: TGridHeaderSection; X, Y: Integer);
-    procedure StepColResize(X, Y: Integer);
+    procedure StepColResizeX(X: Integer);
     procedure StepHeaderClick(X, Y: Integer);
     procedure StopColResize(Abort: Boolean);
     procedure StopHeaderClick(Abort: Boolean);
@@ -2838,7 +2838,7 @@ type
     function GetCellAt(X, Y: Integer): TGridCell; virtual;
     function GetCellRect(Cell: TGridCell): TRect;
     function GetCellsRect(Cell1, Cell2: TGridCell): TRect;
-    function GetColumnAt(X, Y: Integer): Integer; virtual;
+    function GetColumnAtX(X: Integer): Integer; virtual;
     function GetColumnLeftRight(Column: Integer): TRect;
     function GetColumnMaxWidth(Column: Integer): Integer;
     function GetColumnRect(Column: Integer): TRect;
@@ -2858,7 +2858,7 @@ type
     function GetHeaderSection(ColumnIndex, Level: Integer): TGridHeaderSection;
     function GetLightenColor(Color: TColor; Amount: Integer): TColor;
     function GetResizeSectionAt(X, Y: Integer): TGridHeaderSection;
-    function GetRowAt(X, Y: Integer): Integer; virtual;
+    function GetRowAtY(Y: Integer): Integer; virtual;
     function GetRowRect(Row: Integer): TRect;
     function GetRowsRect(Row1, Row2: Integer): TRect;
     function GetRowsHeight(Row1, Row2: Integer): Integer;

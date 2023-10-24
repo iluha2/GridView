@@ -3007,7 +3007,7 @@ begin
   FVisible := True;
 end;
 
-procedure TGridFindDialog.ShowModal(FindAsItemNo: Boolean);
+procedure TGridFindDialog.ShowModal;
 var
   ActiveWindow: HWnd;
   Forms: TList;
@@ -3269,21 +3269,25 @@ end;
 
 procedure TCustomGridView.HandlerFindMenu(Sender: TObject);
 begin
-  FindDialog.ShowModal(False);
+  FindDialog.ShowModal;
 end;
 
 procedure TCustomGridView.HandlerFindNext(Sender: TObject);
 begin
   with FindDialog do
-    if FindText = '' then ShowModal(False)
-    else Self.FindText(FindText, Options + [frDown]);
+    if FindText = '' then
+      ShowModal
+    else
+      Self.FindText(FindText, Options + [frDown]);
 end;
 
 procedure TCustomGridView.HandlerFindPrev(Sender: TObject);
 begin
   with FindDialog do
-    if FindText = '' then ShowModal(False)
-    else Self.FindText(FindText, Options - [frDown]);
+    if FindText = '' then
+      ShowModal
+    else
+      Self.FindText(FindText, Options - [frDown]);
 end;
 
 procedure TCustomGridView.HeaderChange(Sender: TObject);
@@ -4306,11 +4310,10 @@ begin
 {$ENDIF}
 end;
 
-procedure TCustomGridView.DoContextPopup(MousePos: TPoint;
-  var Handled: Boolean);
+procedure TCustomGridView.DoContextPopup(MousePos: TPoint; var Handled: Boolean);
 begin
-  FContextPopupCol := GetColumnAt(MousePos.X, MousePos.Y);
-  FContextPopupRow := GetRowAt(MousePos.X, MousePos.Y);
+  FContextPopupCol := GetColumnAtX(MousePos.X);
+  FContextPopupRow := GetRowAtY(MousePos.Y);
   inherited DoContextPopup(MousePos, Handled);
   if not Handled then DoHeaderPopup(MousePos, Handled);
 end;
@@ -5708,7 +5711,7 @@ begin
         if ssDouble in Shift then
           SizeColumnToFit(S.ResizeColumnIndex)
         else
-          StartColResize(S, X, Y);
+          StartColResizeX(S, X);
       end
       { щелчок на секции пока только одинарный, потом, когда понадобится,
         можно сделать событие OnHeaderDblCkick }
@@ -5859,7 +5862,7 @@ begin
   end;
   if FColResizing then
   begin
-    StepColResize(X, Y);
+    StepColResizeX(X);
     Exit;
   end;
   if FHeaderClicking then
@@ -7005,7 +7008,7 @@ begin
   end;
 end;
 
-procedure TCustomGridView.StartColResize(Section: TGridHeaderSection; X, Y: Integer);
+procedure TCustomGridView.StartColResizeX(Section: TGridHeaderSection; X: Integer);
 begin
   FColResizeSection := Section;
   FColResizeIndex := Section.ResizeColumnIndex;
@@ -7042,7 +7045,7 @@ begin
   MouseCapture := True;
 end;
 
-procedure TCustomGridView.StepColResize(X, Y: Integer);
+procedure TCustomGridView.StepColResizeX(X: Integer);
 var
   W: Integer;
   R: TRect;
@@ -7647,8 +7650,8 @@ function TCustomGridView.GetCellAt(X, Y: Integer): TGridCell;
 var
   C, R: Integer;
 begin
-  C := GetColumnAt(X, Y);
-  R := GetRowAt(X, Y);
+  C := GetColumnAtX(X);
+  R := GetRowAtY(Y);
   if (C <> -1) and (R <> -1) then
   begin
     Result.Col := C;
@@ -7696,7 +7699,7 @@ begin
   Result.Bottom := CR.Bottom; // <- RR.Bottom ???
 end;
 
-function TCustomGridView.GetColumnAt(X, Y: Integer): Integer;
+function TCustomGridView.GetColumnAtX(X: Integer): Integer;
 var
   L, R: Integer;
 begin
@@ -7706,7 +7709,8 @@ begin
   while Result <= Fixed.Count - 1 do
   begin
     R := L + Columns[Result].Width;
-    if (R <> L) and (X >= L) and (X < R) then Exit;
+    if (R <> L) and (X >= L) and (X < R) then
+      Exit;
     L := R;
     Inc(Result);
   end;
@@ -7715,7 +7719,8 @@ begin
   while Result <= Columns.Count - 1 do
   begin
     R := L + Columns[Result].Width;
-    if (R <> L) and (X >= L) and (X < R) then Exit;
+    if (R <> L) and (X >= L) and (X < R) then
+      Exit;
     L := R;
     Inc(Result);
   end;
@@ -8059,7 +8064,7 @@ begin
   FindSection(Header.Sections, Result);
 end;
 
-function TCustomGridView.GetRowAt(X, Y: Integer): Integer;
+function TCustomGridView.GetRowAtY(Y: Integer): Integer;
 var
   Row: Integer;
   GRT, GOY: Integer;

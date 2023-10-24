@@ -32,7 +32,7 @@ begin
   GetCursorPos(Pt);
   Pt := Grid.ScreenToClient(Pt);
   Result := (Pt.Y > Grid.Header.Height) and
-    (Grid.GetColumnAt(Pt.X, Pt.Y) <> -1) and (Grid.GetRowAt(Pt.X, Pt.Y) <> -1);
+    (Grid.GetColumnAtX(Pt.X) <> -1) and (Grid.GetRowAtY(Pt.Y) <> -1);
 end;
 
 procedure GV_DrawStandartCell(Grid: TGridView; Cell: TGridCell; Canvas: TCanvas);

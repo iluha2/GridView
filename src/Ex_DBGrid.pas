@@ -2758,7 +2758,7 @@ begin
     if PtInRect(GetIndicatorFixedRect, Classes.Point(X, Y)) then
     begin
       C.Col := CellFocused.Col;
-      C.Row := GetRowAt(X, Y);
+      C.Row := GetRowAtY(Y);
     end
     else if PtInRect(GetGridRect, Classes.Point(X, Y)) then
       C := GetCellAt(X, Y)
@@ -2936,7 +2936,7 @@ var
   I, L, R, Y, C: Integer;
   Rect: TRect;
 
-  procedure ShiftGridPoints(DX, DY: Integer);
+  procedure ShiftPointsY(DY: Integer);
   var
     I: Integer;
   begin
@@ -3056,7 +3056,7 @@ begin
         PolyPolyLine(Canvas.Handle, Points, StrokeList);
       {$ENDIF}
         { сдвигаем линии }
-        ShiftGridPoints(1, 1);
+        ShiftPointsY(1);
         { светлые линии }
         Canvas.Pen.Color := clBtnHighlight;
       {$IFDEF WINDOWS}
