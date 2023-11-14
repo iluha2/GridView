@@ -1,5 +1,7 @@
 unit Ex_GridUtils; // GridView utilities
 
+{$mode objfpc}{$H+}
+
 interface
 
 uses
@@ -232,7 +234,7 @@ var
   i,j,w: Integer;
   EmptyString: Boolean;
   Levels, Columns: TList;
-  ColSymbWidths: array of Integer = [];
+  ColSymbWidths: array of Integer = ();
 
   procedure ApplyHeaderSections(GHSections: TGridHeaderSections);
   var
