@@ -7,6 +7,8 @@
                                             
 unit Ex_DBGrid;
 
+{$mode delphi}{$H+}
+
 interface
 
 uses

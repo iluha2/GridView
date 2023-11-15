@@ -7,6 +7,8 @@
 
 unit Ex_RegGrid;
 
+{$mode delphi}{$H+}
+
 interface
 
 uses

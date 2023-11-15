@@ -7,6 +7,8 @@
 
 unit Ex_GridC;
 
+{$mode delphi}{$H+}
+
 interface
 
 uses

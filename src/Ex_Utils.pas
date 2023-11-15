@@ -7,6 +7,8 @@
 
 unit Ex_Utils;
 
+{$mode delphi}{$H+}
+
 interface
 
 uses

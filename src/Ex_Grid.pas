@@ -7,6 +7,8 @@
 
 unit Ex_Grid;
 
+{$mode delphi}{$H+}
+
 interface
 
 {$I Ex_Grid.inc}
