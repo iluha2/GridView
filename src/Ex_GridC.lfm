@@ -1,38 +1,41 @@
 object ColumnsEditorForm: TColumnsEditorForm
   Left = 202
+  Height = 436
   Top = 65
+  Width = 542
   BorderIcons = [biSystemMenu]
   BorderStyle = bsDialog
   Caption = 'Редактор столбцов таблицы'
   ClientHeight = 436
   ClientWidth = 542
   Color = clBtnFace
-  Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
   Font.Name = 'Arial'
-  Font.Style = []
   Position = poScreenCenter
+  LCLVersion = '3.99.0.0'
   OnCreate = FormCreate
   OnDestroy = FormDestroy
-  PixelsPerInch = 96
   object ColumnsGroup: TGroupBox
     Left = 8
+    Height = 384
     Top = 8
     Width = 260
-    Height = 384
     Caption = ' Столбцы '
+    ClientHeight = 384
+    ClientWidth = 260
+    ParentBackground = False
     TabOrder = 0
     object ColumnsList: TListView
       Left = 10
+      Height = 320
       Top = 4
       Width = 235
-      Height = 320
-      Columns = <
+      Columns = <      
         item
           Caption = 'Индекс'
           Width = 30
-        end
+        end      
         item
           Caption = 'Имя'
           Width = 180
@@ -46,18 +49,18 @@ object ColumnsEditorForm: TColumnsEditorForm
     end
     object AddButton: TButton
       Left = 10
+      Height = 25
       Top = 332
       Width = 115
-      Height = 25
       Caption = '&Добавить'
       TabOrder = 1
       OnClick = AddButtonClick
     end
     object DeleteButton: TButton
       Left = 130
+      Height = 25
       Top = 332
       Width = 115
-      Height = 25
       Caption = '&Удалить'
       Enabled = False
       TabOrder = 2
@@ -66,88 +69,91 @@ object ColumnsEditorForm: TColumnsEditorForm
   end
   object PropertiesGroup: TGroupBox
     Left = 279
+    Height = 384
     Top = 8
     Width = 255
-    Height = 384
     Caption = ' Свойства столбца '
+    ClientHeight = 384
+    ClientWidth = 255
+    ParentBackground = False
     TabOrder = 1
     object IndexLabel: TLabel
       Left = 10
+      Height = 13
       Top = 10
       Width = 41
-      Height = 13
       Caption = '&Индекс:'
       FocusControl = IndexEdit
     end
     object CaptionLabel: TLabel
       Left = 10
+      Height = 13
       Top = 36
       Width = 57
-      Height = 13
       Caption = '&Заголовок:'
       FocusControl = CaptionEdit
     end
     object WidthLabel: TLabel
       Left = 10
+      Height = 13
       Top = 62
       Width = 42
-      Height = 13
       Caption = '&Ширина:'
       FocusControl = WidthEdit
     end
     object MinWidthLabel: TLabel
       Left = 10
+      Height = 13
       Top = 88
       Width = 68
-      Height = 13
       Caption = 'М&ин. ширина:'
       FocusControl = MinWidthEdit
     end
     object MaxWidthLabel: TLabel
       Left = 10
+      Height = 13
       Top = 114
       Width = 74
-      Height = 13
       Caption = 'М&акс. ширина:'
       FocusControl = MaxWidthEdit
     end
     object AlignmentLabel: TLabel
       Left = 10
+      Height = 13
       Top = 140
       Width = 78
-      Height = 13
       Caption = '&Выравнивание:'
       FocusControl = AlignmentCombo
     end
     object MaxLengthLabel: TLabel
       Left = 10
+      Height = 13
       Top = 166
       Width = 74
-      Height = 13
       Caption = 'Д&лина строки:'
       FocusControl = MaxLengthEdit
     end
     object EditStyleLabel: TLabel
       Left = 10
+      Height = 13
       Top = 192
       Width = 60
-      Height = 13
       Caption = '&Тип строки:'
       FocusControl = EditStyleCombo
     end
     object CheckKindLabel: TLabel
       Left = 10
+      Height = 13
       Top = 218
       Width = 65
-      Height = 13
       Caption = 'Тип фла&жка:'
       FocusControl = CheckKindCombo
     end
     object IndexEdit: TEdit
       Left = 96
+      Height = 21
       Top = 10
       Width = 142
-      Height = 21
       MaxLength = 10
       TabOrder = 0
       OnChange = EnableApply
@@ -155,17 +161,17 @@ object ColumnsEditorForm: TColumnsEditorForm
     end
     object CaptionEdit: TEdit
       Left = 96
+      Height = 21
       Top = 36
       Width = 142
-      Height = 21
       TabOrder = 1
       OnChange = EnableApply
     end
     object WidthEdit: TEdit
       Left = 96
+      Height = 21
       Top = 62
       Width = 142
-      Height = 21
       MaxLength = 10
       TabOrder = 2
       OnChange = EnableApply
@@ -173,9 +179,9 @@ object ColumnsEditorForm: TColumnsEditorForm
     end
     object MinWidthEdit: TEdit
       Left = 96
+      Height = 21
       Top = 88
       Width = 142
-      Height = 21
       MaxLength = 10
       TabOrder = 3
       OnChange = EnableApply
@@ -183,9 +189,9 @@ object ColumnsEditorForm: TColumnsEditorForm
     end
     object MaxWidthEdit: TEdit
       Left = 96
+      Height = 21
       Top = 114
       Width = 142
-      Height = 21
       MaxLength = 10
       TabOrder = 4
       OnChange = EnableApply
@@ -193,23 +199,24 @@ object ColumnsEditorForm: TColumnsEditorForm
     end
     object AlignmentCombo: TComboBox
       Left = 96
+      Height = 21
       Top = 140
       Width = 142
-      Height = 21
-      Style = csDropDownList
       ItemHeight = 13
-      TabOrder = 5
-      OnChange = EnableApply
       Items.Strings = (
         'Влево'
         'Вправо'
-        'По центру')
+        'По центру'
+      )
+      Style = csDropDownList
+      TabOrder = 5
+      OnChange = EnableApply
     end
     object MaxLengthEdit: TEdit
       Left = 96
+      Height = 21
       Top = 166
       Width = 142
-      Height = 21
       MaxLength = 10
       TabOrder = 6
       OnChange = EnableApply
@@ -217,95 +224,97 @@ object ColumnsEditorForm: TColumnsEditorForm
     end
     object EditStyleCombo: TComboBox
       Left = 96
+      Height = 21
       Top = 192
       Width = 142
-      Height = 21
-      Style = csDropDownList
       ItemHeight = 13
-      TabOrder = 7
-      OnChange = EnableApply
       Items.Strings = (
         'Простая строка'
         'Кнопка с троеточием'
         'Выпадающий список'
         'Список с данными'
-        'Пользовательский')
+        'Пользовательский'
+      )
+      Style = csDropDownList
+      TabOrder = 7
+      OnChange = EnableApply
     end
     object FixedSizeCheck: TCheckBox
       Left = 96
+      Height = 17
       Top = 250
       Width = 142
-      Height = 17
       Caption = '&Фикс. ширина'
       TabOrder = 9
       OnClick = EnableApply
     end
     object ReadOnlyCheck: TCheckBox
       Left = 96
+      Height = 17
       Top = 268
       Width = 142
-      Height = 17
       Caption = 'Т&олько для чтения'
       TabOrder = 10
       OnClick = EnableApply
     end
     object WantReturnsCheck: TCheckBox
       Left = 96
+      Height = 17
       Top = 286
       Width = 142
-      Height = 17
       Caption = '&Символы переноса'
       TabOrder = 11
       OnClick = EnableApply
     end
     object WordWrapCheck: TCheckBox
       Left = 96
+      Height = 17
       Top = 304
       Width = 142
-      Height = 17
       Caption = '&Перенос слов'
       TabOrder = 12
       OnClick = EnableApply
     end
     object TabStopCheck: TCheckBox
       Left = 96
+      Height = 17
       Top = 322
       Width = 142
-      Height = 17
       Caption = 'Н&е принимает курсор'
       TabOrder = 13
       OnClick = EnableApply
     end
     object VisibleCheck: TCheckBox
       Left = 96
+      Height = 17
       Top = 340
       Width = 142
-      Height = 17
       Caption = '&Невидимый'
       TabOrder = 14
       OnClick = EnableApply
     end
     object CheckKindCombo: TComboBox
       Left = 96
+      Height = 21
       Top = 218
       Width = 142
-      Height = 21
-      Style = csDropDownList
       ItemHeight = 13
-      TabOrder = 8
-      OnChange = EnableApply
       Items.Strings = (
         'Нет'
         'CheckBox'
         'RadioButton'
-        'Пользовательский')
+        'Пользовательский'
+      )
+      Style = csDropDownList
+      TabOrder = 8
+      OnChange = EnableApply
     end
   end
   object OKButton: TButton
     Left = 299
+    Height = 25
     Top = 402
     Width = 75
-    Height = 25
     Caption = 'OK'
     Default = True
     TabOrder = 2
@@ -313,20 +322,18 @@ object ColumnsEditorForm: TColumnsEditorForm
   end
   object CancelButton: TButton
     Left = 379
+    Height = 25
     Top = 402
     Width = 75
-    Height = 25
-    Cancel = True
     Caption = 'Отмена'
     ModalResult = 2
     TabOrder = 3
   end
   object ApplyButton: TButton
     Left = 459
+    Height = 25
     Top = 402
     Width = 75
-    Height = 25
-    Cancel = True
     Caption = 'При&менить'
     Enabled = False
     TabOrder = 4

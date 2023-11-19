@@ -56,8 +56,8 @@ type
     procedure DisableApply(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
-    procedure ColumnsListChange(Sender: TObject; Item: TListItem; Change: TItemChange);
-    procedure ColumnsListChanging(Sender: TObject; Item: TListItem; Change: TItemChange; var AllowChange: Boolean);
+    procedure ColumnsListChange(Sender: TObject; {%H-}Item: TListItem; {%H-}Change: TItemChange);
+    procedure ColumnsListChanging(Sender: TObject; {%H-}Item: TListItem; {%H-}Change: TItemChange; var AllowChange: Boolean);
     procedure ColumnsListEnter(Sender: TObject);
     procedure ColumnsListKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
     procedure OKButtonClick(Sender: TObject);

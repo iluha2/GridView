@@ -1806,7 +1806,8 @@ end;
 
 procedure TCustomGridEdit.ListMouseUp(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 begin
-  if (Button = mbLeft) and (FActiveList <> nil) then CloseUp(PtInRect(FActiveList.ClientRect, Classes.Point(X, Y)));
+  if (Button = mbLeft) and (FActiveList <> nil) then
+    CloseUp(PtInRect(FActiveList.ClientRect, Classes.Point(X, Y)));
 end;
 
 procedure TCustomGridEdit.SetAlignment(Value: TAlignment);
@@ -2961,7 +2962,7 @@ begin
   end;
   R := ClientRect;
   InflateRect(R, -1, -1);
-  FGrid.PaintText(Canvas, R, TI.X, TI.Y, A, WR, WW, T);
+  FGrid.PaintText(Canvas, R, TI.X, A, WR, WW, T);
 end;
 
 procedure TGridTipsWindow.LMEraseBkgnd(var Message: TLMEraseBkgnd);
@@ -4714,7 +4715,7 @@ begin
   WR := Columns[Cell.Col].WantReturns;
   WW := Columns[Cell.Col].WordWrap;
   { вычисляем прямоугольник текста }
-  Result := GetTextRect(Canvas, R, TI.X, TI.Y, A, WR, WW, T);
+  Result := GetTextRect(Canvas, R, TI.X, A, WR, WW, T);
   { устанавливаем левый верхний угол в (0, 0) }
   OffsetRect(Result, -Result.Left, -Result.Top);
 end;
@@ -5254,7 +5255,7 @@ begin
   end;
 end;
 
-function TCustomGridView.GetEditClass(Cell: TGridCell): TGridEditClass;
+function TCustomGridView.GetEditClass: TGridEditClass;
 begin
   Result := TGridEdit;
 end;
@@ -5392,9 +5393,8 @@ begin
   if Assigned(FOnGetSortImage) then FOnGetSortImage(Self, Section, SortImage);
 end;
 
-function TCustomGridView.GetTextRect(Canvas: TCanvas; Rect: TRect;
-  LeftIndent, TopIndent: Integer; Alignment: TAlignment;
-  WantReturns, WordWrap: Boolean; const Text: string): TRect;
+function TCustomGridView.GetTextRect(Canvas: TCanvas; Rect: TRect; LeftIndent: Integer;
+  Alignment: TAlignment; WantReturns, WordWrap: Boolean; const Text: string): TRect;
 var
   R: TRect;
   F, W, H: Integer;
@@ -5476,7 +5476,7 @@ begin
     WR := Pos(#13, TipsText) <> 0; // Columns[Cell.Col].WantReturns;
     WW := Columns[Cell.Col].WordWrap;
     { считаем прямоугольник }
-    R := GetTextRect(Canvas, R, TI.X, TI.Y, A, WR, WW, TipsText);
+    R := GetTextRect(Canvas, R, TI.X, A, WR, WW, TipsText);
   finally
     Free;
   end;
@@ -6851,7 +6851,7 @@ begin
   end;
 end;
 
-procedure TCustomGridView.PaintText(Canvas: TCanvas; Rect: TRect; LeftIndent, TopIndent: Integer;
+procedure TCustomGridView.PaintText(Canvas: TCanvas; Rect: TRect; LeftIndent: Integer;
   Alignment: TAlignment; WantReturns, WordWrap: Boolean; const Text: string);
 var
   ts: TTextStyle;
@@ -7417,7 +7417,7 @@ begin
     WR := Columns[Cell.Col].WantReturns;
     WW := Columns[Cell.Col].WordWrap;
     T := GetCellText(Cell);
-    PaintText(Canvas, Rect, IT.X, IT.Y, A, WR, WW, T);
+    PaintText(Canvas, Rect, IT.X, A, WR, WW, T);
   end;
 end;
 
@@ -7542,7 +7542,7 @@ begin
       IT.X := TextLeftIndent;
       IT.Y := TextTopIndent;
       if I <> -1 then Inc(IT.X, 4);
-      PaintText(Canvas, R, IT.X, IT.Y, Section.Alignment, False, Section.WordWrap, T);
+      PaintText(Canvas, R, IT.X, Section.Alignment, False, Section.WordWrap, T);
     end;
   end;
 end;
@@ -8570,7 +8570,7 @@ procedure TCustomGridView.UpdateEdit(Activate: Boolean);
     EditClass: TGridEditClass;
   begin
     { получаем класс строки редактирования }
-    EditClass := GetEditClass(FCellFocused);
+    EditClass := GetEditClass;
     { создаем или меняем строку }
     if (FEdit = nil) or (FEdit.ClassType <> EditClass) then
     begin

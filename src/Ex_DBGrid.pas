@@ -12,7 +12,7 @@ unit Ex_DBGrid;
 interface
 
 uses
-  LCLType, LCLIntf, LMessages, SysUtils, Types, Classes, Controls, Graphics,
+  LCLType, LCLIntf, LMessages, SysUtils, {%H-}Types, Classes, Controls, Graphics,
   Forms, Themes, Dialogs, StdCtrls, Math, ImgList, DB, DBCtrls,
   Ex_Grid, Ex_Utils;
   
@@ -205,8 +205,8 @@ type
     function GetGrid: TCustomDBGridView;
   protected
     procedure ScrollMessage(var Message: TLMScroll); override;
-    procedure SetParams(AMin, AMax, APageStep, ALineStep: Integer); override;
-    procedure SetPositionEx(Value: Integer; ScrollCode: Integer); override;
+    procedure SetParams({%H-}AMin, {%H-}AMax, {%H-}APageStep, {%H-}ALineStep: Integer); override;
+    procedure SetPositionEx({%H-}Value: Integer; ScrollCode: Integer); override;
     procedure Update; override;
   public
     property Grid: TCustomDBGridView read GetGrid;
@@ -538,7 +538,7 @@ type
     procedure DataEditError(E: Exception; var Action: TDBGridDataAction); virtual;
     procedure DataFieldUpdated(Field: TField); virtual;
     procedure DataLayoutChanged; virtual;
-    procedure DataLinkActivate(Active: Boolean); virtual;
+    procedure DataLinkActiveChanged; virtual;
     procedure DataRecordChanged(Field: TField); virtual;
     procedure DataSetChanged; virtual;
     procedure DataSetScrolled(Distance: Integer); virtual;
@@ -553,7 +553,7 @@ type
     function GetCellText(Cell: TGridCell): string; override;
     function GetColumnClass: TGridColumnClass; override;
     function GetDataSource: TDataSource; virtual;
-    function GetEditClass(Cell: TGridCell): TGridEditClass; override;
+    function GetEditClass: TGridEditClass; override;
     function GetEditText(Cell: TGridCell): string; override;
     procedure HideCursor; override;
     procedure InvalidateIndicator;
@@ -612,7 +612,7 @@ type
     procedure SetGridCursor(Cell: TGridCell; IsSelected, IsVisible: Boolean); override;
     procedure UnLockLayout(CancelChanges: Boolean);
     procedure UnLockScroll(CancelScroll: Boolean);
-    procedure UpdateCursorPos(ShowCursor: Boolean); virtual;
+    procedure UpdateCursorPos(ShowCursor: Boolean);
     procedure UpdateLayout; virtual;
     procedure UpdateRowCount; virtual;
     procedure UpdateSelection(var Cell: TGridCell; var Selected: Boolean); override;
@@ -1022,8 +1022,8 @@ begin
         т.к. свойство Width возвращает 0 для невидимой колонки) должна быть
         такой, чтобы в заголовке умещалось название колонки }
       with Grid do
-        R := GetTextRect(Canvas, Classes.Rect(0, 0, 0, 0), TextLeftIndent, TextTopIndent,
-          Self.Alignment, False, False, Self.Caption);
+        R := GetTextRect(Canvas, Classes.Rect(0, 0, 0, 0),
+          TextLeftIndent, Self.Alignment, False, False, Self.Caption);
       Width := MaxIntValue([DefWidth, R.Right - R.Left]);
     end;
   end;
@@ -1405,7 +1405,7 @@ end;
 
 procedure TDBGridDataLink.ActiveChanged;
 begin
-  Grid.DataLinkActivate(Active);
+  Grid.DataLinkActiveChanged;
   FModified := False;
 end;
 
@@ -1975,7 +1975,7 @@ begin
   if AcquireLockLayout then UnLockLayout(False);
 end;
 
-procedure TCustomDBGridView.DataLinkActivate(Active: Boolean);
+procedure TCustomDBGridView.DataLinkActiveChanged;
 begin
   FSelectedRows.Clear;
   ResetClickPos;
@@ -2337,7 +2337,7 @@ begin
   Result := TDBGridColumn;
 end;
 
-function TCustomDBGridView.GetEditClass(Cell: TGridCell): TGridEditClass;
+function TCustomDBGridView.GetEditClass: TGridEditClass;
 begin
   Result := TDBGridEdit;
 end;
@@ -3425,7 +3425,7 @@ begin
     else
       Cell := GridCell(0, 0);
     { ставим курсор на текущую запись }
-    SetGridCursor(Cell, CellSelected, True);
+    SetGridCursor(Cell, CellSelected, ShowCursor);
   finally
     Dec(FCursorFromDataSet);
   end;

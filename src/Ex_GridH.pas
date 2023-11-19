@@ -39,8 +39,8 @@ type
     procedure DisableApply(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
-    procedure SectionsTreeChange(Sender: TObject; Node: TTreeNode);
-    procedure SectionsTreeChanging(Sender: TObject; Node: TTreeNode; var AllowChange: Boolean);
+    procedure SectionsTreeChange(Sender: TObject; {%H-}Node: TTreeNode);
+    procedure SectionsTreeChanging(Sender: TObject; {%H-}Node: TTreeNode; var AllowChange: Boolean);
     procedure SectionsTreeEnter(Sender: TObject);
     procedure SectionsTreeKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
     procedure AddButtonClick(Sender: TObject);
