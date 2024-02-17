@@ -1,12 +1,7 @@
 {%MainUnit Ex_Grid.pas}
 
 uses
-  LazUTF8, LazUtilities, LCLType, LCLIntf, LMessages, Themes,
-{$IFDEF WINDOWS}
-  Windows, CommCtrl, UxTheme,
-{$ELSE}
-  Types,
-{$ENDIF}
+  LazUTF8, LazUtilities, LCLType, LCLIntf, LMessages, Types, Themes,
   SysUtils, DateUtils, Classes, Controls, Graphics, Forms,
   Dialogs, StdCtrls, Math, MaskEdit, ImgList, Menus,
   Ex_Utils;
@@ -1073,7 +1068,7 @@ type
     FDropListVisible: Boolean;
     FCloseUpCount: Integer;
     FPressCount: Integer;
-    FPickList: TGridListBox;
+    FPickListBox: TGridListBox;
     FActiveList: TWinControl;
     FButtonWidth: Integer;
     FButtonTracking: Boolean;
@@ -1085,7 +1080,6 @@ type
     function GetClosingUp: Boolean;
     function GetLineCount: Integer;
     function GetPressing: Boolean;
-    function GetVisible: Boolean;
     procedure ListMouseUp(Sender: TObject; Button: TMouseButton; {%H-}Shift: TShiftState; X, Y: Integer);
     procedure SetAlignment(Value: TAlignment);
     procedure SetButtonWidth(Value: Integer);
@@ -1164,9 +1158,8 @@ type
     property Grid: TCustomGridView read FGrid;
     property LineCount: Integer read GetLineCount;
     property MaxLength;
-    property PickList: TGridListBox read FPickList;
+    property PickListBox: TGridListBox read FPickListBox;
     property Pressing: Boolean read GetPressing;
-    property Visible: Boolean read GetVisible;
     property WantReturns: Boolean read FWantReturns write FWantReturns;
     property WordWrap: Boolean read FWordWrap write SetWordWrap;
   end;
@@ -1427,7 +1420,7 @@ type
                            Вызывается при смене ячейки, если только ячейка
                            не ReadOnly. Если текст не принимается, следует
                            вызвать исключение.
-    SetCursor -            Установть курсор в указанную ячейку.
+    SetGridCursor -        Установть курсор в указанную ячейку.
     ShowCursor -           Показать курсор.
     ShowEdit -             Показать строку редактирования.
     ShowEditChar -         Показать строку редактирования и передать ей
@@ -2121,7 +2114,7 @@ type
                            undo the last operation.  Override this method if you
                            need to perform additional actions after cancel editing.
                            For example, cancel changes to the data source.
-    SetCursor -            Changes the current cell to a specified cell.
+    SetGridCursor -        Changes the current cell to a specified cell.
     SizeAllColumnsToFit -  Changes the width of all columns to fit their contents.
     SizeColumnToFit -      Changes the width of column to fit its contents.
     UnLockUpdate -         Enables grid redraw.

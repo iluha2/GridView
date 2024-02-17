@@ -26,13 +26,10 @@ function GridCell(Col, Row: Longint): TGridCell;
 function IsCellEqual(Cell1, Cell2: TGridCell): Boolean;
 function IsCellEmpty(Cell: TGridCell): Boolean;
 function OffsetCell(Cell: TGridCell; C, R: Longint): TGridCell;
-
 function FindInStrings(const s: string; ss: TStrings; const par: TFindStrParams = []): Integer;
-
-{$IFNDEF WINDOWS}
 function MapWindowPoints(hWndFrom, hWndTo: HWND; Points: Pointer; cPoints: UINT): Integer;
 procedure PolyPolyline(DC: HDC; const Points: array of TPoint; const PNums: array of DWORD);
-{$ENDIF}
+
 
 implementation
 
@@ -77,8 +74,6 @@ begin
   end;
 end;
 
-{$IFNDEF WINDOWS}
-
 function MapWindowPoints(hWndFrom, hWndTo: HWND; Points: Pointer; cPoints: UINT): Integer;
 var
   PtsArr: PPoint absolute Points;
@@ -115,7 +110,5 @@ begin
     Inc(p, j);
   end;
 end;
-
-{$ENDIF}
 
 end.

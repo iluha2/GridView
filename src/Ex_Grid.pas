@@ -155,7 +155,7 @@ var
 begin
   { если есть подзаголовки возвращаем колонку последнего из них }
   { the resize column is the column of the rightmost subsection }
-  for I := Sections.Count - 1 downto 0 do
+  for I := Sections.Count-1 downto 0 do
     if Sections[I].Visible then
       Exit( Sections[I].ResizeColumnIndex );
   { возвращаем расчитанный индекс колонки }
@@ -168,7 +168,7 @@ var
 begin
   { если есть подзаголовки, то смотрим видимость их }
   if Sections.Count > 0 then
-    for I := 0 to Sections.Count - 1 do
+    for I := 0 to Sections.Count-1 do
       if Sections[I].Visible then
         Exit( True );
   { иначе смотрим видимость колонки }
@@ -193,7 +193,7 @@ begin
   if Sections.Count > 0 then
   begin
     Result := 0;
-    for I := 0 to Sections.Count - 1 do
+    for I := 0 to Sections.Count-1 do
     begin
       S := Sections[I];
       Result := Result + S.Width;
@@ -248,10 +248,10 @@ procedure TGridHeaderSection.Assign(Source: TPersistent);
 begin
   if Source is TGridHeaderSection then
   begin
-    Sections := TGridHeaderSection(Source).Sections;
-    Caption := TGridHeaderSection(Source).Caption;
+    Sections  := TGridHeaderSection(Source).Sections;
+    Caption   := TGridHeaderSection(Source).Caption;
     Alignment := TGridHeaderSection(Source).Alignment;
-    WordWrap := TGridHeaderSection(Source).WordWrap;
+    WordWrap  := TGridHeaderSection(Source).WordWrap;
     Exit;
   end;
   inherited Assign(Source);
@@ -269,7 +269,7 @@ end;
 function TGridHeaderSections.GetMaxColumn: Integer;
 begin
   if Count > 0 then
-    Result := Sections[Count - 1].ColumnIndex
+    Result := Sections[Count-1].ColumnIndex
   else
     Result := 0;
 end;
@@ -281,7 +281,7 @@ function TGridHeaderSections.GetMaxLevel: Integer;
     I: Integer;
     S: TGridHeaderSection;
   begin
-    for I := 0 to Sections.Count - 1 do
+    for I := 0 to Sections.Count-1 do
     begin
       S := Sections[I];
       if Result < S.Level then Result := S.Level;
@@ -328,18 +328,18 @@ end;
 constructor TCustomGridHeader.Create(AGrid: TCustomGridView);
 begin
   inherited Create;
-  FGrid := AGrid;
-  FAutoHeight := True;
-  FColor := clBtnFace;
-  FSections := TGridHeaderSections.Create(Self, nil);
+  FGrid          := AGrid;
+  FAutoHeight    := True;
+  FColor         := clBtnFace;
+  FSections      := TGridHeaderSections.Create(Self, nil);
   FSectionHeight := 17;
-  FColor := clBtnFace;
-  FFont := TFont.Create;
+  FColor         := clBtnFace;
+  FFont          := TFont.Create;
   FFont.OnChange := FontChange;
-  FGridFont := True;
-  FImagesLink := TChangeLink.Create;
+  FGridFont      := True;
+  FFLat          := True;
+  FImagesLink    := TChangeLink.Create;
   FImagesLink.OnChange := ImagesChange;
-  FFLat := True;
 end;
 
 destructor TCustomGridHeader.Destroy;
@@ -356,8 +356,8 @@ begin
   inherited DefineProperties(Filer);
   { backward compatibility }
   Filer.DefineProperty('FullSynchronizing', ReadFullSynchronizing, nil, False);
-  Filer.DefineProperty('Synchronized', ReadFullSynchronizing, nil, False);
-  Filer.DefineProperty('AutoSynchronize', ReadFullSynchronizing, nil, False);
+  Filer.DefineProperty('Synchronized',      ReadFullSynchronizing, nil, False);
+  Filer.DefineProperty('AutoSynchronize',   ReadFullSynchronizing, nil, False);
 end;
 
 function TCustomGridHeader.IsColorStored: Boolean;
@@ -381,7 +381,7 @@ var
   S: TGridHeaderSection;
 begin
   Result := False;
-  for I := 0 to Sections.Count - 1 do
+  for I := 0 to Sections.Count-1 do
   begin
     S := Sections[I];
     if (S.Caption <> '') or (S.Alignment <> taLeftJustify) or S.WordWrap or
@@ -437,7 +437,7 @@ var
   S: TGridHeaderSection;
 begin
   Result := 0;
-  for I := 0 to Sections.Count - 1 do
+  for I := 0 to Sections.Count-1 do
   begin
     S := Sections[I];
     Result := Result + S.Width;
@@ -622,12 +622,12 @@ procedure TCustomGridHeader.Assign(Source: TPersistent);
 begin
   if Source is TCustomGridHeader then
   begin
-    Sections := TCustomGridHeader(Source).Sections;
+    Sections      := TCustomGridHeader(Source).Sections;
     SectionHeight := TCustomGridHeader(Source).SectionHeight;
-    Color := TCustomGridHeader(Source).Color;
-    GridColor := TCustomGridHeader(Source).GridColor;
-    Font := TCustomGridHeader(Source).Font;
-    GridFont := TCustomGridHeader(Source).GridFont;
+    Color         := TCustomGridHeader(Source).Color;
+    GridColor     := TCustomGridHeader(Source).GridColor;
+    Font          := TCustomGridHeader(Source).Font;
+    GridFont      := TCustomGridHeader(Source).GridFont;
     Exit;
   end;
   inherited Assign(Source);
@@ -642,21 +642,21 @@ var
     R: TRect;
   begin
     { абсолютные границы заголовка }
-    R.Left := Grid.GetColumnLeftRight(Column).Left;
-    R.Right := R.Left;
-    R.Top := Grid.ClientRect.Top;
+    R.Left   := Grid.GetColumnLeftRight(Column).Left;
+    R.Right  := R.Left;
+    R.Top    := Grid.ClientRect.Top;
     R.Bottom := R.Top + Height;
     { добавляем }
     while Column < Grid.Columns.Count do
     begin
       { прямоугольник секции }
-      R.Left := R.Right;
+      R.Left  := R.Right;
       R.Right := R.Left + Grid.Columns[Column].Width;
       { добавляем секцию }
       with Sections.Add do
       begin
         FColumnIndex := Column;
-        FBoundsRect := R;
+        FBoundsRect  := R;
       end;
       { следующия колонка }
       Inc(Column);
@@ -668,11 +668,13 @@ var
     I: Integer;
     S: TGridHeaderSection;
   begin
-    for I := Sections.Count - 1 downto 0 do
+    for I := Sections.Count-1 downto 0 do
     begin
       S := Sections[I];
       DoDeleteSections(S.Sections);
-      if (S.Sections.Count = 0) and (S.ColumnIndex > Grid.Columns.Count - 1) then S.Free;
+      if (S.Sections.Count = 0) and
+         (S.ColumnIndex > Grid.Columns.Count-1) then
+        S.Free;
     end;
   end;
 
@@ -681,13 +683,11 @@ var
     I: Integer;
     S: TGridHeaderSection;
   begin
-    for I := Sections.Count - 1 downto 0 do
+    for I := Sections.Count-1 downto 0 do
     begin
       S := Sections[I];
       if S.Sections.Count = 0 then
-      begin
-        C := S.ColumnIndex;
-      end
+        C := S.ColumnIndex
       else
         DoSynchronizeSections(S.Sections);
     end;
@@ -695,8 +695,9 @@ var
 
 begin
   { синхронизируем секции }
-  if (Grid <> nil) and (Grid.ComponentState * [csReading, csLoading] = [])
-    and (Grid.Columns <> nil) then
+  if (Grid <> nil) and
+     (Grid.ComponentState * [csReading, csLoading] = []) and
+     (Grid.Columns <> nil) then
   begin
     Sections.BeginUpdate;
     try
@@ -709,10 +710,10 @@ begin
         Exit;
       end;
       { если секций меньше - добавляем, иначе удаляем лишние }
-      C := Sections[Sections.Count - 1].ColumnIndex;
-      if C < Grid.Columns.Count - 1 then
+      C := Sections[Sections.Count-1].ColumnIndex;
+      if C < Grid.Columns.Count-1 then
         DoAddSections(C + 1)
-      else if C > Grid.Columns.Count - 1 then
+      else if C > Grid.Columns.Count-1 then
         DoDeleteSections(Sections);
       { у нижних секций синхронизируем заголовок, выравнивание и шинрину }
       DoSynchronizeSections(Sections);
@@ -732,7 +733,7 @@ var
     I: Integer;
     S: TGridHeaderSection;
   begin
-    for I := 0 to Sections.Count - 1 do
+    for I := 0 to Sections.Count-1 do
     begin
       S := Sections[I];
       { есть ли подзаголовки }
@@ -747,7 +748,7 @@ var
         { рекурсия на все подзаголовки снизу }
         DoUpdateColumnIndex(S.Sections);
         { индекс есть индекс последнего }
-        S.FColumnIndex := S.Sections[S.Sections.Count - 1].FColumnIndex;
+        S.FColumnIndex := S.Sections[S.Sections.Count-1].FColumnIndex;
       end;
     end;
   end;
@@ -761,7 +762,7 @@ var
     R := Rect;
     R.Right := R.Left;
     { перебираем подзаголовки }
-    for I := 0 to Sections.Count - 1 do
+    for I := 0 to Sections.Count-1 do
     begin
       S := Sections[I];
       R.Left := R.Right;
@@ -784,16 +785,17 @@ var
   end;
 
 begin
-  if (Grid <> nil) and (Grid.ComponentState * [csReading, csLoading] = [])
-    and (Grid.Columns <> nil) then
+  if (Grid <> nil) and
+     (Grid.ComponentState * [csReading, csLoading] = []) and
+     (Grid.Columns <> nil) then
   begin
     { определяеи индексы колонок }
     C := 0;
     DoUpdateColumnIndex(Sections);
     { абсолютные границы заголовка }
-    R.Left := Grid.ClientRect.Left;
-    R.Right := R.Left + Grid.GetColumnsWidth(0, Grid.Columns.Count - 1);
-    R.Top := Grid.ClientRect.Top;
+    R.Left   := Grid.ClientRect.Left;
+    R.Right  := R.Left + Grid.GetColumnsWidth(0, Grid.Columns.Count-1);
+    R.Top    := Grid.ClientRect.Top;
     R.Bottom := R.Top + Height;
     { определяем границы секций }
     DoUpdateSecionsBounds(Sections, R);
@@ -805,17 +807,17 @@ end;
 constructor TCustomGridColumn.Create(Collection: TCollection);
 begin
   inherited Create(Collection);
-  FColumns := TGridColumns(Collection);
-  FWidth := 64;
-  FMinWidth := 0;
-  FMaxWidth := 10000;
-  FAlignment := taLeftJustify;
-  FTabStop := True;
-  FVisible := True;
-  FAllowClick := True;
-  FAllowEdit := True;
+  FColumns        := TGridColumns(Collection);
+  FWidth          := 64;
+  FMinWidth       := 0;
+  FMaxWidth       := 10000;
+  FAlignment      := taLeftJustify;
+  FTabStop        := True;
+  FVisible        := True;
+  FAllowClick     := True;
+  FAllowEdit      := True;
   FCheckAlignment := taLeftJustify;
-  FDefaultPopup := True;
+  FDefaultPopup   := True;
 end;
 
 destructor TCustomGridColumn.Destroy;
@@ -853,31 +855,41 @@ end;
 
 function TCustomGridColumn.GetEditAlignment: TAlignment;
 begin
-  if AlignEdit then Result := Alignment else Result := taLeftJustify;
+  if AlignEdit then
+    Result := Alignment
+  else
+    Result := taLeftJustify;
 end;
 
 function TCustomGridColumn.GetGrid: TCustomGridView;
 begin
-  Result := nil;
-  if Columns <> nil then Result := TCustomGridView(Columns.Grid);
+  if Columns <> nil then
+    Result := TCustomGridView(Columns.Grid)
+  else
+    Result := nil;
 end;
 
 function TCustomGridColumn.GetHeaderSection: TGridHeaderSection;
 begin
-  Result := nil;
-  if Grid <> nil then Result := Grid.GetHeaderSection(Index, -1);
+  if Grid <> nil then
+    Result := Grid.GetHeaderSection(Index, -1)
+  else
+    Result := nil;
 end;
 
 function TCustomGridColumn.GetPickList: TStrings;
 begin
-  if FPickList = nil then FPickList := TStringList.Create;
+  if FPickList = nil then
+     FPickList := TStringList.Create;
   Result := FPickList;
 end;
 
 function TCustomGridColumn.GetPickListCount: Integer;
 begin
-  Result := 0;
-  if FPickList <> nil then Result := FPickList.Count;
+  if FPickList <> nil then
+    Result := FPickList.Count
+  else
+    Result := 0;
 end;
 
 function TCustomGridColumn.IsPickListStored: Boolean;
@@ -1004,8 +1016,10 @@ end;
 
 function TCustomGridColumn.GetDisplayName: string;
 begin
-  Result := FCaption;
-  if Result = '' then Result := inherited GetDisplayName;
+  if FCaption <> '' then
+    Result := FCaption
+  else
+    Result := inherited GetDisplayName
 end;
 
 procedure TCustomGridColumn.SetAlignment(Value: TAlignment);
@@ -1094,26 +1108,26 @@ procedure TCustomGridColumn.Assign(Source: TPersistent);
 begin
   if Source is TCustomGridColumn then
   begin
-    Caption := TCustomGridColumn(Source).Caption;
-    DefWidth := TCustomGridColumn(Source).DefWidth;
-    MinWidth := TCustomGridColumn(Source).MinWidth;
-    MaxWidth := TCustomGridColumn(Source).MaxWidth;
-    FixedSize := TCustomGridColumn(Source).FixedSize;
-    MaxLength := TCustomGridColumn(Source).MaxLength;
-    Alignment := TCustomGridColumn(Source).Alignment;
-    ReadOnly := TCustomGridColumn(Source).ReadOnly;
-    EditStyle := TCustomGridColumn(Source).EditStyle;
-    EditMask := TCustomGridColumn(Source).EditMask;
-    CheckKind := TCustomGridColumn(Source).CheckKind;
+    Caption        := TCustomGridColumn(Source).Caption;
+    DefWidth       := TCustomGridColumn(Source).DefWidth;
+    MinWidth       := TCustomGridColumn(Source).MinWidth;
+    MaxWidth       := TCustomGridColumn(Source).MaxWidth;
+    FixedSize      := TCustomGridColumn(Source).FixedSize;
+    MaxLength      := TCustomGridColumn(Source).MaxLength;
+    Alignment      := TCustomGridColumn(Source).Alignment;
+    ReadOnly       := TCustomGridColumn(Source).ReadOnly;
+    EditStyle      := TCustomGridColumn(Source).EditStyle;
+    EditMask       := TCustomGridColumn(Source).EditMask;
+    CheckKind      := TCustomGridColumn(Source).CheckKind;
     CheckAlignment := TCustomGridColumn(Source).CheckAlignment;
-    WantReturns := TCustomGridColumn(Source).WantReturns;
-    WordWrap := TCustomGridColumn(Source).WordWrap;
-    TabStop := TCustomGridColumn(Source).TabStop;
-    Visible := TCustomGridColumn(Source).Visible;
-    PickList := TCustomGridColumn(Source).FPickList;
-    Tag := TCustomGridColumn(Source).Tag;
-    AllowClick := TCustomGridColumn(Source).AllowClick;
-    AllowEdit := TCustomGridColumn(Source).AllowEdit;
+    WantReturns    := TCustomGridColumn(Source).WantReturns;
+    WordWrap       := TCustomGridColumn(Source).WordWrap;
+    TabStop        := TCustomGridColumn(Source).TabStop;
+    Visible        := TCustomGridColumn(Source).Visible;
+    PickList       := TCustomGridColumn(Source).FPickList;
+    Tag            := TCustomGridColumn(Source).Tag;
+    AllowClick     := TCustomGridColumn(Source).AllowClick;
+    AllowEdit      := TCustomGridColumn(Source).AllowEdit;
     Exit;
   end;
   inherited Assign(Source);
@@ -1144,7 +1158,7 @@ begin
   Strings := TStringList.Create;
   try
     { добавляем в список ширины колонок }
-    for I := 0 to Count - 1 do
+    for I := 0 to Count-1 do
     begin
       { отрицательное значение ширины соотвествует невидимой колонке }
       W := Columns[I].DefWidth;
@@ -1176,7 +1190,7 @@ begin
       { разбиваем ширины колонок, разделенные запятой, на строки }
       Strings.CommaText := Value;
       { меняем ширины колонок }
-      for I := 0 to Strings.Count - 1 do
+      for I := 0 to Strings.Count-1 do
       begin
         { проверяем количество колонок }
         if I > Count - 1 then Break;
@@ -1238,7 +1252,8 @@ end;
 function TCustomGridRows.GetMaxCount: Integer;
 begin
   Result := MaxInt - 2;
-  if Height > 0 then Result := Result div Height - 2;
+  if Height > 0 then
+    Result := Result div Height - 2;
 end;
 
 function TCustomGridRows.IsHeightStored: Boolean;
@@ -1264,24 +1279,31 @@ begin
   begin
     { высота текста }
     { the height of text }
-    TH := Grid.GetFontHeight(Grid.Font) + Grid.TextTopIndent + 1;
+    TH := Grid.GetFontHeight(Grid.Font)       + Grid.TextTopIndent + 1;
     FH := Grid.GetFontHeight(Grid.Fixed.Font) + Grid.TextTopIndent + 1;
     { высота флажков }
     { the height of check boxes }
-    if not Grid.CheckBoxes then CH := 0
-    else CH := Grid.CheckHeight + Grid.CheckTopIndent + 1;
+    if not Grid.CheckBoxes then
+      CH := 0
+    else
+      CH := Grid.CheckHeight + Grid.CheckTopIndent + 1;
     { высота картинки }
     { the height of images }
-    if Grid.Images = nil then IH := 0
-    else IH := Grid.Images.Height + Grid.ImageTopIndent + 1;
+    if Grid.Images = nil then
+      IH := 0
+    else
+      IH := Grid.Images.Height + Grid.ImageTopIndent + 1;
     { учет сетки }
     { grid lines }
-    if not (Grid.GridLines and (gsHorzLine in Grid.GridStyle)) then GH := 0
+    if not (Grid.GridLines and (gsHorzLine in Grid.GridStyle)) then
+      GH := 0
     else
     begin
       GH := Grid.FGridLineWidth;
-      if (Grid.Fixed.Count > 0) and (not Grid.Fixed.Flat) and
-        (not ThemeServices.ThemesEnabled) then Inc(GH, 1); // <- 3D
+      if (Grid.Fixed.Count > 0) and
+         (not Grid.Fixed.Flat) and
+         (not ThemeServices.ThemesEnabled) then
+        Inc(GH, 1); // <- 3D
     end;
     { высота строки }
     Value := MaxIntValue([0, TH, FH, CH, IH]) + GH + 1;
@@ -1292,7 +1314,10 @@ begin
   if FHeight <> Value then
   begin
     FHeight := Value;
-    if Count > MaxCount then SetCount(Count) else Change;
+    if Count > MaxCount then
+      SetCount(Count)
+    else
+      Change;
   end;
 end;
 
@@ -1304,7 +1329,8 @@ end;
 procedure TCustomGridRows.SetCount(Value: Integer);
 begin
   if Value < 0 then Value := 0;
-  if Value > MaxCount then Value := MaxCount;
+  if Value > MaxCount then
+     Value:= MaxCount;
   if FCount <> Value then
   begin
     FCount := Value;
@@ -1316,7 +1342,7 @@ procedure TCustomGridRows.Assign(Source: TPersistent);
 begin
   if Source is TCustomGridRows then
   begin
-    Count := TCustomGridRows(Source).Count;
+    Count  := TCustomGridRows(Source).Count;
     Height := TCustomGridRows(Source).Height;
     Exit;
   end;
@@ -1328,13 +1354,13 @@ end;
 constructor TCustomGridFixed.Create(AGrid: TCustomGridView);
 begin
   inherited Create;
-  FGrid := AGrid;
-  FColor := clBtnFace;
-  FFont := TFont.Create;
+  FGrid          := AGrid;
+  FColor         := clBtnFace;
+  FFont          := TFont.Create;
   FFont.OnChange := FontChange;
-  FGridFont := True;
-  FFLat := True;
-  FShowDivider := True;
+  FGridFont      := True;
+  FFLat          := True;
+  FShowDivider   := True;
 end;
 
 destructor TCustomGridFixed.Destroy;
@@ -1443,8 +1469,8 @@ end;
 procedure TCustomGridFixed.SetCount(Value: Integer);
 begin
   { подправляем значение }
-  if (Grid <> nil) and (Value > Grid.Columns.Count - 1) then
-    Value := Grid.Columns.Count - 1;
+  if (Grid <> nil) and (Value > Grid.Columns.Count-1) then
+    Value := Grid.Columns.Count-1;
   if Value < 0 then Value := 0;
   { устанавливаем }
   if FCount <> Value then
@@ -1458,11 +1484,11 @@ procedure TCustomGridFixed.Assign(Source: TPersistent);
 begin
   if Source is TCustomGridFixed then
   begin
-    Count := TCustomGridFixed(Source).Count;
-    Color := TCustomGridFixed(Source).Color;
+    Count     := TCustomGridFixed(Source).Count;
+    Color     := TCustomGridFixed(Source).Color;
     GridColor := TCustomGridFixed(Source).GridColor;
-    Font := TCustomGridFixed(Source).Font;
-    GridFont := TCustomGridFixed(Source).GridFont;
+    Font      := TCustomGridFixed(Source).Font;
+    GridFont  := TCustomGridFixed(Source).GridFont;
     Exit;
   end;
   inherited Assign(Source);
@@ -1475,17 +1501,23 @@ begin
   inherited Create;
   FGrid := AGrid;
   FKind := AKind;
-  if AKind = sbHorizontal then FBarCode := SB_HORZ else FBarCode := SB_VERT;
+  if AKind = sbHorizontal then
+    FBarCode := SB_HORZ
+  else
+    FBarCode := SB_VERT;
   FPageStep := 100;
   FLineStep := 8;
   FLineSize := 1;
   FTracking := True;
-  FVisible := True;
+  FVisible  := True;
 end;
 
 procedure TGridScrollBar.SetLineSize(Value: Integer);
 begin
-  if Value < 1 then FLineSize := 1 else FLineSize := Value;
+  if Value < 1 then
+    FLineSize := 1
+  else
+    FLineSize := Value;
 end;
 
 procedure TGridScrollBar.SetLineStep(Value: Integer);
@@ -1544,13 +1576,13 @@ begin
     LockUpdate;
     try
       case Message.ScrollCode of
-        SB_LINELEFT: SetPositionEx(Position - LineStep, Message.ScrollCode);
-        SB_LINERIGHT: SetPositionEx(Position + LineStep, Message.ScrollCode);
-        SB_PAGELEFT: SetPositionEx(Position - PageStep, Message.ScrollCode);
-        SB_PAGERIGHT: SetPositionEx(Position + PageStep, Message.ScrollCode);
+        SB_LINELEFT:      SetPositionEx(Position - LineStep,  Message.ScrollCode);
+        SB_LINERIGHT:     SetPositionEx(Position + LineStep,  Message.ScrollCode);
+        SB_PAGELEFT:      SetPositionEx(Position - PageStep,  Message.ScrollCode);
+        SB_PAGERIGHT:     SetPositionEx(Position + PageStep,  Message.ScrollCode);
         SB_THUMBPOSITION: SetPositionEx(ScrollInfo.nTrackPos, Message.ScrollCode);
-        SB_THUMBTRACK: if Tracking then SetPositionEx(ScrollInfo.nTrackPos, Message.ScrollCode);
-        SB_ENDSCROLL: SetPositionEx(Position, Message.ScrollCode);
+        SB_THUMBTRACK:    if Tracking then SetPositionEx(ScrollInfo.nTrackPos, Message.ScrollCode);
+        SB_ENDSCROLL:     SetPositionEx(Position, Message.ScrollCode);
       end;
     finally
       UnLockUpdate;
@@ -1562,15 +1594,19 @@ end;
 
 procedure CheckScrollPos(Min, Max, PageStep: Integer; var Position: Integer);
 begin
-  if Position > Max - PageStep + 1 then Position := Max - PageStep + 1;
-  if Position < Min then Position := Min;
+  if Position > Max - PageStep + 1 then
+     Position:= Max - PageStep + 1;
+  if Position < Min then
+     Position:= Min;
 end;
 
 procedure TGridScrollBar.SetParams(AMin, AMax, APageStep, ALineStep: Integer);
 begin
   { подправляем новые значения }
-  if AMax < AMin then AMax := AMin;
-  if APageStep > AMax - AMin + 1 then APageStep := AMax - AMin + 1;
+  if AMax < AMin then
+     AMax:= AMin;
+  if APageStep > AMax - AMin + 1 then
+     APageStep:= AMax - AMin + 1;
   if APageStep < 0 then APageStep := 0;
   if ALineStep < 0 then ALineStep := 0;
   { изменилось ли что нибудь }
@@ -1652,10 +1688,10 @@ begin
     ScrollInfo.fMask := SIF_RANGE or SIF_PAGE or SIF_POS;
     if Visible and (Max <> Min) then
     begin
-      ScrollInfo.nMin := Min;
-      ScrollInfo.nMax := Max;
+      ScrollInfo.nMin  := Min;
+      ScrollInfo.nMax  := Max;
       ScrollInfo.nPage := PageStep;
-      ScrollInfo.nPos := Position;
+      ScrollInfo.nPos  := Position;
     end;
     SetScrollInfo(FGrid.Handle, FBarCode, ScrollInfo, True);
   end;
@@ -1669,11 +1705,11 @@ begin
     try
       PageStep := TGridScrollBar(Source).PageStep;
       LineStep := TGridScrollBar(Source).LineStep;
-      Min := TGridScrollBar(Source).Min;
-      Max := TGridScrollBar(Source).Max;
+      Min      := TGridScrollBar(Source).Min;
+      Max      := TGridScrollBar(Source).Max;
       Position := TGridScrollBar(Source).Position;
       Tracking := TGridScrollBar(Source).Tracking;
-      Visible := TGridScrollBar(Source).Visible;
+      Visible  := TGridScrollBar(Source).Visible;
       Exit;
     finally
       UnLockUpdate;
@@ -1698,8 +1734,9 @@ end;
 constructor TGridListBox.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
+  IntegralHeight := True;
   ParentShowHint := False;
-  ShowHint := False;
+  ShowHint       := False;
 end;
 
 procedure TGridListBox.CreateParams(var Params: TCreateParams);
@@ -1718,7 +1755,6 @@ end;
 procedure TGridListBox.CreateWnd;
 begin
   inherited CreateWnd;
-  SetParent(Self);
   CallWindowProc(DefWndProc, Handle, LM_SETFOCUS, 0, 0);
 end;
 
@@ -1735,9 +1771,11 @@ begin
       { инициируем поиск }
       begin
         TickCount := GetTickCount64;
-        if TickCount - FSearchTime > 2000 then FSearchText := '';
+        if TickCount - FSearchTime > 2000 then
+          FSearchText := '';
         FSearchTime := TickCount;
-        if UTF8Length(FSearchText) < 32 then FSearchText := FSearchText + Key;
+        if UTF8Length(FSearchText) < 32 then
+          FSearchText := FSearchText + Key;
         i := FindInStrings(FSearchText, Items, [fsIgnoreCase, fsFromBegin]);
         if i <> -1 then ItemIndex:= i;
         Key := #0;
@@ -1759,14 +1797,14 @@ constructor TCustomGridEdit.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
   { внутренние переменные }
-  FEditStyle := geSimple;
+  FEditStyle     := geSimple;
   FDropDownCount := 0;
-  FButtonWidth := GetSystemMetrics(SM_CXVSCROLL);
+  FButtonWidth   := GetSystemMetrics(SM_CXVSCROLL);
   { параметры внешнего вида }
-  TabStop := False;
-  BorderStyle := bsNone;
+  TabStop        := False;
+  BorderStyle    := bsNone;
   ParentShowHint := False;
-  ShowHint := False;
+  ShowHint       := False;
 end;
 
 function TCustomGridEdit.GetButtonRect: TRect;
@@ -1799,11 +1837,6 @@ begin
   Result := FPressCount <> 0;
 end;
 
-function TCustomGridEdit.GetVisible: Boolean;
-begin
-  Result := IsWindowVisible(Handle);
-end;
-
 procedure TCustomGridEdit.ListMouseUp(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 begin
   if (Button = mbLeft) and (FActiveList <> nil) then
@@ -1830,7 +1863,10 @@ end;
 
 procedure TCustomGridEdit.SetDropListVisible(Value: Boolean);
 begin
-  if Value then DropDown else CloseUp(False);
+  if Value then
+    DropDown
+  else
+    CloseUp(False);
 end;
 
 procedure TCustomGridEdit.SetEditStyle(Value: TGridEditStyle);
@@ -1875,7 +1911,8 @@ begin
   { ignore the focus message if the dialog box appears after selecting
     a drop-down list item, for example, a ColorDialog when selecting the
     "More Color ..." item in color list }
-  if ClosingUp or Pressing then Exit;
+  if ClosingUp or Pressing then
+    Exit;
   { stop editing the cell text when focus is lost }
   try
     CloseUp(False);
@@ -1899,11 +1936,11 @@ procedure TCustomGridEdit.LMLButtonDown(var Message: TLMLButtonDown);
 begin
   //SendCancelMode(Self); not implemented in Lazarus
   with Message do
-    { чтобы выделение текста не гасло при нажатии на кнопку, обрабатываем
-      нажатие сами }
+    // чтобы выделение текста не гасло при нажатии на кнопку, обрабатываем нажатие сами
     if (EditStyle <> geSimple) and PtInrect(ButtonRect, Classes.Point(XPos, YPos)) then
     begin
-      if csCaptureMouse in ControlStyle then MouseCapture := True;
+      if csCaptureMouse in ControlStyle then
+        MouseCapture := True;
       MouseDown(mbLeft, KeysToShiftState(Keys), XPos, YPos);
     end
     else
@@ -1920,7 +1957,8 @@ begin
   with Message do
   begin
     P := Classes.Point(XPos, YPos);
-    if (FEditStyle <> geSimple) and PtInRect(GetButtonRect, P) then Exit;
+    if (FEditStyle <> geSimple) and PtInRect(GetButtonRect, P) then
+      Exit;
   end;
   inherited;
 end;
@@ -1934,8 +1972,8 @@ begin
   //if (FEditStyle <> geSimple) and PtInRect(GetButtonRect, ScreenToClient(P)) then
   if (FEditStyle <> geSimple) and PtInRect(GetButtonRect, ScreenToClient(Mouse.CursorPos)) then
   begin
-    LCLIntf.SetCursor(Screen.Cursors[crArrow]);
-    //Cursor := crArrow;
+    //LCLIntf.SetCursor(Screen.Cursors[crArrow]);
+    Cursor := crArrow;
     Exit;
   end;
   inherited;
@@ -1943,27 +1981,32 @@ end;
 
 procedure TCustomGridEdit.LMPaste(var Message);
 begin
-  if EditCanModify then inherited;
+  if EditCanModify then
+    inherited;
 end;
 
 procedure TCustomGridEdit.LMCut(var Message);
 begin
-  if EditCanModify then inherited;
+  if EditCanModify then
+    inherited;
 end;
 
 procedure TCustomGridEdit.LMClear(var Message);
 begin
-  if EditCanModify then inherited;
+  if EditCanModify then
+    inherited;
 end;
 
 procedure TCustomGridEdit.Undo;
 begin
-  if (Grid = nil) or Grid.EditCanUndo(Grid.EditCell) then inherited;
+  if (Grid = nil) or Grid.EditCanUndo(Grid.EditCell) then
+    inherited;
 end;
 
 procedure TCustomGridEdit.CMCancelMode(var Message: TCMCancelMode);
 begin
-  if (Message.Sender <> Self) and (Message.Sender <> FActiveList) then CloseUp(False);
+  if (Message.Sender <> Self) and (Message.Sender <> FActiveList) then
+    CloseUp(False);
 end;
 
 procedure TCustomGridEdit.CMEnabledChanged(var Message);
@@ -2028,10 +2071,14 @@ begin
   begin
     { selected text can be rejected, accepted or modified using OnEditCloseUp
       grid event }
-    I := TGridListBox(FActiveList).ItemIndex;
+    I     := TGridListBox(FActiveList).ItemIndex;
     Items := TGridListBox(FActiveList).Items;
-    if I <> -1 then ItemText := Items[I] else ItemText := '';
-    if Grid <> nil then Grid.EditCloseUp(Grid.EditCell, Items, I, ItemText, Accept);
+    if I <> -1 then
+      ItemText := Items[I]
+    else
+      ItemText := '';
+    if Grid <> nil then
+      Grid.EditCloseUp(Grid.EditCell, Items, I, ItemText, Accept);
     if Accept and (I <> -1) then
     begin
       Text := ItemText;
@@ -2051,9 +2098,8 @@ const
   Aligns: array[TAlignment] of DWORD = (ES_LEFT, ES_RIGHT, ES_CENTER);
 begin
   inherited CreateParams(Params);
-  with Params do
-    Style := Style and (not WordWraps[FWordWrap]) or ES_MULTILINE or
-      Aligns[FAlignment];
+  Params.Style := Params.Style and
+    (not WordWraps[FWordWrap]) or ES_MULTILINE or Aligns[FAlignment];
 end;
 
 procedure TCustomGridEdit.DblClick;
@@ -2063,7 +2109,8 @@ begin
   { двойной щелчок - эмуляция нажатия на кнопку }
   case EditStyle of
     geEllipsis: Press;
-    gePickList, geDataList: if not FDropListVisible then SelectNext;
+    gePickList,
+    geDataList: if not FDropListVisible then SelectNext;
   else
     //
   end;
@@ -2081,13 +2128,12 @@ end;
 
 function TCustomGridEdit.GetDropList: TWinControl;
 begin
-  if FPickList = nil then
+  if FPickListBox = nil then
   begin
-    FPickList := TGridListBox.Create(Self);
-    FPickList.IntegralHeight := True;
-    FPickList.FGrid := Grid;
+    FPickListBox := TGridListBox.Create(Self);
+    FPickListBox.FGrid := Grid;
   end;
-  Result := FPickList;
+  Result := FPickListBox;
 end;
 
 procedure TCustomGridEdit.KeyDown(var Key: Word; Shift: TShiftState);
@@ -2101,52 +2147,25 @@ procedure TCustomGridEdit.KeyDown(var Key: Word; Shift: TShiftState);
     end;
   end;
 
-  procedure ParentEvent;
-  var
-    GridKeyDown: TKeyEvent;
-  begin
-    if Grid <> nil then
-    begin
-      GridKeyDown := Grid.OnKeyDown;
-      if Assigned(GridKeyDown) then GridKeyDown(Grid, Key, Shift);
-    end;
-  end;
-
 begin
-  { обрабатываем нажатие }
   case Key of
-    VK_UP,
-    VK_DOWN:
-      { перемещение фокуса }
-      if (Shift = [ssCtrl]) or ((Shift = []) and (not (WantReturns or WordWrap))) then SendToParent;
-    VK_PRIOR,
-    VK_NEXT:
-      { перемещение фокуса }
-      //if Shift = [ssCtrl] then 
-      SendToParent;
-    VK_ESCAPE:
-      { отмена }
-      SendToParent;
-    VK_DELETE:
-      { удаление }
-      if not EditCanModify then SendToParent;
-    VK_INSERT:
-      { вставка }
-      if (not EditCanModify) or (Shift = []) then SendToParent;
+    VK_UP, // перемещение фокуса
+    VK_DOWN: if (Shift = [ssCtrl]) or ((Shift = []) and (not (WantReturns or WordWrap))) then SendToParent;
+    VK_PRIOR, // перемещение фокуса
+    VK_NEXT: {if Shift = [ssCtrl] then} SendToParent;
+    VK_ESCAPE: SendToParent;
+    VK_DELETE: if not EditCanModify then SendToParent;
+    VK_INSERT: if (not EditCanModify) or (Shift = []) then SendToParent;
 //  VK_LEFT,
 //  VK_RIGHT,
-    VK_HOME,
-    VK_END:
-      { перемещение фокуса при нажатом Ctrl }
-      if Shift = [ssCtrl] then SendToParent;
-    VK_TAB:
-      { табуляция }
-      if not (ssAlt in Shift) then SendToParent;
+    VK_HOME, // перемещение фокуса при нажатом Ctrl
+    VK_END: if Shift = [ssCtrl] then SendToParent;
+    VK_TAB: if not (ssAlt in Shift) then SendToParent;
   end;
-  { кнопка не обработана - событие }
-  if Key <> 0 then
+  if Key <> 0 then // если кнопка не обработана
   begin
-    ParentEvent;
+    if (Grid <> nil) and Assigned(Grid.OnKeyDown) then
+      Grid.OnKeyDown(Grid, Key, Shift);
     inherited KeyDown(Key, Shift);
   end;
 end;
@@ -2162,25 +2181,20 @@ begin
     if (Key in [#32..#255]) and not Grid.EditCanAcceptKey(Grid.EditCell, Key) then
     begin
       Key := #0;
-      SysUtils.Beep;
+      Beep;
     end;
-    { разбираем символ }
-    case Key of                                 
-      #9, #27, #13: // bugfix TS : added #13
-        { TAB, ESC, ENTER убираем }
-        Key := #0;
-      ^H, ^V, ^X, #32..#255:
-        { BACKSPACE, обычные символы убираем, если нельзя редактировать }
-        { drop BACKSPACE and chars when cell is readonly }
-        if not EditCanModify then
+    case Key of
+      #9, #27, #13: Key := #0; // TAB, ESC, ENTER убираем
+      ^H, ^V, ^X, #32..#255:   // BACKSPACE, обычные символы убираем, если нельзя редактировать
+        if not EditCanModify then // drop BACKSPACE and chars when cell is readonly
         begin
           Key := #0;
-          SysUtils.Beep;
+          Beep;
         end;
     end;
   end;
-  { обработан ли символ }
-  if Key <> #0 then inherited KeyPress(Key);
+  if Key <> #0 then // если символ не обработан
+    inherited KeyPress(Key);
 end;
 
 procedure TCustomGridEdit.KeyUp(var Key: Word; Shift: TShiftState);
@@ -2201,7 +2215,8 @@ begin
     begin
       { начинаем нажатие на кнопку и, если нужно, открываем список }
       StartButtonTracking(X, Y);
-      if EditStyle <> geEllipsis then DropDown;
+      if EditStyle <> geEllipsis then
+        DropDown;
     end;
   end;
   inherited MouseDown(Button, Shift, X, Y);
@@ -2247,7 +2262,8 @@ begin
   { завершаем нажатие }
   StopButtonTracking;
   { нажатие на кнопку }
-  if (Button = mbLeft) and (EditStyle = geEllipsis) and P then Press;
+  if (Button = mbLeft) and (EditStyle = geEllipsis) and P then
+    Press;
   { обработка по умолчанию }
   inherited MouseUp(Button, Shift, X, Y);
 end;
@@ -2257,63 +2273,45 @@ var
   Detail1: TThemedButton;
   Detail2: TThemedComboBox;
   Flags: Integer;
-{$IFDEF WINDOWS}
-  X, Y, DX: Integer;
-{$ENDIF}
 begin
   case EditStyle of
     geEllipsis:
       if ThemeServices.ThemesEnabled then
       begin
-        if FButtonPressed then Detail1 := tbPushButtonPressed
-        //else if Hot then Detail1 := tbPushButtonHot
-        else Detail1 := tbPushButtonNormal;
+        if FButtonPressed then
+          Detail1 := tbPushButtonPressed
+        //else if Hot then
+        //  Detail1 := tbPushButtonHot
+        else
+          Detail1 := tbPushButtonNormal;
         with ThemeServices do
           DrawElement(DC, GetElementDetails(Detail1), Rect);
-      {$IFDEF WINDOWS}
-        //X := (Rect.Right - Rect.Left) div 2 - 1 + Ord(Pressed);
-        //Y := (Rect.Bottom - Rect.Top) div 2 - 1 + Ord(Pressed);
-        X := (Rect.Right - Rect.Left) div 2 + Ord(FButtonPressed and (Win32MajorVersion > 6));
-        Y := Rect.Bottom - 7 + Ord(FButtonPressed and (Win32MajorVersion > 6));
-        PatBlt(DC, Rect.Left + X, Rect.Top + Y, 1, 2, BLACKNESS);
-        PatBlt(DC, Rect.Left + X - 3, Rect.Top + Y, 1, 2, BLACKNESS);
-        PatBlt(DC, Rect.Left + X + 3, Rect.Top + Y, 1, 2, BLACKNESS);
-      {$ENDIF}
       end
       else
       begin
         Flags := 0;
-        if FButtonPressed then Flags := BF_FLAT;
+        if FButtonPressed then
+          Flags := BF_FLAT;
         DrawEdge(DC, Rect, EDGE_RAISED, BF_RECT or BF_MIDDLE or Flags);
-      {$IFDEF WINDOWS}
-        Flags := (Rect.Right - Rect.Left) div 2 - 1 + Ord(FButtonPressed);
-        PatBlt(DC, Rect.Left + Flags, Rect.Top + Flags, 2, 2, BLACKNESS);
-        PatBlt(DC, Rect.Left + Flags - 3, Rect.Top + Flags, 2, 2, BLACKNESS);
-        PatBlt(DC, Rect.Left + Flags + 3, Rect.Top + Flags, 2, 2, BLACKNESS);
-      {$ENDIF}
       end;
     gePickList, geDataList:
       if ThemeServices.ThemesEnabled then
       begin
-        if FButtonPressed then Detail2 := tcDropDownButtonPressed
-        //else if Hot then Detail2 := tcDropDownButtonHot
-        else Detail2 := tcDropDownButtonNormal;
+        if FButtonPressed then
+          Detail2 := tcDropDownButtonPressed
+        //else if Hot then
+        //  Detail2 := tcDropDownButtonHot
+        else
+          Detail2 := tcDropDownButtonNormal;
         with ThemeServices do
           DrawElement(DC, GetElementDetails(Detail2), Rect);
       end
       else
       begin
         Flags := 0;
-        if FButtonPressed then Flags := DFCS_FLAT;
+        if FButtonPressed then
+          Flags := DFCS_FLAT;
         DrawEdge(DC, Rect, EDGE_RAISED, BF_RECT or BF_MIDDLE or Flags);
-      {$IFDEF WINDOWS}
-        Flags := (Rect.Right - Rect.Left) div 2 - 1 + Ord(FButtonPressed);
-        DX := (Rect.Right - Rect.Left) mod 2 - 1;
-        PatBlt(DC, Rect.Left + Flags - 2 + DX, Rect.Top + Flags - 1, 7, 1, BLACKNESS);
-        PatBlt(DC, Rect.Left + Flags - 1 + DX, Rect.Top + Flags + 0, 5, 1, BLACKNESS);
-        PatBlt(DC, Rect.Left + Flags - 0 + DX, Rect.Top + Flags + 1, 3, 1, BLACKNESS);
-        PatBlt(DC, Rect.Left + Flags + 1 + DX, Rect.Top + Flags + 2, 1, 1, BLACKNESS);
-      {$ENDIF}
       end;
   else
     //
@@ -2442,22 +2440,23 @@ end;
 
 procedure TCustomGridEdit.UpdateContents;
 begin
-  if (Grid = nil) or (not Grid.IsCellValid(Grid.EditCell)) then Exit;
+  if (Grid = nil) or (not Grid.IsCellValid(Grid.EditCell)) then
+    Exit;
   { обновляем параметры строки }
   with Grid do
   begin
-    Self.MaxLength := Columns[EditCell.Col].MaxLength;
-    Self.ReadOnly := IsCellReadOnly(EditCell) or (Self.MaxLength = -1);
+    Self.MaxLength   := Columns[EditCell.Col].MaxLength;
+    Self.ReadOnly    := IsCellReadOnly(EditCell) or (Self.MaxLength = -1);
     Self.WantReturns := Columns[EditCell.Col].WantReturns;
     case Columns[EditCell.Col].EditWordWrap of
-      ewAuto: Self.WordWrap := Columns[EditCell.Col].WordWrap;
+      ewAuto:    Self.WordWrap := Columns[EditCell.Col].WordWrap;
       ewEnabled: Self.WordWrap := True;
     else
       Self.WordWrap := False;
     end;
     Self.Alignment := Columns[EditCell.Col].EditAlignment;
-    Self.EditMask := GetEditMask(EditCell);
-    Self.Text := GetEditText(EditCell);
+    Self.EditMask  := GetEditMask(EditCell);
+    Self.Text      := GetEditText(EditCell);
   end;
 end;
 
@@ -2479,15 +2478,18 @@ var
   P: TPoint;
   Monitor: TMonitor;
 begin
-  if (Grid = nil) or (FActiveList = nil) then Exit;
+  if (Grid = nil) or (FActiveList = nil) then
+    Exit;
   { get an active monitor, it will be used below to determine the height of
     the screen instead of the Screen }
   R := Self.ClientRect;
   P := Self.ClientOrigin;
   OffsetRect(R, P.X, P.Y);
   Monitor := Screen.MonitorFromRect(R);
-  if Monitor <> nil then Rect := Monitor.WorkareaRect
-  else Rect := Screen.WorkareaRect;
+  if Monitor <> nil then
+    Rect := Monitor.WorkareaRect
+  else
+    Rect := Screen.WorkareaRect;
   { define bounds only for TGridListBox and descendants }
   if FActiveList is TGridListBox then
     with TGridListBox(FActiveList) do
@@ -2496,7 +2498,7 @@ begin
       if Items.Count > 0 then
       begin
         W := 0;
-        for I := 0 to Items.Count - 1 do
+        for I := 0 to Items.Count-1 do
         begin
           X := Canvas.TextWidth(Items[I]);
           if W < X then W := X;
@@ -2542,7 +2544,8 @@ end;
 
 procedure TCustomGridEdit.UpdateListItems;
 begin
-  if (Grid = nil) or (FActiveList = nil) or (not (FActiveList is TGridListBox)) then Exit;
+  if (Grid = nil) or (FActiveList = nil) or (not (FActiveList is TGridListBox)) then
+    Exit;
   { обновляем выпадающий список }
   with TGridListBox(FActiveList) do
   begin
@@ -2677,7 +2680,8 @@ begin
     if GetCapture <> 0 then 
       SendMessage(GetCapture, LM_CANCELMODE, 0, 0);
     { скрываем список }
-    SetWindowPos(FActiveList.Handle, 0, 0, 0, 0, 0, Flags);
+    //SetWindowPos(FActiveList.Handle, 0, 0, 0, 0, 0, Flags);
+    FActiveList.Visible := False;
     FDropListVisible := False;
     Invalidate;
     { set ClosingUp state for WMKillFocus }
@@ -2720,11 +2724,13 @@ begin
       end;
       UpdateListBounds;
       { показываем список }
-      SetWindowPos(FActiveList.Handle, HWND_TOP, FActiveList.Left, FActiveList.Top, 0, 0, Flags);
+      //SetWindowPos(FActiveList.Handle, HWND_TOP, FActiveList.Left, FActiveList.Top, 0, 0, Flags);
+      FActiveList.Visible := True;
       FDropListVisible := True;
       Invalidate;
       { устанавливаем на него фокус }
-      LCLIntf.SetFocus(FActiveList.Handle);
+      //LCLIntf.SetFocus(FActiveList.Handle);
+      FActiveList.SetFocus;
     end;
   end;
 end;
@@ -2740,18 +2746,12 @@ begin
     Exit;
   end;
   { перерисовываемся }
-{$IFDEF WINDOWS}
-  ValidateRect(Handle, nil);
-{$ENDIF}
   InvalidateRect(Handle, nil, True);
   { обновляем прямоугольник таблицы }
   { grid under the inplace editor must be invalidated too }
   Cur := Default(TRect);
   LCLIntf.GetClientRect(Handle, Cur);
   MapWindowPoints(Handle, Grid.Handle, @Cur, 2);
-{$IFDEF WINDOWS}
-  ValidateRect(Grid.Handle, @Cur);
-{$ENDIF}
   InvalidateRect(Grid.Handle, @Cur, False);
 end;
 
@@ -2780,7 +2780,8 @@ begin
     begin
       FDefocusing := True;
       try
-        LCLIntf.SetFocus(Grid.Handle);
+        //LCLIntf.SetFocus(Grid.Handle);
+        Grid.SetFocus;
       finally
         FDefocusing := False;
       end;
@@ -2825,7 +2826,8 @@ end;
 
 procedure TCustomGridEdit.SetFocus;
 begin
-  if IsWindowVisible(Handle) then LCLIntf.SetFocus(Handle);
+  //if IsWindowVisible(Handle) then LCLIntf.SetFocus(Handle);
+  if Visible then inherited SetFocus;
 end;
 
 procedure TCustomGridEdit.Show;
@@ -3193,10 +3195,6 @@ begin
   if G < 0 then G := 0 else if G > 255 then G := 255;
   if B < 0 then B := 0 else if B > 255 then B := 255;
   Result := R or (G shl 8) or (B shl 16);
-{$IFDEF WINDOWS}
-  { return system color from system palette (actual for a 8-bit palette) }
-  Result := GetNearestColor(Canvas.Handle, Result);
-{$ENDIF}
 end;
 
 function TCustomGridView.GetRow: Longint;
@@ -4185,7 +4183,7 @@ begin
     begin
       BeginUpdate;
       try
-        for I := 0 to Count - 1 do
+        for I := 0 to Count-1 do
         begin
           Columns[I].FMaxWidth := MulDiv(Columns[I].FMaxWidth, M, D);
           Columns[I].FMinWidth := MulDiv(Columns[I].FMinWidth, M, D);
@@ -4305,12 +4303,6 @@ begin
   { window scroll bars must be updated after create window }
   FHorzScrollBar.Update;
   FVertScrollBar.Update;
-{$IFDEF WINDOWS}
-{ use the explorer theme to draw the selected cell (only if the uxtheme.dll
-  library loaded, from which the SetWindowTheme function is imported) }
-  if ThemeServices.ThemesAvailable then
-    SetWindowTheme(Handle, 'explorer', nil);
-{$ENDIF}
 end;
 
 procedure TCustomGridView.DoContextPopup(MousePos: TPoint; var Handled: Boolean);
@@ -4350,7 +4342,7 @@ begin
       if Header.PopupMenu <> nil then
       begin
         Menu := Header.PopupMenu;
-        for I := Menu.Items.Count - 1 downto 0 do
+        for I := Menu.Items.Count-1 downto 0 do
         begin
           Item := Menu.Items[I];
           if @Item.OnClick = @ClickEvent then Item.Free;
@@ -4372,7 +4364,7 @@ begin
         Menu.Items.Clear;
       end;
       { for each column add menu item }
-      for I := 0 to Columns.Count - 1 do
+      for I := 0 to Columns.Count-1 do
       begin
         Column := Columns[I];
         Item := NewItem(Column.Caption2, 0, Column.Visible, Column.DefaultPopup, ClickEvent, 0, '');
@@ -4402,7 +4394,7 @@ begin
         //else Rect := Screen.WorkareaRect;
         //H := GetSystemMetrics(SM_CYMENUSIZE);
         //if H = 0 then N := 1024 else N := (Rect.Bottom - Rect.Top) div H;
-        //for I := 0 to Menu.Items.Count - 1 do
+        //for I := 0 to Menu.Items.Count-1 do
         //begin
         //  Item := Menu.Items[I];
         //  if (I > 1) and (I mod N = 0) then Item.Break := mbBarBreak
@@ -4543,10 +4535,6 @@ begin
 end;
 
 procedure TCustomGridView.GetCellColors(Cell: TGridCell; Canvas: TCanvas);
-{$IFDEF WINDOWS}
-var
-  Theme: HTHEME;
-{$ENDIF}
 begin
   if Cell.Col < Fixed.Count then
   begin
@@ -4584,20 +4572,6 @@ begin
     { focused cell }
     if Enabled and IsCellHighlighted(Cell) and (not IsCellEditing(Cell)) then
     begin
-    {$IFDEF WINDOWS}
-      { OpenThemeData function is available only if the uxtheme.dll
-        library loaded and only in Windows Vista and above }
-      if ThemeServices.ThemesEnabled and CheckWin32Version(6, 0) then
-        Theme := OpenThemeData(Handle, 'TREEVIEW')
-      else
-        Theme := 0;
-      { do not change focused cell color on Windows Vista with themes enabled }
-      if Theme <> 0 then
-      begin
-        CloseThemeData(Theme);
-      end
-      else
-    {$ENDIF}
       if Focused or EditFocused then
       begin
         Canvas.Brush.Color := clHighlight;
@@ -4859,9 +4833,9 @@ function TCustomGridView.GetCursorCell(Cell: TGridCell; Offset: TGridCursorOffse
     C: TGridCell;
   begin
     { новая активная колонка }
-    I := MinIntValue([Cell.Col + O, Columns.Count - 1]);
+    I := MinIntValue([Cell.Col + O, Columns.Count-1]);
     { перебираем колонки до последней, пока не устанвится активная }
-    while I <= Columns.Count - 1 do
+    while I <= Columns.Count-1 do
     begin
       C := GridCell(I, Cell.Row);
       { пытаемся установить курсор }
@@ -4901,9 +4875,9 @@ function TCustomGridView.GetCursorCell(Cell: TGridCell; Offset: TGridCursorOffse
     C: TGridCell;
   begin
     { новая активная строка }
-    J := MinIntValue([Cell.Row + O, Rows.Count - 1]);
+    J := MinIntValue([Cell.Row + O, Rows.Count-1]);
     { перебираем строки до последней, пока не устанвится активная }
-    while J <= Rows.Count - 1 do
+    while J <= Rows.Count-1 do
     begin
       C := GridCell(Cell.Col, J);
       { пытаемся установить курсор }
@@ -5058,7 +5032,7 @@ function TCustomGridView.GetCursorCell(Cell: TGridCell; Offset: TGridCursorOffse
       I: Integer;
       C: TGridCell;
     begin
-      I := MinIntValue([Cell.Col, Columns.Count - 1]);
+      I := MinIntValue([Cell.Col, Columns.Count-1]);
       { перебираем колонки до текущей, пока не устанвится активная }
       while I >= CellFocused.Col do
       begin
@@ -5098,7 +5072,7 @@ function TCustomGridView.GetCursorCell(Cell: TGridCell; Offset: TGridCursorOffse
       J: Integer;
       C: TGridCell;
     begin
-      J := MinIntValue([Cell.Row, Rows.Count - 1]);
+      J := MinIntValue([Cell.Row, Rows.Count-1]);
       { перебираем строки до текущей, пока не устанвится активная }
       while J >= CellFocused.Row do
       begin
@@ -5156,11 +5130,11 @@ function TCustomGridView.GetCursorCell(Cell: TGridCell; Offset: TGridCursorOffse
   begin
     J := 0;
     { перебираем строки до текущей, пока не устанвится активная }
-    while J <= Rows.Count - 1 do
+    while J <= Rows.Count-1 do
     begin
       I := Fixed.Count;
       { перебираем колонки до последней, пока не устанвится активная }
-      while I <= Columns.Count - 1 do
+      while I <= Columns.Count-1 do
       begin
         C := GridCell(I, J);
         { пытаемся установить курсор }
@@ -5184,10 +5158,10 @@ function TCustomGridView.GetCursorCell(Cell: TGridCell; Offset: TGridCursorOffse
     I := Cell.Col + 1;
     J := Cell.Row;
     { перебираем строки до последней, пока не устанвится активная }
-    while J <= Rows.Count - 1 do
+    while J <= Rows.Count-1 do
     begin
       { перебираем колонки до последней, пока не устанвится активная }
-      while I <= Columns.Count - 1 do
+      while I <= Columns.Count-1 do
       begin
         C := GridCell(I, J);
         { пытаемся установить курсор, учитываем построчное выделение }
@@ -6215,7 +6189,7 @@ begin
     R.Bottom := R.Bottom + Rows.Height;
     R.Right := GetGridRect.Left;
     { перебираем колонки }
-    for I := 0 to Fixed.Count - 1 do
+    for I := 0 to Fixed.Count-1 do
     begin
       C := GridCell(I, VisOrigin.Row + J);
       W := Columns[C.Col].Width;
@@ -6311,7 +6285,7 @@ var
       R.Top := R.Bottom;
       R.Bottom := R.Bottom + Rows.Height;
       R.Right := GetFixedRect.Left;
-      for I := 0 to Fixed.Count - 1 do
+      for I := 0 to Fixed.Count-1 do
       begin
         W := Columns[I].Width;
         if W > 0 then
@@ -6346,7 +6320,7 @@ var
   begin
     R := Rect;
     R.Right := R.Left;
-    for I := 0 to Fixed.Count - 1 do
+    for I := 0 to Fixed.Count-1 do
     begin
       W := Columns[I].Width;
       if W > 0 then
@@ -6382,7 +6356,7 @@ begin
       { malloc two points on each line }
       SetLength(Points, StrokeCount * 2);
       SetLength(StrokeList, StrokeCount);
-      for I := 0 to StrokeCount - 1 do StrokeList[I] := 2;
+      for I := 0 to StrokeCount-1 do StrokeList[I] := 2;
       { fill the points of vertical lines }
       Rect := GetFixedRect;
       PointCount := 0;
@@ -6435,11 +6409,7 @@ begin
         begin
           Canvas.Pen.Color := GetFixedGridColor;
           Canvas.Pen.Width := FGridLineWidth;
-        {$IFDEF WINDOWS}
-          PolyPolyLine(Canvas.Handle, Pointer(Points)^, Pointer(StrokeList)^, PointCount shr 1);
-        {$ELSE}
           PolyPolyLine(Canvas.Handle, Points, StrokeList);
-        {$ENDIF}
         end
         else
           PaintDotGridLines(Pointer(Points), PointCount);
@@ -6448,18 +6418,10 @@ begin
       begin
         Canvas.Pen.Color := clBtnShadow;
         Canvas.Pen.Width := 1;
-      {$IFDEF WINDOWS}
-        PolyPolyLine(Canvas.Handle, Pointer(Points)^, Pointer(StrokeList)^, PointCount shr 1);
-      {$ELSE}
         PolyPolyLine(Canvas.Handle, Points, StrokeList);
-      {$ENDIF}
         ShiftGridPoints(1, 1);
         Canvas.Pen.Color := clBtnHighlight;
-      {$IFDEF WINDOWS}
-        PolyPolyLine(Canvas.Handle, Pointer(Points)^, Pointer(StrokeList)^, PointCount shr 1);
-      {$ELSE}
         PolyPolyLine(Canvas.Handle, Points, StrokeList);
-      {$ENDIF}
       end;
     end;
   end
@@ -6594,7 +6556,7 @@ begin
     { malloc two points on each line }
     SetLength(Points, StrokeCount * 2);
     SetLength(StrokeList, StrokeCount);
-    for I := 0 to StrokeCount - 1 do StrokeList[I] := 2;
+    for I := 0 to StrokeCount-1 do StrokeList[I] := 2;
     { fill the points of vertical lines }
     Rect := GetGridRect;
     PointCount := 0;
@@ -6641,11 +6603,7 @@ begin
     begin
       Canvas.Pen.Color := GetGridLineColor(Color);
       Canvas.Pen.Width := FGridLineWidth;
-    {$IFDEF WINDOWS}
-      PolyPolyLine(Canvas.Handle, Pointer(Points)^, Pointer(StrokeList)^, PointCount shr 1);
-    {$ELSE}
       PolyPolyLine(Canvas.Handle, Points, StrokeList);
-    {$ENDIF}
     end
     else
       PaintDotGridLines(Pointer(Points), PointCount);
@@ -6792,7 +6750,7 @@ var
   S: TGridHeaderSection;
   R, SR: TRect;
 begin
-  for I := 0 to Sections.Count - 1 do
+  for I := 0 to Sections.Count-1 do
   begin
     S := Sections[I];
     { рисуем только секции указанной "фиксированности" }
@@ -6985,7 +6943,7 @@ var
   Column: TCustomGridColumn;
 begin
   if ColumnsResize then
-    for I := 0 to Columns.Count - 1 do
+    for I := 0 to Columns.Count-1 do
     begin
       Column := Columns[I];
       if Column.Visible and not Column.FixedSize then SizeColumnToFit(I);
@@ -7286,11 +7244,6 @@ begin
 end;
 
 procedure TCustomGridView.DefaultDrawCell(Cell: TGridCell; Rect: TRect);
-{$IFDEF WINDOWS}
-const
-  ILDS: array[Boolean] of Longint = (ILD_NORMAL, ILD_SELECTED);
-  TVDS: array[Boolean] of Longint = (TREIS_SELECTEDNOTFOCUS, TREIS_SELECTED);
-{$ENDIF}
 var
   DefRect: TRect;
   CK: TGridCheckKind;
@@ -7303,11 +7256,6 @@ var
   A: TAlignment;
   WR, WW: Boolean;
   T: string;
-{$IFDEF WINDOWS}
-  IDS: Longint;
-  BKC, BLC: DWORD;
-  Theme: HTHEME;
-{$ENDIF}
 begin
   DefRect := Rect;
   CK := GetCheckKind(Cell);
@@ -7327,27 +7275,6 @@ begin
     if CI <> -1 then Inc(R.Left, II.X + Images.Width);
   end;
   Canvas.FillRect(R);
-{$IFDEF WINDOWS}
-  { Window Vista themed focus }
-  if Enabled and IsCellHighlighted(Cell) and (not IsCellEditing(Cell)) and
-    ThemeServices.ThemesEnabled and CheckWin32Version(6, 0) and
-    (Focused or EditFocused or (not HideSelection)) then
-  begin
-    Theme := OpenThemeData(Self.Handle, 'TREEVIEW');
-    if Theme <> 0 then
-    begin
-      if RS then
-      begin
-        R := GetRowRect(Cell.Row);
-        R.Left := GetColumnLeftRight(Fixed.Count).Left;
-      end;
-      if (GridLines and (gsVertLine in GridStyle)) then Dec(R.Right, FGridLineWidth);
-      if (GridLines and (gsHorzLine in GridStyle)) then Dec(R.Bottom, FGridLineWidth);
-      DrawThemeBackground(Theme, Canvas.Handle, TVP_TREEITEM, TVDS[Focused or EditFocused], R, @Rect);
-      CloseThemeData(Theme);
-    end;
-  end;
-{$ENDIF}
   { draw check box }
   if CK <> gcNone then
   begin
@@ -7396,13 +7323,6 @@ begin
       if X + W > R.Right then W := R.Right - X;
       H := Images.Height;
       if Y + H > R.Bottom then H := R.Bottom - Y;
-    {$IFDEF WINDOWS}
-      IDS := ILDS[IsCellHighlighted(Cell) and (Focused or EditFocused) and IH];
-      if OI <> -1 then IDS := ILD_OVERLAYMASK and IndexToOverlayMask(OI + 1);
-      BKC := GetRGBColor(Images.BkColor);
-      BLC := GetRGBColor(Images.BlendColor);
-      ImageList_DrawEx(Images.ResolutionByIndex[0].Reference.Handle, CI, Canvas.Handle, X, Y, W, H, BKC, BLC, IDS);
-    {$ENDIF}
       { exclude image rect from text rect }
       Rect.Left := R.Right;
     end;
@@ -7426,9 +7346,6 @@ var
   PaintState: TGridPaintStates;
   IsPressed: Boolean;
   I, X, Y, W, H: Integer;
-{$IFDEF WINDOWS}
-  BKC, BLC: DWORD;
-{$ENDIF}
   T: string;
   TL: Integer;
   R: TRect;
@@ -7472,11 +7389,6 @@ begin
         if X + W > R.Right then W := R.Right - X;
         H := Header.Images.Height;
         if Y + H > R.Bottom then H := R.Bottom - Y;
-      {$IFDEF WINDOWS}
-        BKC := GetRGBColor(Header.Images.BkColor);
-        BLC := GetRGBColor(Header.Images.BlendColor);
-        ImageList_DrawEx(Header.Images.ResolutionByIndex[0].Reference.Handle, I, Canvas.Handle, X, Y, W, H, BKC, BLC, ILD_NORMAL);
-      {$ENDIF}
       end;
       { image is always on the left of the section rectangle }
       Rect.Left := R.Right;
@@ -7603,9 +7515,9 @@ begin
         with next cell relative to the current one }
       I := CellFocused.Col + 1;
       R := CellFocused.Row;
-      while R <= Rows.Count - 1 do
+      while R <= Rows.Count-1 do
       begin
-        while I <= Columns.Count - 1 do
+        while I <= Columns.Count-1 do
         begin
           if CompareCell(I, R) then Exit;
           Inc(I);
@@ -7708,7 +7620,7 @@ begin
   Result := 0;
   { ищем среди фиксированных }
   L := GetGridRect.Left;
-  while Result <= Fixed.Count - 1 do
+  while Result <= Fixed.Count-1 do
   begin
     R := L + Columns[Result].Width;
     if (R <> L) and (X >= L) and (X < R) then
@@ -7718,7 +7630,7 @@ begin
   end;
   { ищем среди обычных }
   L := L + GetGridOrigin.X;
-  while Result <= Columns.Count - 1 do
+  while Result <= Columns.Count-1 do
   begin
     R := L + Columns[Result].Width;
     if (R <> L) and (X >= L) and (X < R) then
@@ -7819,7 +7731,7 @@ begin
   Result := 0;
   { подправляем индексы }
   Column1 := MaxIntValue([Column1, 0]);
-  Column2 := MinIntValue([Column2, Columns.Count - 1]);
+  Column2 := MinIntValue([Column2, Columns.Count-1]);
   { считаем }
   for I := Column1 to Column2 do Inc(Result, Columns[I].Width);
 end;
@@ -7868,7 +7780,7 @@ var
   I: Integer;
 begin
   Result := -1;
-  for I := Fixed.Count to Columns.Count - 1 do
+  for I := Fixed.Count to Columns.Count-1 do
     if Columns[I].Visible then
       Exit( I );
 end;
@@ -7977,7 +7889,7 @@ function TCustomGridView.GetHeaderSection(ColumnIndex, Level: Integer): TGridHea
     I, L: Integer;
     S: TGridHeaderSection;
   begin
-    for I := 0 to Sections.Count - 1 do
+    for I := 0 to Sections.Count-1 do
     begin
       S := Sections[I];
       L := S.Level;
@@ -8008,7 +7920,7 @@ function TCustomGridView.GetResizeSectionAt(X, Y: Integer): TGridHeaderSection;
     R: TRect;
     S: TGridHeaderSection;
   begin
-    for I := Sections.Count - 1 downto 0 do
+    for I := Sections.Count-1 downto 0 do
     begin
       { получаем ячейку и ее колонку }
       S := Sections[I];
@@ -8125,7 +8037,7 @@ function TCustomGridView.GetSectionAt(X, Y: Integer): TGridHeaderSection;
     S: TGridHeaderSection;
     R: TRect;
   begin
-    for I := 0 to Sections.Count - 1 do
+    for I := 0 to Sections.Count-1 do
     begin
       { получаем секцию }
       S := Sections[I];
@@ -8783,7 +8695,7 @@ begin
     X := GetGridRect.Left + GetFixedWidth - HorzScrollBar.Position;
     R := GetFixedRect;
     I := Fixed.Count;
-    while I < Columns.Count - 1 do
+    while I < Columns.Count-1 do
     begin
       X := X + Columns[I].Width;
       if X > R.Right then Break;
@@ -8792,7 +8704,7 @@ begin
     FVisOrigin.Col := I;
     { считаем количество видимых колонок }
     R := GetGridRect;
-    while I < Columns.Count - 1 do
+    while I < Columns.Count-1 do
     begin
       if X >= R.Right then Break;
       Inc(I);
