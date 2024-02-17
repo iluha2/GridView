@@ -810,11 +810,6 @@ type
 
 implementation
 
-{$IFDEF WINDOWS}
-uses
-  Windows;
-{$ENDIF}
-
 {$R *.res}
 
 const
@@ -2026,9 +2021,6 @@ begin
   UpdateScrollBars;
   UpdateCursorPos(False);
   UpdateEditContents(False);
-{$IFDEF WINDOWS}
-  ValidateRect(Handle, nil);
-{$ENDIF}
   Invalidate;
   if Assigned(FOnDataChange) then FOnDataChange(Self);
 end;
@@ -3037,11 +3029,7 @@ begin
         begin
           Canvas.Pen.Color := GetFixedGridColor;
           Canvas.Pen.Width := GridLineWidth;
-        {$IFDEF WINDOWS}
-          PolyPolyLine(Canvas.Handle, Pointer(Points)^, Pointer(StrokeList)^, PointCount shr 1);
-        {$ELSE}
           PolyPolyLine(Canvas.Handle, Points, StrokeList);
-        {$ENDIF}
         end
         else
           PaintDotGridLines(Pointer(Points), PointCount);
@@ -3052,20 +3040,12 @@ begin
         { темные линии }
         Canvas.Pen.Color := clBtnShadow;
         Canvas.Pen.Width := 1;
-      {$IFDEF WINDOWS}
-        PolyPolyLine(Canvas.Handle, Pointer(Points)^, Pointer(StrokeList)^, PointCount shr 1);
-      {$ELSE}
         PolyPolyLine(Canvas.Handle, Points, StrokeList);
-      {$ENDIF}
         { сдвигаем линии }
         ShiftPointsY(1);
         { светлые линии }
         Canvas.Pen.Color := clBtnHighlight;
-      {$IFDEF WINDOWS}
-        PolyPolyLine(Canvas.Handle, Pointer(Points)^, Pointer(StrokeList)^, PointCount shr 1);
-      {$ELSE}
         PolyPolyLine(Canvas.Handle, Points, StrokeList);
-      {$ENDIF}
       end;
     end;
   end
