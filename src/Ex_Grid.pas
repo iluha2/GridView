@@ -1755,7 +1755,7 @@ end;
 procedure TGridListBox.CreateWnd;
 begin
   inherited CreateWnd;
-  CallWindowProc(DefWndProc, Handle, LM_SETFOCUS, 0, 0);
+  //CallWindowProc(DefWndProc, Handle, LM_SETFOCUS, 0, 0);
 end;
 
 procedure TGridListBox.KeyPress(var Key: Char);
@@ -2003,7 +2003,7 @@ begin
     inherited;
 end;
 
-procedure TCustomGridEdit.CMCancelMode(var Message: TCMCancelMode);
+procedure TCustomGridEdit.CMCancelMode(var Message: TCMCancelMode); // NOTE !! not implemented !!
 begin
   if (Message.Sender <> Self) and (Message.Sender <> FActiveList) then
     CloseUp(False);
@@ -2013,12 +2013,6 @@ procedure TCustomGridEdit.CMEnabledChanged(var Message);
 begin
   inherited;
   Invalidate;
-end;
-
-procedure TCustomGridEdit.CMShowingChanged(var Message);
-begin
-  { игнорируем изменение видимости через изменение свойства Visible }
-  { ignore visibility change through Visible property change }
 end;
 
 procedure TCustomGridEdit.LMContextMenu(var Message: TLMessage);
@@ -2102,6 +2096,56 @@ begin
     (not WordWraps[FWordWrap]) or ES_MULTILINE or Aligns[FAlignment];
 end;
 
+procedure TCustomGridEdit.VisibleChanged;
+var
+  CursorPos: TPoint;
+  ScrollCaret: Boolean;
+begin
+  if Grid = nil then
+    Exit;
+  if Visible then
+  begin
+    ScrollCaret := not Grid.FEditing;
+    { поднимаем флаг редактирования }
+    Grid.FEditing := True;
+    Grid.FCellSelected := True;
+    { подправляем цвета (следует делать до установки границ, так как
+      они выставляются в зависимости от размера шрифта) }
+    UpdateColors;
+    { получаем размеры }
+    UpdateBounds(True, ScrollCaret);
+    { hot flag to draw a button when themes are enabled }
+    CursorPos := Default(TPoint);
+    if LCLIntf.GetCursorPos(CursorPos) then
+    begin
+      CursorPos := ScreenToClient(CursorPos);
+      FButtonHot := PtInRect(Bounds(0, 0, Width, Height), CursorPos);
+    end
+    else
+      FButtonHot := False;
+    { устанавливаем фокус }
+    if Grid.Focused then SetFocus;
+  end
+  else
+  begin
+    { сбрасываем флаг редактирования }
+    Grid.FEditing := False;
+    { скрываем строку ввода }
+    Invalidate;
+    { удаляем фокус }
+    { the grid should not lose focus }
+    if Focused then
+    begin
+      FDefocusing := True;
+      try
+        Grid.SetFocus;
+      finally
+        FDefocusing := False;
+      end;
+    end;
+  end;
+end;
+
 procedure TCustomGridEdit.DblClick;
 begin
   { событие таблицы }
@@ -2131,6 +2175,7 @@ begin
   if FPickListBox = nil then
   begin
     FPickListBox := TGridListBox.Create(Self);
+    FPickListBox.Parent := Self;
     FPickListBox.FGrid := Grid;
   end;
   Result := FPickListBox;
@@ -2225,7 +2270,8 @@ end;
 procedure TCustomGridEdit.MouseMove(Shift: TShiftState; X, Y: Integer);
 var
   P: TPoint;
-  M: TSmallPoint;
+  LP: LPARAM;
+  M: TSmallPoint absolute LP;
 begin
   if FButtonTracking then
   begin
@@ -2246,7 +2292,7 @@ begin
         { emulate a click on the drop-down list to close it when you release
           the mouse button }
         M := PointToSmallPoint(P);
-        SendMessage(FActiveList.Handle, LM_LBUTTONDOWN, 0, LongInt(M));
+        SendMessage(FActiveList.Handle, LM_LBUTTONDOWN, 0, LP);
         Exit;
       end;
     end;
@@ -2464,7 +2510,7 @@ procedure TCustomGridEdit.UpdateList;
 begin
   if FActiveList <> nil then
   begin
-    FActiveList.Visible := False;
+    //FActiveList.Hide;
     FActiveList.Parent := Self;
     THackWinControl(FActiveList).OnMouseUp := ListMouseUp;
     THackWinControl(FActiveList).Font := Font;
@@ -2532,7 +2578,7 @@ begin
     Width := MaxIntValue([Width, R.Right - R.Left]);
     { положение }
     Left := P.X + Self.Width - Width;
-    Top := P.Y + Self.Height;
+    Top  := P.Y + Self.Height;
     if Top + Height > Rect.Bottom - Rect.Top then Top := P.Y - Height;
     { подправляем в соотвествием с пожеланием пользователя }
     { list bounds can be redefined in OnGetEditListBounds event }
@@ -2591,7 +2637,10 @@ procedure TCustomGridEdit.WndProc(var Message: TLMessage);
         { открытие или закрытие }
         if ssAlt in Shift then
         begin
-          if FDropListVisible then CloseUp(True) else DropDown;
+          if FDropListVisible then
+            CloseUp(True)
+          else
+            DropDown;
           Key := 0;
         end;
       VK_RETURN, VK_ESCAPE:
@@ -2638,7 +2687,8 @@ begin
             { передаем оставшееся событие списку }
             if (CharCode <> 0) and FDropListVisible then
             begin
-              with Message do SendMessage(FActiveList.Handle, Msg, WParam, LParam);
+              with Message do
+                SendMessage(FActiveList.Handle, Msg, WParam, LParam);
               Exit;
             end;
           end;
@@ -2672,17 +2722,16 @@ begin
 end;
 
 procedure TCustomGridEdit.CloseUp(Accept: Boolean);
-const
-  Flags = SWP_NOZORDER or SWP_NOMOVE or SWP_NOSIZE or SWP_NOACTIVATE or SWP_HIDEWINDOW;
 begin
   if FDropListVisible then
   begin
     if GetCapture <> 0 then 
       SendMessage(GetCapture, LM_CANCELMODE, 0, 0);
     { скрываем список }
-    //SetWindowPos(FActiveList.Handle, 0, 0, 0, 0, 0, Flags);
-    FActiveList.Visible := False;
+    //SetWindowPos(FActiveList.Handle, 0, 0, 0, 0, 0,
+    //  SWP_NOZORDER or SWP_NOMOVE or SWP_NOSIZE or SWP_NOACTIVATE or SWP_HIDEWINDOW);
     FDropListVisible := False;
+    FActiveList.Hide;
     Invalidate;
     { set ClosingUp state for WMKillFocus }
     Inc(FCloseUpCount);
@@ -2703,8 +2752,6 @@ begin
 end;
 
 procedure TCustomGridEdit.DropDown;
-const
-  Flags = SWP_NOSIZE or SWP_NOACTIVATE or SWP_SHOWWINDOW;
 begin
   if (not FDropListVisible) and (Grid <> nil) and (EditStyle in [gePickList, geDataList]) then
   begin
@@ -2724,12 +2771,12 @@ begin
       end;
       UpdateListBounds;
       { показываем список }
-      //SetWindowPos(FActiveList.Handle, HWND_TOP, FActiveList.Left, FActiveList.Top, 0, 0, Flags);
-      FActiveList.Visible := True;
+      //SetWindowPos(FActiveList.Handle, HWND_TOP, FActiveList.Left, FActiveList.Top, 0, 0,
+      //  SWP_NOSIZE or SWP_NOACTIVATE or SWP_SHOWWINDOW);
       FDropListVisible := True;
+      FActiveList.Show;
       Invalidate;
       { устанавливаем на него фокус }
-      //LCLIntf.SetFocus(FActiveList.Handle);
       FActiveList.SetFocus;
     end;
   end;
@@ -2739,13 +2786,11 @@ procedure TCustomGridEdit.Invalidate;
 var
   Cur: TRect;
 begin
-  { проверяем таблицу }
   if Grid = nil then
   begin
     inherited Invalidate;
     Exit;
   end;
-  { перерисовываемся }
   InvalidateRect(Handle, nil, True);
   { обновляем прямоугольник таблицы }
   { grid under the inplace editor must be invalidated too }
@@ -2761,32 +2806,6 @@ var
 begin
   R := GetButtonRect;
   InvalidateRect(Handle, @R, False);
-end;
-
-procedure TCustomGridEdit.Hide;
-const
-  Flags = SWP_HIDEWINDOW or SWP_NOZORDER or SWP_NOREDRAW;
-begin
-  if (Grid <> nil) and HandleAllocated and Visible then
-  begin
-    { сбрасываем флаг редактирования }
-    Grid.FEditing := False;
-    { скрываем строку ввода }
-    Invalidate;
-    SetWindowPos(Handle, 0, 0, 0, 0, 0, Flags);
-    { удаляем фокус }
-    { the grid should not lose focus }
-    if Focused then
-    begin
-      FDefocusing := True;
-      try
-        //LCLIntf.SetFocus(Grid.Handle);
-        Grid.SetFocus;
-      finally
-        FDefocusing := False;
-      end;
-    end;
-  end;
 end;
 
 procedure TCustomGridEdit.Press;
@@ -2821,42 +2840,6 @@ begin
       Text := NewText;
       SetSel(0, -1);
     end;
-  end;
-end;
-
-procedure TCustomGridEdit.SetFocus;
-begin
-  //if IsWindowVisible(Handle) then LCLIntf.SetFocus(Handle);
-  if Visible then inherited SetFocus;
-end;
-
-procedure TCustomGridEdit.Show;
-var
-  CursorPos: TPoint;
-  ScrollCaret: Boolean;
-begin
-  if Grid <> nil then
-  begin
-    ScrollCaret := not Grid.FEditing;
-    { поднимаем флаг редактирования }
-    Grid.FEditing := True;
-    Grid.FCellSelected := True;
-    { подправляем цвета (следует делать до установки границ, так как
-      они выставляются в зависимости от размера шрифта) }
-    UpdateColors;
-    { получаем размеры }
-    UpdateBounds(True, ScrollCaret);
-    { hot flag to draw a button when themes are enabled }
-    CursorPos := Default(TPoint);
-    if LCLIntf.GetCursorPos(CursorPos) then
-    begin
-      CursorPos := ScreenToClient(CursorPos);
-      FButtonHot := PtInRect(Bounds(0, 0, Width, Height), CursorPos);
-    end
-    else
-      FButtonHot := False;
-    { устанавливаем фокус }
-    if Grid.Focused then LCLIntf.SetFocus(Handle);
   end;
 end;
 
@@ -3860,7 +3843,8 @@ begin
   if Rows.Count > 0 then
   begin
     InvalidateFocus;
-    if (FEdit <> nil) and (Message.FocusedWnd <> FEdit.Handle) then HideCursor;
+    if (FEdit <> nil) and (Message.FocusedWnd <> FEdit.Handle) then
+      HideCursor;
   end;
 end;
 
@@ -3870,7 +3854,8 @@ begin
   if Rows.Count > 0 then
   begin
     InvalidateFocus;
-    if (FEdit = nil) or ((Message.FocusedWnd <> FEdit.Handle) or (not FEdit.FDefocusing)) then ShowCursor;
+    if (FEdit = nil) or ((Message.FocusedWnd <> FEdit.Handle) or (not FEdit.FDefocusing)) then
+      ShowCursor;
   end;
 end;
 
@@ -3934,12 +3919,6 @@ end;
 procedure TCustomGridView.LMUser(var Message);
 begin
   UpdateEdit(AlwaysEdit);
-end;
-
-procedure TCustomGridView.CMCancelMode(var Message: TLMessage);
-begin
-  if FEdit <> nil then FEdit.WndProc(Message);
-  inherited;
 end;
 
 procedure TCustomGridView.CMEnabledChanged(var Message);
@@ -4088,14 +4067,6 @@ begin
   end;
 end;
 
-procedure TCustomGridView.CMWinIniChange(var Message);
-begin
-  inherited;
-  { i don't remember why, but the inplace editor needs to be updated
-    after changing Windows settings }
-  UpdateEditContents(True);
-end;
-
 function TCustomGridView.AcquireFocus: Boolean;
 begin
   Result := True;
@@ -4111,21 +4082,20 @@ end;
 
 procedure TCustomGridView.CancelCellTips;
 var
-  //P: TPoint;
   HintControl: TControl;
 
   function GetHintControl(Control: TControl): TControl;
   begin
     Result := Control;
-    while (Result <> nil) and not Result.ShowHint do Result := Result.Parent;
-    if (Result <> nil) and (csDesigning in Result.ComponentState) then Result := nil;
+    while (Result <> nil) and not Result.ShowHint do
+      Result := Result.Parent;
+    if (Result <> nil) and (csDesigning in Result.ComponentState) then
+      Result := nil;
   end;
 
 begin
   if ShowCellTips then
   begin
-    //Windows.GetCursorPos(P);
-    //HintControl := GetHintControl(FindDragTarget(P, False));
     HintControl := GetHintControl(FindDragTarget(Mouse.CursorPos, False));
     if HintControl = Self then Application.CancelHint;
   end;
@@ -5890,7 +5860,8 @@ begin
   if FEditPending and IsCellEqual(FClickPos, CellFocused) then
   begin
     FEditPending := False;
-    if SetTimer(Handle, 1, GetDoubleClickTime, nil) = 0 then Editing := True;
+    if SetTimer(Handle, 1, GetDoubleClickTime, nil) = 0 then
+      Editing := True;
   end;
   inherited MouseUp(Button, Shift, X, Y);
 end;
@@ -6007,13 +5978,13 @@ begin
   begin
     DrawEdge(Handle, Rect, BDR_RAISEDOUTER, SideFlags and (not BF_TOPLEFT));
     if SideFlags and BF_BOTTOM <> 0 then Dec(Rect.Bottom);
-    if SideFlags and BF_RIGHT <> 0 then Dec(Rect.Right);
+    if SideFlags and BF_RIGHT  <> 0 then Dec(Rect.Right);
     DrawEdge(Handle, Rect, BDR_RAISEDINNER, SideFlags and (not BF_BOTTOMRIGHT));
-    if SideFlags and BF_TOP <> 0 then Inc(Rect.Top);
+    if SideFlags and BF_TOP  <> 0 then Inc(Rect.Top);
     if SideFlags and BF_LEFT <> 0 then Inc(Rect.Left);
     DrawEdge(Handle, Rect, BDR_RAISEDINNER, SideFlags and (not BF_TOPLEFT));
     if SideFlags and BF_BOTTOM <> 0 then Dec(Rect.Bottom);
-    if SideFlags and BF_RIGHT <> 0 then Dec(Rect.Right);
+    if SideFlags and BF_RIGHT  <> 0 then Dec(Rect.Right);
     DrawEdge(Handle, Rect, BDR_RAISEDOUTER, SideFlags and (not BF_BOTTOMRIGHT));
   end;
 end;
@@ -6069,7 +6040,8 @@ begin
         R.Left := R.Right;
         R.Right := R.Right + W;
         { рисуем ячейку }
-        if RectVisible(Canvas.Handle, R) then PaintCell(C, R);
+        if RectVisible(Canvas.Handle, R) then
+          PaintCell(C, R);
       end;
     end;
   end;
@@ -6197,7 +6169,8 @@ begin
       begin
         R.Left := R.Right;
         R.Right := R.Right + W;
-        if RectVisible(Canvas.Handle, R) then PaintCell(C, R);
+        if RectVisible(Canvas.Handle, R) then
+          PaintCell(C, R);
       end;
     end;
   end;
@@ -6292,7 +6265,8 @@ var
         begin
           R.Left := R.Right;
           R.Right := R.Right + W;
-          if RectVisible(Canvas.Handle, R) then Paint3DFrame(R, BF_RECT);
+          if RectVisible(Canvas.Handle, R) then
+            Paint3DFrame(R, BF_RECT);
         end;
       end;
     end;
@@ -6307,7 +6281,8 @@ var
     repeat
       R.Top := R.Bottom;
       R.Bottom := R.Bottom + Rows.Height;
-      if RectVisible(Canvas.Handle, R) then Paint3DFrame(R, BF_RECT);
+      if RectVisible(Canvas.Handle, R) then
+        Paint3DFrame(R, BF_RECT);
     until R.Bottom >= Rect.Bottom;
   end;
 
@@ -6327,7 +6302,8 @@ var
       begin
         R.Left := R.Right;
         R.Right := R.Right + W;
-        if RectVisible(Canvas.Handle, R) then Paint3DFrame(R, Flags[DrawBottomLine]);
+        if RectVisible(Canvas.Handle, R) then
+          Paint3DFrame(R, Flags[DrawBottomLine]);
       end;
     end
   end;
@@ -6470,13 +6446,13 @@ begin
   begin
     { clip the header and fixed cells (these are all around the cells to
       allow for the indicator from TDBGridView) }
-    R := ClientRect;
+    R  := ClientRect;
     R2 := GetGridRect;
     R2.Left := R2.Left + GetFixedWidth;
-    ExcludeClipRect(Canvas.Handle, R.Left, R.Top, R.Right, R2.Top);
-    ExcludeClipRect(Canvas.Handle, R.Left, R2.Top, R2.Left, R2.Bottom);
-    ExcludeClipRect(Canvas.Handle, R.Left, R2.Bottom, R.Right, R.Bottom);
-    ExcludeClipRect(Canvas.Handle, R2.Right, R2.Top, R.Right, R2.Bottom);
+    ExcludeClipRect(Canvas.Handle, R.Left,   R.Top,     R.Right, R2.Top);
+    ExcludeClipRect(Canvas.Handle, R.Left,   R2.Top,    R2.Left, R2.Bottom);
+    ExcludeClipRect(Canvas.Handle, R.Left,   R2.Bottom, R.Right, R.Bottom);
+    ExcludeClipRect(Canvas.Handle, R2.Right, R2.Top,    R.Right, R2.Bottom);
     { focus rectangle should not include grid lines }
     R := GetFocusRect;
     if GridLines then
@@ -8070,7 +8046,8 @@ end;
 
 procedure TCustomGridView.Invalidate;
 begin
-  if (Parent <> nil) and (FUpdateLock = 0) then inherited;
+  if (Parent <> nil) and (FUpdateLock = 0) then
+    inherited;
 end;
 
 procedure TCustomGridView.InvalidateCell(Cell: TGridCell);
@@ -8556,13 +8533,14 @@ end;
 
 procedure TCustomGridView.UpdateFocus;                           
 begin
-  if csDesigning in ComponentState then Exit;
+  if csDesigning in ComponentState then
+    Exit;
   { если таблица уже активна, то ставим фокус на нее еще раз насильно,
     т.к. в противном случае могут быть глюки с MDI формами }
   if IsActiveControl then
   begin
-    LCLIntf.SetFocus(Handle);
-    if GetFocus = Handle then Perform(CM_UIACTIVATE, 0, 0);
+    SetFocus;
+    Perform(CM_UIACTIVATE, 0, 0);
   end
   else if IsWindowVisible(Handle) and TabStop and
     (CanFocus or (GetParentForm(Self) = nil)) then

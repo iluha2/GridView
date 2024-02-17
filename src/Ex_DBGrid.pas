@@ -230,7 +230,7 @@ type
 
   TDBGridEdit = class(TCustomGridEdit)
   private
-    FDataList: TDBGridListBox;
+    FDataListBox: TDBGridListBox;
     function GetGrid: TCustomDBGridView;
     procedure LMKillFocus(var Message); message LM_KILLFOCUS;
   protected
@@ -1082,8 +1082,8 @@ function TDBGridEdit.GetDropList: TWinControl;
 begin
   if (EditStyle = geDataList) and (Grid <> nil) and IsLookupField(Grid.EditField) then
   begin
-    if FDataList = nil then FDataList := TDBGridListBox.Create(Self);
-    Result := FDataList;
+    if FDataListBox = nil then FDataListBox := TDBGridListBox.Create(Self);
+    Result := FDataListBox;
   end
   else
     Result := inherited GetDropList;

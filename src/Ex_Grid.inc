@@ -1100,7 +1100,6 @@ type
     procedure LMSetCursor(var Message); message LM_SETCURSOR;
     procedure CMCancelMode(var Message: TCMCancelMode); message CM_CANCELMODE{%H-}; // NOTE !! not implemented !!
     procedure CMEnabledChanged(var Message); message CM_ENABLEDCHANGED;
-    procedure CMShowingChanged(var {%H-}Message); message CM_SHOWINGCHANGED;
     procedure LMContextMenu(var Message: TLMessage); message LM_CONTEXTMENU;
     procedure CMFontChanged(var Message); message CM_FONTCHANGED;
     procedure CMMouseEnter(var Message); message CM_MOUSEENTER;
@@ -1109,6 +1108,7 @@ type
     procedure ApplyListValue(Accept: Boolean); virtual;
     procedure Change; override;
     procedure CreateParams(var Params: TCreateParams); override;
+    procedure VisibleChanged; override;
     procedure DblClick; override;
     function DoMouseWheel(Shift: TShiftState; WheelDelta: Integer; MousePos: TPoint): Boolean; override;
     function EditCanModify: Boolean; override;
@@ -1139,13 +1139,10 @@ type
     procedure DropDown;
     procedure Invalidate; override;
     procedure InvalidateButton;
-    procedure Hide;
     procedure Press;
     procedure SelectNext;
-    procedure SetFocus; override;
-    procedure Show;
     procedure Undo; override;
-    property ActiveList: TWinControl read FActiveList write FActiveList;
+    property ActiveList: TWinControl read FActiveList;
     property Alignment: TAlignment read FAlignment write SetAlignment default taLeftJustify;
     property ButtonRect: TRect read GetButtonRect;
     property ButtonWidth: Integer read FButtonWidth write SetButtonWidth;
@@ -1158,7 +1155,6 @@ type
     property Grid: TCustomGridView read FGrid;
     property LineCount: Integer read GetLineCount;
     property MaxLength;
-    property PickListBox: TGridListBox read FPickListBox;
     property Pressing: Boolean read GetPressing;
     property WantReturns: Boolean read FWantReturns write FWantReturns;
     property WordWrap: Boolean read FWordWrap write SetWordWrap;
@@ -2673,14 +2669,12 @@ type
     procedure LMEraseBkgnd(var Message: TLMessage); message LM_ERASEBKGND;
     procedure LMTimer(var {%H-}Message); message LM_TIMER;
     procedure LMUser(var {%H-}Message); message LM_USER;
-    procedure CMCancelMode(var Message: TLMessage); message CM_CANCELMODE{%H-}; // NOTE !! not implemented !!
     procedure CMEnabledChanged(var Message); message CM_ENABLEDCHANGED;
     procedure CMFontChanged(var Message); message CM_FONTCHANGED;
     procedure CMColorChanged(var Message); message CM_COLORCHANGED;
     procedure CMShowHintChanged(var {%H-}Message); message CM_SHOWHINTCHANGED;
     procedure CMHintShow(var Message: TLMessage); message CM_HINTSHOW;
     procedure CMMouseLeave(var Message); message CM_MOUSELEAVE;
-    procedure CMWinIniChange(var Message); message CM_WININICHANGE{%H-}; // NOTE !! not implemented !!
   protected
     FEditPending: Boolean;
     procedure CancelCellTips; virtual;
