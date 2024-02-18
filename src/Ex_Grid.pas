@@ -2088,12 +2088,11 @@ end;
 
 procedure TCustomGridEdit.CreateParams(var Params: TCreateParams);
 const
-  WordWraps: array[Boolean] of DWORD = (0, ES_AUTOHSCROLL);
+  //WordWraps: array[Boolean] of DWORD = (0, ES_AUTOHSCROLL);
   Aligns: array[TAlignment] of DWORD = (ES_LEFT, ES_RIGHT, ES_CENTER);
 begin
   inherited CreateParams(Params);
-  Params.Style := Params.Style and
-    (not WordWraps[FWordWrap]) or ES_MULTILINE or Aligns[FAlignment];
+  Params.Style := Params.Style {and (not WordWraps[FWordWrap])} {or ES_MULTILINE} or Aligns[FAlignment];
 end;
 
 procedure TCustomGridEdit.VisibleChanged;
@@ -2124,24 +2123,19 @@ begin
     else
       FButtonHot := False;
     { устанавливаем фокус }
-    if Grid.Focused then SetFocus;
+    if Grid.Focused then
+      LCLIntf.SetFocus(Handle);
   end
   else
   begin
     { сбрасываем флаг редактирования }
     Grid.FEditing := False;
-    { скрываем строку ввода }
-    Invalidate;
-    { удаляем фокус }
     { the grid should not lose focus }
-    if Focused then
-    begin
-      FDefocusing := True;
-      try
-        Grid.SetFocus;
-      finally
-        FDefocusing := False;
-      end;
+    FDefocusing := True;
+    try
+      LCLIntf.SetFocus(Grid.Handle);
+    finally
+      FDefocusing := False;
     end;
   end;
 end;
@@ -2319,26 +2313,34 @@ var
   Detail1: TThemedButton;
   Detail2: TThemedComboBox;
   Flags: Integer;
+  X, Y, DX: Integer;
 begin
   case EditStyle of
     geEllipsis:
-      if ThemeServices.ThemesEnabled then
       begin
-        if FButtonPressed then
-          Detail1 := tbPushButtonPressed
-        //else if Hot then
-        //  Detail1 := tbPushButtonHot
+        if ThemeServices.ThemesEnabled then
+        begin
+          if FButtonPressed then
+            Detail1 := tbPushButtonPressed
+          //else if Hot then
+          //  Detail1 := tbPushButtonHot
+          else
+            Detail1 := tbPushButtonNormal;
+          with ThemeServices do
+            DrawElement(DC, GetElementDetails(Detail1), Rect);
+        end
         else
-          Detail1 := tbPushButtonNormal;
-        with ThemeServices do
-          DrawElement(DC, GetElementDetails(Detail1), Rect);
-      end
-      else
-      begin
-        Flags := 0;
-        if FButtonPressed then
-          Flags := BF_FLAT;
-        DrawEdge(DC, Rect, EDGE_RAISED, BF_RECT or BF_MIDDLE or Flags);
+        begin
+          Flags := 0;
+          if FButtonPressed then
+            Flags := BF_FLAT;
+          DrawEdge(DC, Rect, EDGE_RAISED, BF_RECT or BF_MIDDLE or Flags);
+        end;
+        X := Rect.Left + (Rect.Right  - Rect.Left) div 2 + Ord(FButtonPressed);
+        Y := Rect.Top  + (Rect.Bottom - Rect.Top ) div 2 + Ord(FButtonPressed);
+        Rectangle(DC, X  , Y, X+2, Y+2);
+        Rectangle(DC, X-3, Y, X-1, Y+2);
+        Rectangle(DC, X+3, Y, X+5, Y+2);
       end;
     gePickList, geDataList:
       if ThemeServices.ThemesEnabled then
@@ -2358,6 +2360,13 @@ begin
         if FButtonPressed then
           Flags := DFCS_FLAT;
         DrawEdge(DC, Rect, EDGE_RAISED, BF_RECT or BF_MIDDLE or Flags);
+        DX := (Rect.Right - Rect.Left) div 2 + Ord(FButtonPressed);
+        X := Rect.Left + DX + (Rect.Right - Rect.Left) mod 2;
+        Y := Rect.Top  + DX;
+        Rectangle(DC, X-2, Y-1, X+5, Y  );
+        Rectangle(DC, X-1, Y  , X+4, Y+1);
+        Rectangle(DC, X  , Y+1, X+3, Y+2);
+        Rectangle(DC, X+1, Y+2, X+2, Y+3);
       end;
   else
     //
@@ -2452,7 +2461,10 @@ begin
     { смещение текста }
     TI := Grid.GetCellTextIndent(Grid.EditCell);
     { учитываем кнопку }
-    if EditStyle <> geSimple then Dec(W, ButtonWidth + 4) else Dec(W, Grid.TextRightIndent);
+    if EditStyle <> geSimple then
+      Dec(W, ButtonWidth + 4)
+    else
+      Dec(W, Grid.TextRightIndent);
     { устанавливаем границы текста }
     R := Bounds(L + TI.X, T + TI.Y, W - TI.X + Ord(Alignment = taRightJustify), H);
     SendMessage(Handle, EM_SETRECTNP, 0, {%H-}LPARAM(@R));
@@ -2739,7 +2751,7 @@ begin
       ApplyListValue(Accept);
       { return focus to the inplace editor in case the OnEditCloseUp event
         handler displayed a dialog, for example, a color dialog }
-      SetFocus;
+      LCLIntf.SetFocus(Handle);
     finally
       Dec(FCloseUpCount);
     end;
@@ -2777,7 +2789,7 @@ begin
       FActiveList.Show;
       Invalidate;
       { устанавливаем на него фокус }
-      FActiveList.SetFocus;
+      LCLIntf.SetFocus(FActiveList.Handle);
     end;
   end;
 end;
@@ -2817,7 +2829,7 @@ begin
       Grid.EditButtonPress(Grid.EditCell);
       { after closing the dialog box (if any), the focus should be restored
         to the inplace editor }
-      SetFocus;
+      LCLIntf.SetFocus(Handle);
     finally
       Dec(FPressCount);
     end;
@@ -4071,7 +4083,8 @@ function TCustomGridView.AcquireFocus: Boolean;
 begin
   Result := True;
   { if the focus is now on the input line, then grid is in focus too }
-  if (FEdit <> nil) and FEdit.Focused then Exit;
+  if (FEdit <> nil) and FEdit.Focused then
+    Exit;
   { можно ли устанавливать фокус }
   if not (csDesigning in ComponentState) and CanFocus then
   begin
@@ -7190,7 +7203,8 @@ begin
         MakeCellVisible(CellFocused, False);
         { if the input line is visible, then put the focus on it, otherwise
           it will be hidden after opening the error message box }
-        if EditFocused then Edit.SetFocus;
+        if EditFocused then
+          LCLIntf.SetFocus(Edit.Handle);
         raise;
       end;
     end;
@@ -8539,15 +8553,17 @@ begin
     т.к. в противном случае могут быть глюки с MDI формами }
   if IsActiveControl then
   begin
-    SetFocus;
-    Perform(CM_UIACTIVATE, 0, 0);
+    LCLIntf.SetFocus(Handle);
+    if GetFocus = Handle then
+      Perform(CM_UIACTIVATE, 0, 0);
   end
-  else if IsWindowVisible(Handle) and TabStop and
+  else if {IsWindowVisible(Handle) and} TabStop and
     (CanFocus or (GetParentForm(Self) = nil)) then
   begin
     Show;
     SetFocus;
-    if AlwaysEdit and (Edit <> nil) then UpdateEdit(True);
+    if AlwaysEdit and (Edit <> nil) then
+      UpdateEdit(True);
   end;
 end;
 
