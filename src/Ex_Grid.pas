@@ -3897,18 +3897,12 @@ end;
 
 procedure TCustomGridView.LMHScroll(var Message: TLMHScroll);
 begin
-  if Message.ScrollBar = 0 then
-    FHorzScrollBar.ScrollMessage(Message)
-  else
-    inherited;
+  FHorzScrollBar.ScrollMessage(Message)
 end;
 
 procedure TCustomGridView.LMVScroll(var Message: TLMVScroll);
 begin
-  if Message.ScrollBar = 0 then
-    FVertScrollBar.ScrollMessage(Message)
-  else
-    inherited;
+  FVertScrollBar.ScrollMessage(Message)
 end;
 
 procedure TCustomGridView.LMNCHitTest(var Message: TLMNCHitTest);
