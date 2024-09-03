@@ -74,40 +74,46 @@ end;
 
 procedure GV_RegStorColumns(const Path: string; Grid: TGridView);
 var
-  Reg: TRegistry;
+  reg: TRegistry;
   i: Integer;
 begin
-  Reg := TRegistry.Create;
   TRY
-    if Reg.OpenKey(Path, True) then
-    begin
-      for i:= 0 to Grid.Columns.Count-1 do
-        Reg.WriteInteger('Col'+ IntToStr(i), Grid.Columns[i].Width);
-      Reg.CloseKey;
-    end;
+    reg:= TRegistry.Create(KEY_WRITE);
+    TRY
+      if reg.OpenKey(Path, True) then
+      begin
+        for i:= 0 to Grid.Columns.Count-1 do
+          reg.WriteInteger('Col'+ IntToStr(i), Grid.Columns[i].Width);
+        reg.CloseKey;
+      end;
+    EXCEPT
+    END;
+    reg.Free;
   EXCEPT
   END;
-  FreeThenNil(Reg);
 end;
 
 procedure GV_RegRetrColumns(const Path: string; Grid: TGridView);
 var
-  Reg: TRegistry;
+  reg: TRegistry;
   i: Integer;
 begin
-  Reg := TRegistry.Create;
   TRY
-    if Reg.OpenKey(Path, False) then
-    begin
-      for i:= 0 to Grid.Columns.Count-1 do
-        Grid.Columns[i].Width:= Reg.ReadInteger('Col'+ IntToStr(i));
-      Reg.CloseKey;
-    end
-    else
-      Grid.SizeAllColumnsToFit;
+    reg:= TRegistry.Create(KEY_READ);
+    TRY
+      if reg.OpenKey(Path, False) then
+      begin
+        for i:= 0 to Grid.Columns.Count-1 do
+          Grid.Columns[i].Width:= reg.ReadInteger('Col'+ IntToStr(i));
+        reg.CloseKey;
+      end
+      else
+        Grid.SizeAllColumnsToFit;
+    EXCEPT
+    END;
+    reg.Free;
   EXCEPT
   END;
-  FreeThenNil(Reg);
 end;
 
 {$IFDEF WINDOWS}
