@@ -5506,7 +5506,6 @@ var
   Cell: TGridCell;
   Handled: Boolean;
 begin
-  { событие - пользователю }
   inherited KeyDown(Key, Shift);
   Handled := False;
   { разбираем стрелки }
@@ -5567,17 +5566,15 @@ begin
     end; // case Key of
   end; // if gkArrows in CursorKeys then
 
-  { курсор на следующую или предыдущую ячейку при нажатии TAB }
-  if (gkTabs in CursorKeys) and (Key = VK_TAB) then
-  begin
-    SetGridCursor(GetCursorCell(CellFocused, TabOffsets[ssShift in Shift]), True, True);
-    Handled := True;
-  end;
-
   if not Handled then
   begin
-    Handled := True;
     case Key of
+      VK_TAB: // курсор на следующую или предыдущую ячейку при нажатии TAB
+        if gkTabs in CursorKeys then
+        begin
+          SetGridCursor(GetCursorCell(CellFocused, TabOffsets[ssShift in Shift]), True, True);
+          Handled := True;
+        end;
       VK_SPACE:
         { нажат пробел - кликаем флажок }
         { if row selection is enabled then click check box of the first column }
@@ -5590,19 +5587,24 @@ begin
             SetGridCursor(Cell, True, True);
             CheckClick(Cell);
           end;
+          Handled := True;
         end;
       VK_F2:
-        Editing := True;
+        begin
+          Editing := True;
+          Handled := True;
+        end;
       VK_ADD:
         if Shift >= [ssCtrl, ssShift] then
+        begin
           SizeAllColumnsToFit;
-    else // case
-      Handled := False;
+          Handled := True;
+        end
     end; // case Key of
   end; // if not Handled then
 
   if Handled then
-    Key := 0;
+    Key := 0; // в GTK2 надо делать обязательно, иначе может потеряться фокус
 end;
 
 procedure TCustomGridView.KeyPress(var Key: Char);
