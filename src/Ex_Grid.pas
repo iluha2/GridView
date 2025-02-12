@@ -5504,11 +5504,15 @@ const
   TabOffsets: array[Boolean] of TGridCursorOffset = (goNext, goPrev);
 var
   Cell: TGridCell;
+  Handled: Boolean;
 begin
   { событие - пользователю }
   inherited KeyDown(Key, Shift);
+  Handled := False;
   { разбираем стрелки }
   if gkArrows in CursorKeys then
+  begin
+    Handled := True;
     case Key of
       VK_LEFT: // курсор влево
         begin
@@ -5558,33 +5562,47 @@ begin
           Cell := GetCursorCell(CellFocused, EndOffsets[ssCtrl in Shift]);
           SetGridCursor(Cell, True, True);
         end;
-    end;
+    else // case
+      Handled := False;
+    end; // case Key of
+  end; // if gkArrows in CursorKeys then
+
   { курсор на следующую или предыдущую ячейку при нажатии TAB }
   if (gkTabs in CursorKeys) and (Key = VK_TAB) then
+  begin
     SetGridCursor(GetCursorCell(CellFocused, TabOffsets[ssShift in Shift]), True, True);
-  case Key of
-    VK_SPACE:
-      { нажат пробел - кликаем флажок }
-      { if row selection is enabled then click check box of the first column }
-      if CheckBoxes and (not EditCanShow(CellFocused) or (ssCtrl in Shift)) then
-      begin
-        Cell := CellFocused;
-        if RowSelect then Cell.Col := Fixed.Count;
-        if GetCheckKind(Cell) <> gcNone then
-        begin
-          SetGridCursor(Cell, True, True);
-          CheckClick(Cell);
-        end;
-      end;
-    VK_F2:
-      Editing := True;
-    VK_ADD:
-      if Shift >= [ssCtrl, ssShift] then
-      begin
-        SizeAllColumnsToFit;
-        Key := 0;
-      end;
+    Handled := True;
   end;
+
+  if not Handled then
+  begin
+    Handled := True;
+    case Key of
+      VK_SPACE:
+        { нажат пробел - кликаем флажок }
+        { if row selection is enabled then click check box of the first column }
+        if CheckBoxes and (not EditCanShow(CellFocused) or (ssCtrl in Shift)) then
+        begin
+          Cell := CellFocused;
+          if RowSelect then Cell.Col := Fixed.Count;
+          if GetCheckKind(Cell) <> gcNone then
+          begin
+            SetGridCursor(Cell, True, True);
+            CheckClick(Cell);
+          end;
+        end;
+      VK_F2:
+        Editing := True;
+      VK_ADD:
+        if Shift >= [ssCtrl, ssShift] then
+          SizeAllColumnsToFit;
+    else // case
+      Handled := False;
+    end; // case Key of
+  end; // if not Handled then
+
+  if Handled then
+    Key := 0;
 end;
 
 procedure TCustomGridView.KeyPress(var Key: Char);
@@ -8555,7 +8573,7 @@ begin
     (CanFocus or (GetParentForm(Self) = nil)) then
   begin
     Show;
-    SetFocus;
+    LCLIntf.SetFocus(Handle);
     if AlwaysEdit and (Edit <> nil) then
       UpdateEdit(True);
   end;
