@@ -2383,128 +2383,145 @@ end;
 
 procedure TCustomDBGridView.KeyDown(var Key: Word; Shift: TShiftState);
 var
-  KeyScroll, CtrlSelected, KeepSelected: Boolean;
+  CtrlSelected, KeepSelected: Boolean;
 begin
-  KeyScroll := Key in [VK_UP, VK_DOWN, VK_PRIOR, VK_NEXT, VK_HOME, VK_END,
-    VK_TAB, VK_RETURN, VK_ESCAPE, VK_INSERT, VK_DELETE];
-  { lock cursor movement in the TCustomGridView.KeyDown handler }
-  if KeyScroll then LockScroll;
-  try
+  if not DataLink.Active then
+  begin
     inherited;
-    if not DataLink.Active then Exit;
-    { before changing the active record, the MoveBy method automatically calls
-      the DataLink.UpdateRecord method, in which an exception may occur. This
-      exception should be intercepted and not allowed to change the position
-      of the cursor. Otherwise, the UnLockScroll call will attempt to move the
-      active record to the new cursor position, which again will call
-      DataLink.UpdateRecord and generate a second error message. }
-    try
-      { moving with the arrow keys }
-      if gkArrows in CursorKeys then
-      begin
-        CtrlSelected := MultiSelect and (Shift = [ssCtrl]);
-        case Key of
-          VK_LEFT:
-            begin
-              MoveBy(0, Shift);
-              KeepSelected := (not CtrlSelected) or FSelectedRows.CurrentRowSelected;
-              SetGridCursor(CellFocused, KeepSelected, True);
-            end;
-          VK_RIGHT:
-            begin
-              MoveBy(0, Shift);
-              KeepSelected := (not CtrlSelected) or FSelectedRows.CurrentRowSelected;
-              SetGridCursor(CellFocused, KeepSelected, True);
-            end;
-          VK_UP:
-            { cancel insertion and move to the previous record }
-            begin
-              MoveBy(-1, Shift);
-              KeepSelected := (not CtrlSelected) or FSelectedRows.CurrentRowSelected;
-              SetGridCursor(CellFocused, KeepSelected, True);
-            end;
-          VK_DOWN:
-            { move to the next record or insert new record }
-            begin
-              MoveBy(1, Shift);
-              KeepSelected := (not CtrlSelected) or FSelectedRows.CurrentRowSelected;
-              SetGridCursor(CellFocused, KeepSelected, True);
-            end;
-          VK_PRIOR:
-            begin
-              MoveBy(-VisSize.Row, Shift);
-              KeepSelected := (not CtrlSelected) or FSelectedRows.CurrentRowSelected;
-              SetGridCursor(FScrollCell, KeepSelected, True);
-            end;
-          VK_NEXT:
-            begin
-              MoveBy(VisSize.Row, Shift);
-              KeepSelected := (not CtrlSelected) or FSelectedRows.CurrentRowSelected;
-              SetGridCursor(FScrollCell, KeepSelected, True);
-            end;
-          VK_HOME:
-            if ssCtrl in Shift then
-            begin
-              MoveBy(DBGRID_BOF, Shift);
-              KeepSelected := (not CtrlSelected) or FSelectedRows.CurrentRowSelected;
-              SetGridCursor(FScrollCell, KeepSelected, True);
-            end;
-          VK_END:
-            if ssCtrl in Shift then
-            begin
-              MoveBy(DBGRID_EOF, Shift);
-              KeepSelected := (not CtrlSelected) or FSelectedRows.CurrentRowSelected;
-              SetGridCursor(FScrollCell, KeepSelected, True);
-            end;
-          VK_SPACE:
-            if ssCtrl in Shift then
-            begin
-              MoveBy(0, Shift + [ssMiddle]);
-              KeepSelected := FSelectedRows.CurrentRowSelected;
-              SetGridCursor(CellFocused, KeepSelected, True);
-            end;
-        end;
-      end;
-      { moving with the TAB key }
-      if (gkTabs in CursorKeys) and (Key = VK_TAB) and (not RowSelect) then
-      begin
-        { move to the next record by pressing the TAB key on the last column }
-        if (CellFocused.Col = Columns.Count - 1) and (not (ssShift in Shift)) then
-        begin
-          MoveBy(1, []);
-          SetGridCursor(GetCursorCell(CellFocused, goHome), True, True);
-        end;
-        { move to the prior record by pressing the SHIFT+TAB key on the
-          first column }
-        if (CellFocused.Col = Fixed.Count) and (ssShift in Shift) then
-        begin
-          MoveBy(-1, []);
-          SetGridCursor(GetCursorCell(CellFocused, goEnd), True, True);
-        end;
-      end;
-      { other keys }
-      case Key of
-        VK_ESCAPE:
-          begin
-            CancelEdit;
-            SetGridCursor(CellFocused, True, True);
-          end;
-        VK_INSERT:
-          if (Shift = []) and (not Editing) then Insert(False);
-        VK_DELETE:
-          if (Shift = []) and (not Editing) then
-          begin
-            Delete;
-            SetGridCursor(CellFocused, True, True);
-          end;
-      end;
-    except
-      SetGridCursor(CellFocused, True, True);
-      raise;
-    end;
-  finally
-    if KeyScroll then UnLockScroll(False);
+    Exit;
   end;
+  { before changing the active record, the MoveBy method automatically calls
+    the DataLink.UpdateRecord method, in which an exception may occur. This
+    exception should be intercepted and not allowed to change the position
+    of the cursor. Otherwise, the UnLockScroll call will attempt to move the
+    active record to the new cursor position, which again will call
+    DataLink.UpdateRecord and generate a second error message. }
+  TRY
+    { moving with the arrow keys }
+    if gkArrows in CursorKeys then
+    begin
+      CtrlSelected := MultiSelect and (Shift = [ssCtrl]);
+      case Key of
+        VK_LEFT:
+          begin
+            MoveBy(0, Shift);
+            KeepSelected := (not CtrlSelected) or FSelectedRows.CurrentRowSelected;
+            SetGridCursor(CellFocused, KeepSelected, True);
+            Key := 0;
+          end;
+        VK_RIGHT:
+          begin
+            MoveBy(0, Shift);
+            KeepSelected := (not CtrlSelected) or FSelectedRows.CurrentRowSelected;
+            SetGridCursor(CellFocused, KeepSelected, True);
+            Key := 0;
+          end;
+        VK_UP:
+          { cancel insertion and move to the previous record }
+          begin
+            MoveBy(-1, Shift);
+            KeepSelected := (not CtrlSelected) or FSelectedRows.CurrentRowSelected;
+            SetGridCursor(CellFocused, KeepSelected, True);
+            Key := 0;
+          end;
+        VK_DOWN:
+          { move to the next record or insert new record }
+          begin
+            MoveBy(1, Shift);
+            KeepSelected := (not CtrlSelected) or FSelectedRows.CurrentRowSelected;
+            SetGridCursor(CellFocused, KeepSelected, True);
+            Key := 0;
+          end;
+        VK_PRIOR:
+          begin
+            MoveBy(-VisSize.Row, Shift);
+            KeepSelected := (not CtrlSelected) or FSelectedRows.CurrentRowSelected;
+            SetGridCursor(FScrollCell, KeepSelected, True);
+            Key := 0;
+          end;
+        VK_NEXT:
+          begin
+            MoveBy(VisSize.Row, Shift);
+            KeepSelected := (not CtrlSelected) or FSelectedRows.CurrentRowSelected;
+            SetGridCursor(FScrollCell, KeepSelected, True);
+            Key := 0;
+          end;
+        VK_HOME:
+          //if ssCtrl in Shift then
+          begin
+            MoveBy(DBGRID_BOF, Shift);
+            KeepSelected := (not CtrlSelected) or FSelectedRows.CurrentRowSelected;
+            SetGridCursor(FScrollCell, KeepSelected, True);
+            Key := 0;
+          end;
+        VK_END:
+          //if ssCtrl in Shift then
+          begin
+            MoveBy(DBGRID_EOF, Shift);
+            KeepSelected := (not CtrlSelected) or FSelectedRows.CurrentRowSelected;
+            SetGridCursor(FScrollCell, KeepSelected, True);
+            Key := 0;
+          end;
+        VK_SPACE:
+          if ssCtrl in Shift then
+          begin
+            MoveBy(0, Shift + [ssMiddle]);
+            KeepSelected := FSelectedRows.CurrentRowSelected;
+            SetGridCursor(CellFocused, KeepSelected, True);
+            Key := 0;
+          end;
+      end; // case Key of
+    end; // if gkArrows in CursorKeys then
+
+    { moving with the TAB key }
+    if (gkTabs in CursorKeys) and (Key = VK_TAB) and (not RowSelect) then
+    begin
+      { move to the next record by pressing the TAB key on the last column }
+      if (CellFocused.Col = Columns.Count - 1) and (not (ssShift in Shift)) then
+      begin
+        MoveBy(1, []);
+        SetGridCursor(GetCursorCell(CellFocused, goHome), True, True);
+        Key := 0;
+      end;
+      { move to the prior record by pressing the SHIFT+TAB key on the
+        first column }
+      if (CellFocused.Col = Fixed.Count) and (ssShift in Shift) then
+      begin
+        MoveBy(-1, []);
+        SetGridCursor(GetCursorCell(CellFocused, goEnd), True, True);
+        Key := 0;
+      end;
+    end;
+
+    { other keys }
+    case Key of
+      VK_ESCAPE:
+        begin
+          CancelEdit;
+          SetGridCursor(CellFocused, True, True);
+          Key := 0;
+        end;
+      VK_INSERT:
+        if (Shift = []) and (not Editing) then
+        begin
+          Insert(False);
+          Key := 0;
+        end;
+      VK_DELETE:
+        if (Shift = []) and (not Editing) then
+        begin
+          Delete;
+          SetGridCursor(CellFocused, True, True);
+          Key := 0;
+        end;
+    end;
+  EXCEPT
+    SetGridCursor(CellFocused, True, True);
+    Key := 0;
+    raise;
+  END;
+
+  inherited;
 end;
 
 procedure TCustomDBGridView.KeyPress(var Key: Char);

@@ -5506,9 +5506,8 @@ var
   Cell: TGridCell;
   Handled: Boolean;
 begin
-  inherited KeyDown(Key, Shift);
-  Handled := False;
-  { разбираем стрелки }
+  // !! `inherited KeyDown()` вызовем в конце
+  // !! при обработке всегда обнуляем `Key` (в GTK2 иначе может потеряться фокус)
   if gkArrows in CursorKeys then
   begin
     Handled := True;
@@ -5564,47 +5563,45 @@ begin
     else // case
       Handled := False;
     end; // case Key of
+    if Handled then
+      Key := 0;
   end; // if gkArrows in CursorKeys then
 
-  if not Handled then
-  begin
-    case Key of
-      VK_TAB: // курсор на следующую или предыдущую ячейку при нажатии TAB
-        if gkTabs in CursorKeys then
+  case Key of
+    VK_TAB: // курсор на следующую или предыдущую ячейку при нажатии TAB
+      if gkTabs in CursorKeys then
+      begin
+        SetGridCursor(GetCursorCell(CellFocused, TabOffsets[ssShift in Shift]), True, True);
+        Key := 0;
+      end;
+    VK_SPACE:
+      { нажат пробел - кликаем флажок }
+      { if row selection is enabled then click check box of the first column }
+      if CheckBoxes and (not EditCanShow(CellFocused) or (ssCtrl in Shift)) then
+      begin
+        Cell := CellFocused;
+        if RowSelect then Cell.Col := Fixed.Count;
+        if GetCheckKind(Cell) <> gcNone then
         begin
-          SetGridCursor(GetCursorCell(CellFocused, TabOffsets[ssShift in Shift]), True, True);
-          Handled := True;
+          SetGridCursor(Cell, True, True);
+          CheckClick(Cell);
         end;
-      VK_SPACE:
-        { нажат пробел - кликаем флажок }
-        { if row selection is enabled then click check box of the first column }
-        if CheckBoxes and (not EditCanShow(CellFocused) or (ssCtrl in Shift)) then
-        begin
-          Cell := CellFocused;
-          if RowSelect then Cell.Col := Fixed.Count;
-          if GetCheckKind(Cell) <> gcNone then
-          begin
-            SetGridCursor(Cell, True, True);
-            CheckClick(Cell);
-          end;
-          Handled := True;
-        end;
-      VK_F2:
-        begin
-          Editing := True;
-          Handled := True;
-        end;
-      VK_ADD:
-        if Shift >= [ssCtrl, ssShift] then
-        begin
-          SizeAllColumnsToFit;
-          Handled := True;
-        end
-    end; // case Key of
-  end; // if not Handled then
+        Key := 0;
+      end;
+    VK_F2:
+      begin
+        Editing := True;
+        Key := 0;
+      end;
+    VK_ADD:
+      if Shift >= [ssCtrl, ssShift] then
+      begin
+        SizeAllColumnsToFit;
+        Key := 0;
+      end
+  end; // case Key of
 
-  if Handled then
-    Key := 0; // в GTK2 надо делать обязательно, иначе может потеряться фокус
+  inherited;
 end;
 
 procedure TCustomGridView.KeyPress(var Key: Char);
