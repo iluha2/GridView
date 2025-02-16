@@ -5498,8 +5498,6 @@ end;
 
 procedure TCustomGridView.KeyDown(var Key: Word; Shift: TShiftState);
 const
-  HomeOffsets: array[Boolean] of TGridCursorOffset = (goHome, goGridHome);
-  EndOffsets: array[Boolean] of TGridCursorOffset = (goEnd, goGridEnd);
   TabOffsets: array[Boolean] of TGridCursorOffset = (goNext, goPrev);
 var
   Cell: TGridCell;
@@ -5551,12 +5549,18 @@ begin
         SetGridCursor(GetCursorCell(CellFocused, goPageDown), True, True);
       VK_HOME: //курсор в начало строки или таблицы
         begin
-          Cell := GetCursorCell(CellFocused, HomeOffsets[ssCtrl in Shift]);
+          if RowSelect or (ssCtrl in Shift) then
+            Cell := GetCursorCell(CellFocused, goGridHome) // в начало таблицы
+          else
+            Cell := GetCursorCell(CellFocused, goHome); // в начало строки
           SetGridCursor(Cell, True, True);
         end;
       VK_END: // курсор в конец строки или таблицы
         begin
-          Cell := GetCursorCell(CellFocused, EndOffsets[ssCtrl in Shift]);
+          if RowSelect or (ssCtrl in Shift) then
+            Cell := GetCursorCell(CellFocused, goGridEnd) // в конец таблицы
+          else
+            Cell := GetCursorCell(CellFocused, goEnd); // в конец строки
           SetGridCursor(Cell, True, True);
         end;
     else // case
@@ -6899,12 +6903,13 @@ begin
   FClickPos := GridCell(-1, -1);
 end;
 
-procedure TCustomGridView.Resize;
+procedure TCustomGridView.DoOnResize;
 begin
   if UpdateLock = 0 then UpdateScrollBars;
   UpdateVisOriginSize;
   UpdateEdit(Editing);
-  inherited Resize;
+  Invalidate;
+  inherited;
 end;
 
 procedure TCustomGridView.SetEditText(Cell: TGridCell; var Value: string);
@@ -8653,7 +8658,7 @@ begin
   try
     UpdateVertScrollBar;
     UpdateHorzScrollBar;
-    UpdateVertScrollBar;
+    //UpdateVertScrollBar;
   finally
     UnLockUpdate(False);
   end;

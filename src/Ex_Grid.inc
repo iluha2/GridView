@@ -2797,7 +2797,7 @@ type
       WantReturns, WordWrap: Boolean; const Text: string); virtual;
     procedure PreparePatternBitmap(Canvas: TCanvas; FillColor: TColor; Remove: Boolean); virtual;
     procedure ResetClickPos; virtual;
-    procedure Resize; override;
+    procedure DoOnResize; override;
     procedure RowsChange(Sender: TObject); virtual;
     procedure SetBorderStyle(Value: TBorderStyle); override;
     procedure SetEditText(Cell: TGridCell; var Value: string); virtual;

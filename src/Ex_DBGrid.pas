@@ -577,7 +577,7 @@ type
     procedure PaintIndicatorImage(Rect: TRect; DataRow: Integer); virtual;
     procedure SetEditText(Cell: TGridCell; var Value: string); override;
     procedure SetFieldText(Field: TField; const Text: string); virtual;
-    procedure Resize; override;
+    procedure DoOnResize; override;
     procedure ShowCursor; override;
     procedure UpdateData; virtual;
   public
@@ -3189,7 +3189,7 @@ begin
   end;
 end;
 
-procedure TCustomDBGridView.Resize;
+procedure TCustomDBGridView.DoOnResize;
 begin
   UpdateRowCount;
   UpdateCursorPos(False);
