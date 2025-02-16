@@ -2182,7 +2182,7 @@ procedure TCustomGridEdit.KeyDown(var Key: Word; Shift: TShiftState);
     if Grid <> nil then
     begin
       Grid.KeyDown(Key, Shift);
-      Key := 0;
+      //Key := 0;
     end;
   end;
 
@@ -2201,12 +2201,11 @@ begin
     VK_END: if Shift = [ssCtrl] then SendToParent;
     VK_TAB: if not (ssAlt in Shift) then SendToParent;
   end;
-  if Key <> 0 then // если кнопка не обработана
-  begin
-    if (Grid <> nil) and Assigned(Grid.OnKeyDown) then
-      Grid.OnKeyDown(Grid, Key, Shift);
-    inherited KeyDown(Key, Shift);
-  end;
+  // если кнопка не обработана
+  if (Key <> 0) and (Grid <> nil) and Assigned(Grid.OnKeyDown) then
+    Grid.OnKeyDown(Grid, Key, Shift);
+  // обработчик по-умолчанию
+  inherited;
 end;
 
 procedure TCustomGridEdit.KeyPress(var Key: Char);
