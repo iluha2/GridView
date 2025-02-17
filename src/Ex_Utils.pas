@@ -27,7 +27,7 @@ function IsCellEqual(Cell1, Cell2: TGridCell): Boolean;
 function IsCellEmpty(Cell: TGridCell): Boolean;
 function OffsetCell(Cell: TGridCell; C, R: Longint): TGridCell;
 function FindInStrings(const s: string; ss: TStrings; const par: TFindStrParams = []): Integer;
-function MapWindowPoints(hWndFrom, hWndTo: HWND; Points: Pointer; cPoints: UINT): Integer;
+function MapWindowPoints(hWndFrom, hWndTo: HWND; Points: Pointer; cPoints: UINT): LongInt;
 procedure PolyPolyline(DC: HDC; const Points: array of TPoint; const PNums: array of DWORD);
 
 
@@ -74,7 +74,7 @@ begin
   end;
 end;
 
-function MapWindowPoints(hWndFrom, hWndTo: HWND; Points: Pointer; cPoints: UINT): Integer;
+function MapWindowPoints(hWndFrom, hWndTo: HWND; Points: Pointer; cPoints: UINT): Longint;
 var
   PtsArr: PPoint absolute Points;
   i: Integer;
@@ -92,7 +92,7 @@ begin
     PtsArr[i].x := XOffset + PtsArr[i].x;
     PtsArr[i].y := YOffset + PtsArr[i].y;
   end;
-  Result := MakeLong(XOffset, YOffset);
+  Result := MakeLong(Word(XOffset), Word(YOffset));
 end;
 
 procedure PolyPolyline(DC: HDC; const Points: array of TPoint; const PNums: array of DWORD);
