@@ -92,7 +92,7 @@ begin
     PtsArr[i].x := XOffset + PtsArr[i].x;
     PtsArr[i].y := YOffset + PtsArr[i].y;
   end;
-  Result := MakeLong(Word(XOffset), Word(YOffset));
+  Result := Longint(MakeLong(Word(XOffset), Word(YOffset)));
 end;
 
 procedure PolyPolyline(DC: HDC; const Points: array of TPoint; const PNums: array of DWORD);
