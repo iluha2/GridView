@@ -1912,7 +1912,7 @@ begin
   { ignore the focus message if the dialog box appears after selecting
     a drop-down list item, for example, a ColorDialog when selecting the
     "More Color ..." item in color list }
-  if ClosingUp or Pressing then
+   if ClosingUp or Pressing or ((FActiveList <> nil) and (FActiveList.Focused)) then
     Exit;
   { stop editing the cell text when focus is lost }
   try
@@ -2525,8 +2525,8 @@ begin
   begin
     //FActiveList.Hide;
     FActiveList.Parent := Self;
-    THackWinControl(FActiveList).OnMouseUp := ListMouseUp;
-    THackWinControl(FActiveList).Font := Font;
+    FActiveList.OnMouseUp := ListMouseUp;
+    FActiveList.Font := Font;
   end;
 end;
 
@@ -4081,7 +4081,7 @@ begin
   if (FEdit <> nil) and FEdit.Focused then
     Exit;
   { можно ли устанавливать фокус }
-  if not (csDesigning in ComponentState) and CanFocus then
+  if not (csDesigning in ComponentState) and (Parent <> nil) and (Parent.CanFocus) and CanFocus then
   begin
     UpdateFocus;
     Result := IsActiveControl;
