@@ -1796,6 +1796,7 @@ end;
 constructor TCustomGridEdit.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
+  Visible := False;
   { внутренние переменные }
   FEditStyle     := geSimple;
   FDropDownCount := 0;
@@ -2445,13 +2446,14 @@ begin
     { подправляем строку в соотвествии с заголовком }
     with Grid.GetHeaderRect do
     begin
-      if R.Top < Bottom then R.Top := Bottom;
-      if R.Bottom < Bottom then R.Bottom := Bottom;
+      if (R.Top < Bottom) or ( R.Bottom < Bottom) then
+      begin
+        Self.Visible := False;
+        Exit;
+      end;
     end;
     { устанавливаем положение }
-    W := R.Right - R.Left;
-    H := R.Bottom - R.Top;
-    SetWindowPos(Handle, HWND_TOP, R.Left, R.Top, W, H, Flags[Showing]);
+    BoundsRect := R;
     { вычисляем новые границы текста }
     L := F.Left - R.Left;
     T := F.Top - R.Top;
@@ -3854,7 +3856,7 @@ begin
   if Rows.Count > 0 then
   begin
     InvalidateFocus;
-    if (FEdit <> nil) and (Message.FocusedWnd <> FEdit.Handle) then
+    if (FEdit <> nil) and (Message.FocusedWnd <> 0) and (Message.FocusedWnd <> FEdit.Handle) then
       HideCursor;
   end;
 end;
@@ -6932,7 +6934,7 @@ begin
   { показываем строку ввода }
   Editing := True;
   { вставляем символ }
-  if (Edit <> nil) and Editing then
+  if Editing then
     PostMessage(Edit.Handle, LM_CHAR, Word(C), 0);
 end;
 
@@ -8496,6 +8498,7 @@ procedure TCustomGridView.UpdateEdit(Activate: Boolean);
       FEdit := CreateEdit(EditClass);
       FEdit.Parent := Self;
       FEdit.FGrid := Self;
+      FEdit.ParentFont := True;
     end;
   end;
 
@@ -8503,10 +8506,14 @@ procedure TCustomGridView.UpdateEdit(Activate: Boolean);
   begin
     FEditCell := FCellFocused;
     FEdit.Updating;
-    FEdit.UpdateContents;
+
+    FEdit.UpdateBounds(FEdit.Visible, Editing);
+    if not Editing then
+      FEdit.UpdateContents;
     FEdit.UpdateStyle;
     FEdit.Updated;
-    FEdit.SelectAll;
+    if not Editing then
+      FEdit.SelectAll;
   end;
 
 begin
@@ -8526,7 +8533,9 @@ begin
       HideEdit;
       DoValidateEdit;
       DoUpdateEdit;
-    end;
+    end
+    else if Editing then
+      DoUpdateEdit;
     { показываем строку }
     if Activate then
     begin
