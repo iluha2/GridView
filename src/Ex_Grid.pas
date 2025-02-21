@@ -1053,11 +1053,11 @@ procedure TCustomGridColumn.SetEditStyle(Value: TGridEditStyle);
 begin
   if FEditStyle <> Value then
   begin
-  // NOTE !! Linux: `TGridColumn.EditStyle := gePickList` is not supported !!
+  // NOTE !! Linux: `TGridColumn.EditStyle` does not support lists (gePickList, geDataList) !!
   {$IFDEF UNIX}
-    if Value = gePickList then
+    if Value in [gePickList, geDataList] then
     begin
-      Application.MessageBox('Linux: `TGridColumn.EditStyle := gePickList` is not supported!', 'Error', MB_ICONSTOP);
+      Application.MessageBox('Linux: `TGridColumn.EditStyle` does not support lists!', 'Error', MB_ICONSTOP);
       Exit;
     end;
   {$ENDIF}
