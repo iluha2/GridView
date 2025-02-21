@@ -3491,7 +3491,8 @@ begin
   begin
     ApplyEditText;
 
-    if not AlwaysEdit then HideEdit;
+    if not AlwaysEdit then
+      HideEdit;
   end;
   if WasEditing <> Editing then ChangeEditing;
 end;
@@ -3866,8 +3867,8 @@ begin
   inherited;
   if Rows.Count > 0 then
   begin
-    InvalidateFocus;
-    if (FEdit = nil) or ((Message.FocusedWnd <> FEdit.Handle) or (not FEdit.FDefocusing)) then
+    InvalidateFocus; 
+    if (FEdit <> nil) and ((Message.FocusedWnd <> FEdit.Handle) or (not FEdit.FDefocusing)) then
       ShowCursor;
   end;
 end;
@@ -4548,7 +4549,7 @@ begin
     else if GrayReadOnly and IsCellReadOnly(Cell) then
       Canvas.Font.Color := clGrayText;
     { focused cell }
-    if Enabled and IsCellHighlighted(Cell) and (not IsCellEditing(Cell)) then
+    if (Enabled and IsCellFocused(Cell) and (not IsCellEditing(Cell))) then
     begin
       if Focused or EditFocused then
       begin
@@ -5481,7 +5482,10 @@ end;
 
 procedure TCustomGridView.HideCursor;
 begin
-  if IsFocusAllowed then InvalidateFocus else HideEdit;
+  if IsFocusAllowed then
+    InvalidateFocus
+  else
+    HideEdit;
 end;
 
 procedure TCustomGridView.HideEdit;
@@ -6921,7 +6925,10 @@ end;
 
 procedure TCustomGridView.ShowCursor;
 begin
-  if IsFocusAllowed then InvalidateFocus else ShowEdit;
+  if IsFocusAllowed then
+    InvalidateFocus
+  else
+    ShowEdit;
 end;
 
 procedure TCustomGridView.ShowEdit;
@@ -8402,6 +8409,7 @@ end;
 procedure TCustomGridView.SetGridCursor(Cell: TGridCell; IsSelected, IsVisible: Boolean);
 var
   PartialOK: Boolean;
+  OldCell: TGridCell;
 begin
   { проверяем выделение }
   UpdateSelection(Cell, IsSelected);
@@ -8420,8 +8428,10 @@ begin
       { меняем ячейку }
       HideCursor;
       PartialOK := RowSelect or (FCellFocused.Col = Cell.Col);
+      OldCell := FCellFocused;
       FCellFocused := Cell;
       FCellSelected := IsSelected;
+      InvalidateCell(OldCell);
       if IsVisible then MakeCellVisible(CellFocused, PartialOK);
       ShowCursor;
     end
