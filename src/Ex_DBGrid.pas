@@ -1016,9 +1016,8 @@ begin
       { по аналогии с DBGrid ширина колонки (т.е. ширина по умолчанию,
         т.к. свойство Width возвращает 0 для невидимой колонки) должна быть
         такой, чтобы в заголовке умещалось название колонки }
-      with Grid do
-        R := GetTextRect(Canvas, Classes.Rect(0, 0, 0, 0),
-          TextLeftIndent, Self.Alignment, False, False, Self.Caption);
+      R := Grid.GetTextRect(Grid.Canvas, Classes.Rect(0, 0, 0, 0),
+        Grid.TextLeftIndent, Self.Alignment, False, False, Self.Caption);
       Width := MaxIntValue([DefWidth, R.Right - R.Left]);
     end;
   end;
@@ -1125,7 +1124,7 @@ begin
           I := 0;
       end;
       if I < 7 then I := 7;
-      // TODO !!! проверить !!!
+      // TODO !!! check !!!
       //RowCount := I;
     end;
 end;
@@ -2077,7 +2076,8 @@ var
   Msg: string;
   I: Integer;
 begin
-  if not Datalink.Active then Exit;
+  if not Datalink.Active then
+    Exit;
   with Datalink.DataSet do
     if (State <> dsInsert) and (not IsEmpty) and CanModify and (not ReadOnly) and
       (not MultiSelect or (FSelectedRows.Count > 0)) then
@@ -2086,8 +2086,8 @@ begin
       if not Assigned(FOnDataDeleteRecord) then
       begin
         Msg := SDeleteMsg[FSelectedRows.Count > 1];
-        with Application do
-          AllowDelete := AllowDelete and (MessageBox(PChar(Msg), PChar(Title), MB_ICONQUESTION or MB_YESNO) = ID_YES);
+        AllowDelete := AllowDelete and
+          (Application.MessageBox(PChar(Msg), PChar(Application.Title), MB_ICONQUESTION or MB_YESNO) = ID_YES);
       end
       else
         FOnDataDeleteRecord(Self, AllowDelete);
