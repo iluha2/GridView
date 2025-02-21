@@ -1,13 +1,13 @@
 {
   TGridView component (grid)
   (C) Roman M. Mochalov, 1997-2019
-  (C) Iluha Companets  , 2002-2023
+  (C) Iluha Companets  , 2002-2025
   License: MIT
 }
 
 unit Ex_Utils;
 
-{$mode delphi}{$H+}
+{$mode objfpc}{$H+}
 
 interface
 

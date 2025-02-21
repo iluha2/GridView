@@ -1,13 +1,13 @@
 {
   TDBGridView component (descendant of TGridView)
   (C) Roman M. Mochalov, 1997-2019
-  (C) Iluha Companets  , 2002-2023
+  (C) Iluha Companets  , 2002-2025
   License: MIT
 }
                                             
 unit Ex_DBGrid;
 
-{$mode delphi}{$H+}
+{$mode objfpc}{$H+}
 
 interface
 
@@ -94,7 +94,7 @@ type
     procedure SetReadOnly(Value: Boolean); override;
     procedure SetWidth(Value: Integer); override;
   public
-    constructor Create(Collection: TCollection); override;
+    constructor Create(ACollection: TCollection); override;
     procedure Assign(Source: TPersistent); override;
     procedure RestoreDefaults; virtual;
     property Field: TField read GetField write SetField;
@@ -232,8 +232,8 @@ type
   private
     FDataListBox: TDBGridListBox;
     function GetGrid: TCustomDBGridView;
-    procedure LMKillFocus(var Message); message LM_KILLFOCUS;
   protected
+    procedure LMKillFocus(var Message); message LM_KILLFOCUS;
     procedure ApplyListValue(Accept: Boolean); override;
     function GetDropList: TWinControl; override;
     procedure UpdateListBounds; override;
@@ -518,13 +518,13 @@ type
     procedure SetShowIndicator(Value: Boolean);
     procedure ReadColumns(Reader: TReader);
     procedure WriteColumns(Writer: TWriter);
-    procedure CMExit(var Message); message CM_EXIT;
-    procedure LMKillFocus(var Message); message LM_KILLFOCUS;
-    procedure LMSetFocus(var Message); message LM_SETFOCUS;
   protected
     FSelectPending: Boolean;
     FSelectPos: TPoint;
     FSelectShift: TShiftState;
+    procedure CMExit(var Message); message CM_EXIT;
+    procedure LMKillFocus(var Message); message LM_KILLFOCUS;
+    procedure LMSetFocus(var Message); message LM_SETFOCUS;
     function AcquireLockLayout: Boolean;
     procedure CancelOrUpdateData;
     procedure ChangeIndicator; virtual;
@@ -535,21 +535,21 @@ type
     function CreateHeader: TCustomGridHeader; override;
     function CreateRows: TCustomGridRows; override;
     function CreateScrollBar(Kind: TScrollBarKind): TGridScrollBar; override;
-    procedure DataEditError(E: Exception; var Action: TDBGridDataAction); virtual;
+    procedure DataEditError(E: Exception; var Actn: TDBGridDataAction); virtual;
     procedure DataFieldUpdated(Field: TField); virtual;
     procedure DataLayoutChanged; virtual;
     procedure DataLinkActiveChanged; virtual;
     procedure DataRecordChanged(Field: TField); virtual;
     procedure DataSetChanged; virtual;
     procedure DataSetScrolled(Distance: Integer); virtual;
-    procedure DataUpdateError(E: Exception; var Action: TDBGridDataAction); virtual;
+    procedure DataUpdateError(E: Exception; var Actn: TDBGridDataAction); virtual;
     procedure DefineProperties(Filer: TFiler); override;
     function DoMouseWheelDown(Shift: TShiftState; MousePos: TPoint): Boolean; override;
     function DoMouseWheelUp(Shift: TShiftState; MousePos: TPoint): Boolean; override;
     function EditCanAcceptKey(Cell: TGridCell; Key: Char): Boolean; override;
     function EditCanModify(Cell: TGridCell): Boolean; override;
     function EditCanShow(Cell: TGridCell): Boolean; override;
-    procedure GetCellColors(Cell: TGridCell; Canvas: TCanvas); override;
+    procedure GetCellColors(Cell: TGridCell; ACanvas: TCanvas); override;
     function GetCellText(Cell: TGridCell): string; override;
     function GetColumnClass: TGridColumnClass; override;
     function GetDataSource: TDataSource; virtual;
@@ -576,7 +576,7 @@ type
     procedure PaintIndicatorHeader; virtual;
     procedure PaintIndicatorImage(Rect: TRect; DataRow: Integer); virtual;
     procedure SetEditText(Cell: TGridCell; var Value: string); override;
-    procedure SetFieldText(Field: TField; const Text: string); virtual;
+    procedure SetFieldText(Field: TField; const AText: string); virtual;
     procedure DoOnResize; override;
     procedure ShowCursor; override;
     procedure UpdateData; virtual;
@@ -589,7 +589,7 @@ type
     procedure ChangeEditText(const S: string); virtual;
     procedure ClearSelection;
     procedure Delete; virtual;
-    function FindText(const FindText: string; Options: TFindOptions): Boolean; override;
+    function FindText(const AText: string; Options: TFindOptions): Boolean; override;
     function GetGridRect: TRect; override;
     function GetHeaderRect: TRect; override;
     function GetIndicatorHeaderRect: TRect; virtual;
@@ -598,21 +598,21 @@ type
     function GetIndicatorImageRect(DataRow: Integer): TRect; virtual;
     function GetIndicatorWidth: Integer;
     procedure InvalidateGrid; override;
-    procedure InvalidateRow(Row: Integer); override;
+    procedure InvalidateRow(ARow: Integer); override;
     procedure Insert(AppendMode: Boolean); virtual;
     function IsCellReadOnly(Cell: TGridCell): Boolean; override;
     function IsEvenRow(Cell: TGridCell): Boolean; override;
-    function IsRowHighlighted(Row: Integer): Boolean; override;
-    function IsRowMultiselected(Row: Integer): Boolean;
+    function IsRowHighlighted(ARow: Integer): Boolean; override;
+    function IsRowMultiselected(ARow: Integer): Boolean;
     procedure LockLayout;
     procedure LockScroll;
     procedure MakeCellVisible(Cell: TGridCell; PartialOK: Boolean); override;
     procedure ResetEdit; override;
     procedure SelectAll;
-    procedure SetGridCursor(Cell: TGridCell; IsSelected, IsVisible: Boolean); override;
+    procedure SetGridCursor(Cell: TGridCell; ASelected, AVisible: Boolean); override;
     procedure UnLockLayout(CancelChanges: Boolean);
     procedure UnLockScroll(CancelScroll: Boolean);
-    procedure UpdateCursorPos(ShowCursor: Boolean);
+    procedure UpdateCursorPos(DoShow: Boolean);
     procedure UpdateLayout; virtual;
     procedure UpdateRowCount; virtual;
     procedure UpdateSelection(var Cell: TGridCell; var Selected: Boolean); override;
@@ -818,7 +818,7 @@ const
 
 { TDBGridColumn }
 
-constructor TDBGridColumn.Create(Collection: TCollection);
+constructor TDBGridColumn.Create(ACollection: TCollection);
 begin
   inherited;
   FDefaultColumn := True;
@@ -1268,7 +1268,7 @@ procedure TDBGridScrollBar.ScrollMessage(var Message: TLMScroll);
 var
   ScrollInfo: TScrollInfo;
   DataSet: TDataSet;
-  PageStep: Integer;
+  PgStep: Integer;
   Shift: TShiftState;
 
   procedure DoThumbPos(Pos: Integer);
@@ -1282,9 +1282,9 @@ var
     else
       case Pos of
         0: Grid.MoveBy(DBGRID_BOF, Shift);
-        1: Grid.MoveBy(-PageStep, Shift);
+        1: Grid.MoveBy(-PgStep, Shift);
         2: Exit;
-        3: Grid.MoveBy(PageStep, Shift);
+        3: Grid.MoveBy(PgStep, Shift);
         4: Grid.MoveBy(DBGRID_EOF, Shift);
       end;
   end;
@@ -1303,13 +1303,13 @@ begin
   end;
   { handle scroll message }
   DataSet := Grid.DataLink.DataSet;
-  PageStep := Grid.VisSize.Row;
+  PgStep := Grid.VisSize.Row;
   Shift := KeyboardStateToShiftState - [ssShift];
   case Message.ScrollCode of
     SB_LINEUP: Grid.MoveBy(-1, Shift);
     SB_LINEDOWN: Grid.MoveBy(1, Shift);
-    SB_PAGEUP: Grid.MoveBy(-PageStep, Shift);
-    SB_PAGEDOWN: Grid.MoveBy(PageStep, Shift);
+    SB_PAGEUP: Grid.MoveBy(-PgStep, Shift);
+    SB_PAGEDOWN: Grid.MoveBy(PgStep, Shift);
     SB_THUMBPOSITION: DoThumbPos(ScrollInfo.nTrackPos);
     SB_THUMBTRACK: if Tracking and DataSet.IsSequenced then DoThumbPos(ScrollInfo.nTrackPos);
     SB_BOTTOM: Grid.MoveBy(DBGRID_EOF, Shift);
@@ -1601,7 +1601,7 @@ begin
   FDefaultLayout := True;
   FShowIndicator := True;
   FIndicatorsLink := TChangeLink.Create;
-  FIndicatorsLink.OnChange := IndicatorsChange;
+  FIndicatorsLink.OnChange := @IndicatorsChange;
   FIndicatorsDef := TImageList.CreateSize(16, 16);
   FIndicatorsDef.BkColor := clFuchsia;
   //FIndicatorsDef.GetResource(rtBitmap, 'BM_GRIDVIEW_DB', 0, [], clFuchsia);
@@ -1765,10 +1765,10 @@ begin
   end;
 end;
 
-procedure TCustomDBGridView.SetFieldText(Field: TField; const Text: string);
+procedure TCustomDBGridView.SetFieldText(Field: TField; const AText: string);
 begin
-  if Assigned(FOnSetFieldText) then FOnSetFieldText(Self, Field, Text)
-  else Field.Text := Text;
+  if Assigned(FOnSetFieldText) then FOnSetFieldText(Self, Field, AText)
+  else Field.Text := AText;
 end;
 
 procedure TCustomDBGridView.SetFixed(Value: TDBGridFixed);
@@ -1955,9 +1955,9 @@ begin
     Result := inherited CreateScrollBar(Kind);
 end;
 
-procedure TCustomDBGridView.DataEditError(E: Exception; var Action: TDBGridDataAction);
+procedure TCustomDBGridView.DataEditError(E: Exception; var Actn: TDBGridDataAction);
 begin
-  if Assigned(FOnDataEditError) then FOnDataEditError(Self, E, Action);
+  if Assigned(FOnDataEditError) then FOnDataEditError(Self, E, Actn);
 end;
 
 procedure TCustomDBGridView.DataFieldUpdated(Field: TField);
@@ -2049,9 +2049,9 @@ begin
   end;
 end;
 
-procedure TCustomDBGridView.DataUpdateError(E: Exception; var Action: TDBGridDataAction);
+procedure TCustomDBGridView.DataUpdateError(E: Exception; var Actn: TDBGridDataAction);
 begin
-  if Assigned(FOnDataUpdateError) then FOnDataUpdateError(Self, E, Action);
+  if Assigned(FOnDataUpdateError) then FOnDataUpdateError(Self, E, Actn);
 end;
 
 procedure TCustomDBGridView.DefineProperties(Filer: TFiler);
@@ -2066,7 +2066,7 @@ begin
     if not AGrid.DefaultLayout then
       HasColumns := not CollectionsEqual(Columns, AGrid.Columns, nil, nil);
   end;
-  Filer.DefineProperty('Columns', ReadColumns, WriteColumns, HasColumns);
+  Filer.DefineProperty('Columns', @ReadColumns, @WriteColumns, HasColumns);
 end;
 
 procedure TCustomDBGridView.Delete;
@@ -2168,7 +2168,7 @@ end;
 
 function TCustomDBGridView.EditCanModify(Cell: TGridCell): Boolean;
 var
-  Action: TDBGridDataAction;
+  Actn: TDBGridDataAction;
 begin
   { проверяем возможность изменения ячейки, источника и поля }
   Result := inherited EditCanModify(Cell) and DataLink.Active and
@@ -2185,14 +2185,14 @@ begin
       { событие (кроме EAbort) }
       if not (E is EAbort) then
       begin
-        Action := gdaFail;
-        DataEditError(E, Action);
+        Actn := gdaFail;
+        DataEditError(E, Actn);
       end
       else
-        Action := gdaAbort;
+        Actn := gdaAbort;
       { обработка исключения }
-      if Action = gdaFail then raise;
-      if Action = gdaAbort then SysUtils.Abort;
+      if Actn = gdaFail then raise;
+      if Actn = gdaAbort then SysUtils.Abort;
     end;
   end;
 end;
@@ -2202,7 +2202,7 @@ begin
   Result := DataLink.Active and inherited EditCanShow(Cell);
 end;
 
-function TCustomDBGridView.FindText(const FindText: string; Options: TFindOptions): Boolean;
+function TCustomDBGridView.FindText(const AText: string; Options: TFindOptions): Boolean;
 
   function CompareCell(Col, Row: Integer): Boolean;
   var
@@ -2215,7 +2215,7 @@ function TCustomDBGridView.FindText(const FindText: string; Options: TFindOption
     begin
       C := GridCell(Col, Row);
       T := GetCellText(C);
-      if CompareStrings(FindText, T, frWholeWord in Options, frMatchCase in Options) then
+      if CompareStrings(AText, T, frWholeWord in Options, frMatchCase in Options) then
       begin
         SetGridCursor(C, True, True);
         Result := True;
@@ -2278,12 +2278,12 @@ begin
       DataLink.DataSet.EnableControls;
     end;
     { text not found event }
-    DoTextNotFound(FindText);
+    DoTextNotFound(AText);
   end;
   Result := False;
 end;
 
-procedure TCustomDBGridView.GetCellColors(Cell: TGridCell; Canvas: TCanvas);
+procedure TCustomDBGridView.GetCellColors(Cell: TGridCell; ACanvas: TCanvas);
 var
   OldActive: Integer;
 begin
@@ -2370,10 +2370,10 @@ begin
   InvalidateRect(GetIndicatorImageRect(DataRow));
 end;
 
-procedure TCustomDBGridView.InvalidateRow(Row: Integer);
+procedure TCustomDBGridView.InvalidateRow(ARow: Integer);
 begin
   inherited;
-  InvalidateIndicatorImage(Row);
+  InvalidateIndicatorImage(ARow);
 end;
 
 procedure TCustomDBGridView.InvalidateSelected;
@@ -2940,9 +2940,9 @@ end;
 
 procedure TCustomDBGridView.PaintIndicatorGridLines;
 var
-  Points: array of TPoint = [];
+  Points: array of TPoint = ();
   PointCount: Integer;
-  StrokeList: array of DWORD = [];
+  StrokeList: array of DWORD = ();
   StrokeCount: Integer;
   I, L, R, Y, C: Integer;
   Rect: TRect;
@@ -3149,24 +3149,24 @@ begin
     Result := inherited IsEvenRow(Cell);
 end;
 
-function TCustomDBGridView.IsRowHighlighted(Row: Integer): Boolean;
+function TCustomDBGridView.IsRowHighlighted(ARow: Integer): Boolean;
 begin
-  if (not MultiSelect) or (Row < 0) or (Rows.Count = 0) then
-    Result := inherited IsRowHighlighted(Row)
+  if (not MultiSelect) or (ARow < 0) or (Rows.Count = 0) then
+    Result := inherited IsRowHighlighted(ARow)
   else
-    Result := IsRowMultiSelected(Row);
+    Result := IsRowMultiSelected(ARow);
 end;
 
-function TCustomDBGridView.IsRowMultiselected(Row: Integer): Boolean;
+function TCustomDBGridView.IsRowMultiselected(ARow: Integer): Boolean;
 var
   OldActive: Integer;
 begin
-  if DataLink.Active and (Row >= 0) and
-    ((FSelectedRows.Count > 1) or ((Row <> CellFocused.Row) and not DataLink.Editing)) then
+  if DataLink.Active and (ARow >= 0) and
+    ((FSelectedRows.Count > 1) or ((ARow <> CellFocused.Row) and not DataLink.Editing)) then
   begin
     OldActive := DataLink.ActiveRecord;
     try
-      DataLink.ActiveRecord := Row;
+      DataLink.ActiveRecord := ARow;
       Result := FSelectedRows.CurrentRowSelected;
     finally
       DataLink.ActiveRecord := OldActive;
@@ -3201,7 +3201,7 @@ procedure TCustomDBGridView.UpdateData;
 var
   CField: TField;
   Value: string;
-  Action: TDBGridDataAction;
+  Actn: TDBGridDataAction;
 begin
   { if the UpdateData is called when the input line is hidden due to a loss
     of focus, the EditField will be reset inside SetEditText, so we need to
@@ -3224,13 +3224,13 @@ begin
         UpdateCursorPos(True);
         if not (E is EAbort) then
         begin
-          Action := gdaFail;
-          DataUpdateError(E, Action);
+          Actn := gdaFail;
+          DataUpdateError(E, Actn);
         end
         else
-          Action := gdaAbort;
-        if Action = gdaFail then raise;
-        if Action = gdaAbort then SysUtils.Abort;
+          Actn := gdaAbort;
+        if Actn = gdaFail then raise;
+        if Actn = gdaAbort then SysUtils.Abort;
       end;
     end;
     DataFieldUpdated(CField);
@@ -3357,19 +3357,19 @@ begin
     inherited MakeCellVisible(Cell, PartialOK);
 end;
 
-procedure TCustomDBGridView.SetGridCursor(Cell: TGridCell; IsSelected, IsVisible: Boolean);
+procedure TCustomDBGridView.SetGridCursor(Cell: TGridCell; ASelected, AVisible: Boolean);
 begin
   { если смещение курсора блокировано, то просто запоминаем новое положение }
   if (FScrollLock <> 0) and (FCursorFromDataSet = 0) then
   begin
     FScrollCell := Cell;
-    FScrollSelected := IsSelected;
+    FScrollSelected := ASelected;
     Exit;
   end;
   { вертикальные перемещения по таблице осуществляются только при
     перемещении по записям источника данных }
   if FCursorFromDataSet = 0 then Cell.Row := CellFocused.Row;
-  inherited SetGridCursor(Cell, IsSelected, IsVisible);
+  inherited SetGridCursor(Cell, ASelected, AVisible);
 end;
 
 procedure TCustomDBGridView.ResetEdit;
@@ -3407,7 +3407,7 @@ begin
   end;
 end;
 
-procedure TCustomDBGridView.UpdateCursorPos(ShowCursor: Boolean);
+procedure TCustomDBGridView.UpdateCursorPos(DoShow: Boolean);
 var
   Cell: TGridCell;
 begin
@@ -3422,7 +3422,7 @@ begin
     else
       Cell := GridCell(0, 0);
     { ставим курсор на текущую запись }
-    SetGridCursor(Cell, CellSelected, ShowCursor);
+    SetGridCursor(Cell, CellSelected, DoShow);
   finally
     Dec(FCursorFromDataSet);
   end;

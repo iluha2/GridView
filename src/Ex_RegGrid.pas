@@ -1,13 +1,13 @@
 {
   TGridView component (grid)
   (C) Roman M. Mochalov, 1997-2019
-  (C) Iluha Companets  , 2002-2023
+  (C) Iluha Companets  , 2002-2025
   License: MIT
 }
 
 unit Ex_RegGrid;
 
-{$mode delphi}{$H+}
+{$mode objfpc}{$H+}
 
 interface
 
@@ -76,7 +76,7 @@ begin
   begin
     P := PropertyEditor.GetPropType;
     { проверяем тип и название свойства }
-    if (P <> nil) and (P.Kind = tkClass) and (CompareText(P.Name, FCollection.ClassName) = 0) then
+    if (P <> nil) and (P^.Kind = tkClass) and (CompareText(P^.Name, FCollection.ClassName) = 0) then
     begin
       PropertyEditor.Edit;
       FCollection := nil;
@@ -134,7 +134,7 @@ end;
 
 procedure TGridColumnsProperty.Edit;
 begin
-  if EditGridColumns(TGridColumns(GetOrdValue).Grid) then Modified;
+  if EditGridColumns(TGridColumns(GetInt64Value).Grid) then Modified;
 end;
 
 function TGridColumnsProperty.GetAttributes: TPropertyAttributes;
@@ -146,7 +146,7 @@ end;
 
 procedure TGridHeaderProperty.Edit;
 begin
-  if EditGridHeader(TGridHeaderSections(GetOrdValue).Header.Grid) then Modified;
+  if EditGridHeader(TGridHeaderSections(GetInt64Value).Header.Grid) then Modified;
 end;
 
 function TGridHeaderProperty.GetAttributes: TPropertyAttributes;

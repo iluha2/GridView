@@ -1,13 +1,13 @@
 {
   TGridView component (grid)
   (C) Roman M. Mochalov, 1997-2019
-  (C) Iluha Companets  , 2002-2023
+  (C) Iluha Companets  , 2002-2025
   License: MIT
 }
 
 unit Ex_GridC;
 
-{$mode delphi}{$H+}
+{$mode objfpc}{$H+}
 
 interface
 
@@ -311,23 +311,23 @@ procedure TColumnsEditorForm.RefreshView;
 
   procedure EndRefresh;
   begin
-    ColumnsList.OnChange := ColumnsListChange;
-    //ColumnsList.OnChanging := ColumnsListChanging;
-    IndexEdit.OnChange := EnableApply;
-    CaptionEdit.OnChange := EnableApply;
-    WidthEdit.OnChange := EnableApply;
-    MinWidthEdit.OnChange := EnableApply;
-    MaxWidthEdit.OnChange := EnableApply;
-    AlignmentCombo.OnChange := EnableApply;
-    MaxLengthEdit.OnChange := EnableApply;
-    EditStyleCombo.OnChange := EnableApply;
-    CheckKindCombo.OnChange := EnableApply;
-    FixedSizeCheck.OnClick := EnableApply;
-    ReadOnlyCheck.OnClick := EnableApply;
-    WantReturnsCheck.OnClick := EnableApply;
-    WordWrapCheck.OnClick := EnableApply;
-    TabStopCheck.OnClick := EnableApply;
-    VisibleCheck.OnClick := EnableApply;
+    ColumnsList.OnChange := @ColumnsListChange;
+    //ColumnsList.OnChanging := @ColumnsListChanging;
+    IndexEdit.OnChange := @EnableApply;
+    CaptionEdit.OnChange := @EnableApply;
+    WidthEdit.OnChange := @EnableApply;
+    MinWidthEdit.OnChange := @EnableApply;
+    MaxWidthEdit.OnChange := @EnableApply;
+    AlignmentCombo.OnChange := @EnableApply;
+    MaxLengthEdit.OnChange := @EnableApply;
+    EditStyleCombo.OnChange := @EnableApply;
+    CheckKindCombo.OnChange := @EnableApply;
+    FixedSizeCheck.OnClick := @EnableApply;
+    ReadOnlyCheck.OnClick := @EnableApply;
+    WantReturnsCheck.OnClick := @EnableApply;
+    WordWrapCheck.OnClick := @EnableApply;
+    TabStopCheck.OnClick := @EnableApply;
+    VisibleCheck.OnClick := @EnableApply;
   end;
 
   procedure RefreshListView;

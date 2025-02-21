@@ -1,13 +1,13 @@
 {
   TGridView component (grid)
   (C) Roman M. Mochalov, 1997-2019
-  (C) Iluha Companets  , 2002-2023
+  (C) Iluha Companets  , 2002-2025
   License: MIT
 }
 
 unit Ex_GridH;
 
-{$mode delphi}{$H+}
+{$mode objfpc}{$H+}
 
 interface
 
@@ -328,12 +328,12 @@ procedure THeaderEditorForm.RefreshView;
 
   procedure EndRefresh;
   begin
-    SectionsTree.OnChange := SectionsTreeChange;
-    SectionsTree.OnChanging := SectionsTreeChanging;
-    IndexEdit.OnChange := EnableApply;
-    CaptionEdit.OnChange := EnableApply;
-    AlignmentCombo.OnChange := EnableApply;
-    WordWrapCheck.OnClick := EnableApply;
+    SectionsTree.OnChange := @SectionsTreeChange;
+    SectionsTree.OnChanging := @SectionsTreeChanging;
+    IndexEdit.OnChange := @EnableApply;
+    CaptionEdit.OnChange := @EnableApply;
+    AlignmentCombo.OnChange := @EnableApply;
+    WordWrapCheck.OnClick := @EnableApply;
   end;
 
   procedure RefreshTree;
@@ -450,7 +450,7 @@ procedure THeaderEditorForm.SelectSection(Section: TGridHeaderSection);
     while Node <> nil do
     begin
       { проверяем узел }
-      if Node.Data = Section then
+      if Node.Data = Pointer(Section) then
         Exit( Node );
       { ищем среди дочерних узлов }
       Result := FindNode(Node.GetFirstChild);

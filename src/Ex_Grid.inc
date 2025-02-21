@@ -522,7 +522,7 @@ type
     procedure SetVisible(Value: Boolean); virtual;
     procedure SetWidth(Value: Integer); virtual;
   public
-    constructor Create(Collection: TCollection); override;
+    constructor Create(ACollection: TCollection); override;
     destructor Destroy; override;
     procedure Assign(Source: TPersistent); override;
     property AlignEdit: Boolean read FAlignEdit write SetAlignEdit default False;
@@ -1086,6 +1086,7 @@ type
     procedure SetDropListVisible(Value: Boolean);
     procedure SetEditStyle(Value: TGridEditStyle);
     procedure SetWordWrap(Value: Boolean);
+  protected
     procedure LMGetDlgCode(var Message: TLMGetDlgCode); message LM_GETDLGCODE;
     procedure LMPaste(var Message); message LM_PASTE;
     procedure LMCut(var Message); message LM_CUT;
@@ -1104,7 +1105,6 @@ type
     procedure CMFontChanged(var Message); message CM_FONTCHANGED;
     procedure CMMouseEnter(var Message); message CM_MOUSEENTER;
     procedure CMMouseLeave(var Message); message CM_MOUSELEAVE;
-  protected
     procedure ApplyListValue(Accept: Boolean); virtual;
     procedure Change; override;
     procedure CreateParams(var Params: TCreateParams); override;
@@ -1124,7 +1124,7 @@ type
     procedure StartButtonTracking(X, Y: Integer);
     procedure StepButtonTracking(X, Y: Integer);
     procedure StopButtonTracking;
-    procedure UpdateBounds(Showing, ScrollCaret: Boolean); virtual;
+    procedure UpdateBounds(AShowing, ScrollCaret: Boolean); virtual;
     procedure UpdateColors; virtual;
     procedure UpdateContents; virtual;
     procedure UpdateList; virtual;
@@ -2658,6 +2658,8 @@ type
     procedure SetVisOrigin(Value: TGridCell);
     procedure VertScroll(Sender: TObject; {%H-}ScrollCode: Integer; var {%H-}ScrollPos: Integer);
     procedure VertScrollChange(Sender: TObject);
+  protected
+    FEditPending: Boolean;
     procedure LMGetDlgCode(var Message: TLMGetDlgCode); message LM_GETDLGCODE;
     procedure LMKillFocus(var Message: TLMKillFocus); message LM_KILLFOCUS;
     procedure LMSetFocus(var Message: TLMSetFocus); message LM_SETFOCUS;
@@ -2675,8 +2677,6 @@ type
     procedure CMShowHintChanged(var {%H-}Message); message CM_SHOWHINTCHANGED;
     procedure CMHintShow(var Message: TLMessage); message CM_HINTSHOW;
     procedure CMMouseLeave(var Message); message CM_MOUSELEAVE;
-  protected
-    FEditPending: Boolean;
     procedure CancelCellTips; virtual;
     procedure CellClick(Cell: TGridCell; Shift: TShiftState; X, Y: Integer); virtual;
     procedure CellTips(Cell: TGridCell; out AllowTips: Boolean); virtual;
@@ -2689,10 +2689,10 @@ type
     procedure ChangeScale(M, D: Integer); override;
     procedure Changing(var Cell: TGridCell; var Selected: Boolean); virtual;
     procedure CheckClick(Cell: TGridCell); virtual;
-    procedure ColumnResize(Column: Integer; var Width: Integer); virtual;
-    procedure ColumnResizing(Column: Integer; var Width: Integer); virtual;
+    procedure ColumnResize(Column: Integer; var AWidth: Integer); virtual;
+    procedure ColumnResizing(Column: Integer; var AWidth: Integer); virtual;
     procedure ColumnsChange(Sender: TObject); virtual;
-    procedure ColumnSizeToFit(Column: Integer; var Width: Integer); virtual;
+    procedure ColumnSizeToFit(Column: Integer; var AWidth: Integer); virtual;
     function CompareStrings(const S1, S2: string; WholeWord, MatchCase: Boolean): Boolean; virtual;
     function CreateColumn(Columns: TGridColumns): TCustomGridColumn; virtual;
     function CreateColumns: TGridColumns; virtual;
@@ -2722,7 +2722,7 @@ type
       var ItemText: string; var Accept: Boolean); virtual;
     procedure EditSelectNext(Cell: TGridCell; var Value: string); virtual;
     procedure FixedChange(Sender: TObject); virtual;
-    procedure GetCellColors(Cell: TGridCell; Canvas: TCanvas); virtual;
+    procedure GetCellColors(Cell: TGridCell; ACanvas: TCanvas); virtual;
     function GetCellImage(Cell: TGridCell; out OverlayIndex: Integer): Integer; virtual;
     function GetCellImageIndent(Cell: TGridCell): TPoint; virtual;
     function GetCellImageRect(Cell: TGridCell): TRect; virtual;
@@ -2750,16 +2750,16 @@ type
     function GetEditText(Cell: TGridCell): string; virtual;
     function GetFixedDividerColor: TColor; virtual;
     function GetFixedGridColor: TColor; virtual;
-    function GetFontHeight(Font: TFont): Integer;
-    function GetFontWidth(Font: TFont; TextLength: Integer): Integer;
+    function GetFontHeight(AFont: TFont): Integer;
+    function GetFontWidth(AFont: TFont; TextLength: Integer): Integer;
     function GetGridHint: string; virtual;
     function GetHeaderImage(Section: TGridHeaderSection): Integer; virtual;
-    procedure GetHeaderColors(Section: TGridHeaderSection; Canvas: TCanvas); virtual;
+    procedure GetHeaderColors(Section: TGridHeaderSection; ACanvas: TCanvas); virtual;
     function GetSortArrowSize: TSize; virtual;
     function GetSortDirection(Section: TGridHeaderSection): TGridSortDirection; virtual;
     procedure GetSortImage(Section: TGridHeaderSection; SortImage: TBitmap); virtual;
-    function GetTextRect(Canvas: TCanvas; Rect: TRect; LeftIndent: Integer; Alignment: TAlignment;
-      WantReturns, WordWrap: Boolean; const Text: string): TRect; virtual;
+    function GetTextRect(ACanvas: TCanvas; Rect: TRect; LeftIndent: Integer; Alignment: TAlignment;
+      WantReturns, WordWrap: Boolean; const AText: string): TRect; virtual;
     function GetTipsRect(Cell: TGridCell; const TipsText: string): TRect; virtual;
     function GetTipsText(Cell: TGridCell): string; virtual;
     function GetTipsWindowClass: TGridTipsWindowClass; virtual;
@@ -2789,13 +2789,13 @@ type
     procedure PaintFocus; virtual;
     procedure PaintGridLines; virtual;
     procedure PaintHeader(Section: TGridHeaderSection; Rect: TRect); virtual;
-    procedure PaintHeaderBackground(Rect: TRect; Color: TColor; PaintState: TGridPaintStates); virtual;
+    procedure PaintHeaderBackground(Rect: TRect; AColor: TColor; PaintState: TGridPaintStates); virtual;
     procedure PaintHeaders(DrawFixed: Boolean); virtual;
     procedure PaintHeaderSections(Sections: TGridHeaderSections; DrawFixed: Boolean); virtual;
     procedure PaintResizeLine;
-    procedure PaintText(Canvas: TCanvas; Rect: TRect; LeftIndent: Integer; Alignment: TAlignment;
-      WantReturns, WordWrap: Boolean; const Text: string); virtual;
-    procedure PreparePatternBitmap(Canvas: TCanvas; FillColor: TColor; Remove: Boolean); virtual;
+    procedure PaintText(ACanvas: TCanvas; Rect: TRect; LeftIndent: Integer; Alignment: TAlignment;
+      WantReturns, WordWrap: Boolean; const AText: string); virtual;
+    procedure PreparePatternBitmap(ACanvas: TCanvas; FillColor: TColor; Remove: Boolean); virtual;
     procedure ResetClickPos; virtual;
     procedure DoOnResize; override;
     procedure RowsChange(Sender: TObject); virtual;
@@ -2821,7 +2821,7 @@ type
     procedure DefaultDrawCell(Cell: TGridCell; Rect: TRect); virtual;
     procedure DefaultDrawHeader(Section: TGridHeaderSection; Rect: TRect); virtual;
     procedure DrawDragRect(Cell: TGridCell); virtual;
-    function FindText(const FindText: string; Options: TFindOptions): Boolean; virtual;
+    function FindText(const AText: string; Options: TFindOptions): Boolean; virtual;
     function GetCellAt(X, Y: Integer): TGridCell; virtual;
     function GetCellRect(Cell: TGridCell): TRect;
     function GetCellsRect(Cell1, Cell2: TGridCell): TRect;
@@ -2843,7 +2843,7 @@ type
     function GetHeaderHeight: Integer;
     function GetHeaderRect: TRect; virtual;
     function GetHeaderSection(ColumnIndex, Level: Integer): TGridHeaderSection;
-    function GetLightenColor(Color: TColor; Amount: Integer): TColor;
+    function GetLightenColor(AColor: TColor; Amount: Integer): TColor;
     function GetResizeSectionAt(X, Y: Integer): TGridHeaderSection;
     function GetRowAtY(Y: Integer): Integer; virtual;
     function GetRowRect(Row: Integer): TRect;
@@ -2893,7 +2893,7 @@ type
     procedure LockUpdate;
     procedure MakeCellVisible(Cell: TGridCell; PartialOK: Boolean); virtual;
     procedure ResetEdit; virtual;
-    procedure SetGridCursor(Cell: TGridCell; IsSelected, IsVisible: Boolean); virtual;
+    procedure SetGridCursor(Cell: TGridCell; ASelected, AVisible: Boolean); virtual;
     procedure SizeAllColumnsToFit;
     procedure SizeColumnToFit(ColumnIndex: Integer);
     procedure UnLockUpdate(Redraw: Boolean);

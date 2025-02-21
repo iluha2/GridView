@@ -1,13 +1,13 @@
 {
   TGridView component (grid)
   (C) Roman M. Mochalov, 1997-2019
-  (C) Iluha Companets  , 2002-2023
+  (C) Iluha Companets  , 2002-2025
   License: MIT
 }
 
 unit Ex_Grid;
 
-{$mode delphi}{$H+}
+{$mode objfpc}{$H+}
 
 interface
 
@@ -21,7 +21,7 @@ procedure TGridHeaderSection.DefineProperties(Filer: TFiler);
 begin
   inherited;
   { backward compatibility }
-  Filer.DefineProperty('Width', ReadWidth, nil, False);
+  Filer.DefineProperty('Width', @ReadWidth, nil, False);
 end;
 
 destructor TGridHeaderSection.Destroy;
@@ -335,11 +335,11 @@ begin
   FSectionHeight := 17;
   FColor         := clBtnFace;
   FFont          := TFont.Create;
-  FFont.OnChange := FontChange;
+  FFont.OnChange := @FontChange;
   FGridFont      := True;
   FFLat          := True;
   FImagesLink    := TChangeLink.Create;
-  FImagesLink.OnChange := ImagesChange;
+  FImagesLink.OnChange := @ImagesChange;
 end;
 
 destructor TCustomGridHeader.Destroy;
@@ -355,9 +355,9 @@ procedure TCustomGridHeader.DefineProperties(Filer: TFiler);
 begin
   inherited DefineProperties(Filer);
   { backward compatibility }
-  Filer.DefineProperty('FullSynchronizing', ReadFullSynchronizing, nil, False);
-  Filer.DefineProperty('Synchronized',      ReadFullSynchronizing, nil, False);
-  Filer.DefineProperty('AutoSynchronize',   ReadFullSynchronizing, nil, False);
+  Filer.DefineProperty('FullSynchronizing', @ReadFullSynchronizing, nil, False);
+  Filer.DefineProperty('Synchronized',      @ReadFullSynchronizing, nil, False);
+  Filer.DefineProperty('AutoSynchronize',   @ReadFullSynchronizing, nil, False);
 end;
 
 function TCustomGridHeader.IsColorStored: Boolean;
@@ -804,9 +804,9 @@ end;
 
 { TCustomGridColumn }
 
-constructor TCustomGridColumn.Create(Collection: TCollection);
+constructor TCustomGridColumn.Create(ACollection: TCollection);
 begin
-  inherited Create(Collection);
+  inherited Create(ACollection);
   FColumns        := TGridColumns(Collection);
   FWidth          := 64;
   FMinWidth       := 0;
@@ -1101,7 +1101,7 @@ begin
   inherited DefineProperties(Filer);
   { для совместимости со старыми версиями, где вместо свойства WantReturns
     было свойство Multiline }
-  Filer.DefineProperty('Multiline', ReadMultiline, nil, False);
+  Filer.DefineProperty('Multiline', @ReadMultiline, nil, False);
 end;
 
 procedure TCustomGridColumn.Assign(Source: TPersistent);
@@ -1357,7 +1357,7 @@ begin
   FGrid          := AGrid;
   FColor         := clBtnFace;
   FFont          := TFont.Create;
-  FFont.OnChange := FontChange;
+  FFont.OnChange := @FontChange;
   FGridFont      := True;
   FFLat          := True;
   FShowDivider   := True;
@@ -1796,12 +1796,12 @@ end;
 constructor TCustomGridEdit.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
-  Visible := False;
   { внутренние переменные }
   FEditStyle     := geSimple;
   FDropDownCount := 0;
   FButtonWidth   := GetSystemMetrics(SM_CXVSCROLL);
   { параметры внешнего вида }
+  Visible        := False;
   TabStop        := False;
   BorderStyle    := bsNone;
   ParentShowHint := False;
@@ -1912,7 +1912,7 @@ begin
   { ignore the focus message if the dialog box appears after selecting
     a drop-down list item, for example, a ColorDialog when selecting the
     "More Color ..." item in color list }
-   if ClosingUp or Pressing or ((FActiveList <> nil) and (FActiveList.Focused)) then
+  if ClosingUp or Pressing or ((FActiveList <> nil) and (FActiveList.Focused)) then
     Exit;
   { stop editing the cell text when focus is lost }
   try
@@ -2422,9 +2422,8 @@ end;
 type
   THackWinControl = class(TWinControl);
 
-procedure TCustomGridEdit.UpdateBounds(Showing, ScrollCaret: Boolean);
+procedure TCustomGridEdit.UpdateBounds(AShowing, ScrollCaret: Boolean);
 const
-  Flags: array[Boolean] of Integer = (0, SWP_SHOWWINDOW or SWP_NOREDRAW);
   EM_SETRECTNP = 180;
   EM_SCROLLCARET = 183;
 var
@@ -2446,7 +2445,7 @@ begin
     { подправляем строку в соотвествии с заголовком }
     with Grid.GetHeaderRect do
     begin
-      if (R.Top < Bottom) or ( R.Bottom < Bottom) then
+      if not AShowing or (R.Top < Bottom) or ( R.Bottom < Bottom) then
       begin
         Self.Visible := False;
         Exit;
@@ -2525,8 +2524,8 @@ begin
   begin
     //FActiveList.Hide;
     FActiveList.Parent := Self;
-    FActiveList.OnMouseUp := ListMouseUp;
-    FActiveList.Font := Font;
+    THackWinControl(FActiveList).OnMouseUp := @ListMouseUp;
+    THackWinControl(FActiveList).Font := Font;
   end;
 end;
 
@@ -2867,7 +2866,7 @@ end;
 
 procedure TGridTipsWindow.ActivateHint(Rect: TRect; const AHint: string);
 var
-  Monitor: TMonitor;
+  M: TMonitor;
   R: TRect;
   X, Y: Integer;
 begin
@@ -2875,26 +2874,25 @@ begin
   //UpdateBoundsRect(Rect);
   BoundsRect := Rect;
   { do not show a hint behind the screen }
-  Monitor := Screen.MonitorFromPoint(Rect.TopLeft);
-  if Monitor <> nil then
+  M := Screen.MonitorFromPoint(Rect.TopLeft);
+  if M <> nil then
   begin
-    R := Monitor.BoundsRect;
+    R := M.BoundsRect;
     X := Rect.Left;
     if Rect.Right > R.Right then X := X - (Rect.Right - R.Right);
-    if X < R.Left then X := Monitor.Left;
+    if X < R.Left then X := M.Left;
     Y := Rect.Top;
     if Rect.Bottom > R.Bottom then Y := Y - (Rect.Bottom - R.Bottom);
     if Y < R.Top then Y := R.Top;
     OffsetRect(Rect, X - Rect.Left, Y - Rect.Top);
   end;
-  SetWindowPos(Handle, HWND_TOPMOST, Rect.Left, Rect.Top, Width, Height,
-    SWP_SHOWWINDOW or SWP_NOACTIVATE);
+  SetWindowPos(Handle, HWND_TOPMOST, Rect.Left, Rect.Top, Width, Height, SWP_SHOWWINDOW or SWP_NOACTIVATE);
   Invalidate;
 end;
 
 procedure TGridTipsWindow.ActivateHintData(Rect: TRect; const AHint: string; AData: Pointer);
 begin
-  FGrid := AData;
+  FGrid := TCustomGridView(AData);
   inherited ActivateHintData(Rect, AHint, AData);
 end;
 
@@ -2902,7 +2900,7 @@ function TGridTipsWindow.CalcHintRect(MaxWidth: Integer; const AHint: string; AD
 var
   R: TRect;
 begin
-  FGrid := AData;
+  FGrid := TCustomGridView(AData);
   if FGrid = nil then
   begin
     Result := inherited CalcHintRect(MaxWidth, AHint, AData);
@@ -3041,22 +3039,22 @@ begin
   //ParentColor := False;
   //TabStop := True;
   FHorzScrollBar := CreateScrollBar(sbHorizontal);
-  FHorzScrollBar.OnScroll := HorzScroll;
-  FHorzScrollBar.OnChange := HorzScrollChange;
+  FHorzScrollBar.OnScroll := @HorzScroll;
+  FHorzScrollBar.OnChange := @HorzScrollChange;
   FVertScrollBar := CreateScrollBar(sbVertical);
   FVertScrollBar.LineSize := 17;
-  FVertScrollBar.OnScroll := VertScroll;
-  FVertScrollBar.OnChange := VertScrollChange;
+  FVertScrollBar.OnScroll := @VertScroll;
+  FVertScrollBar.OnChange := @VertScrollChange;
   FHeader := CreateHeader;
-  FHeader.OnChange := HeaderChange;
+  FHeader.OnChange := @HeaderChange;
   FColumns := CreateColumns;
-  FColumns.OnChange := ColumnsChange;
+  FColumns.OnChange := @ColumnsChange;
   FRows := CreateRows;
-  FRows.OnChange := RowsChange;
+  FRows.OnChange := @RowsChange;
   FFixed := CreateFixed;
-  FFixed.OnChange := FixedChange;
+  FFixed.OnChange := @FixedChange;
   FImagesLink := TChangeLink.Create;
-  FImagesLink.OnChange := ImagesChange;
+  FImagesLink.OnChange := @ImagesChange;
   FBorderStyle := bsSingle;
   FShowHeader := True;
   FGridLines := True;
@@ -3179,14 +3177,14 @@ begin
   Result := VisOrigin.Col;
 end;
 
-function TCustomGridView.GetLightenColor(Color: TColor; Amount: Integer): TColor;
+function TCustomGridView.GetLightenColor(AColor: TColor; Amount: Integer): TColor;
 var
   R, G, B: Integer;
 begin
-  if Color < 0 then Color := GetSysColor(Color and $000000FF);
-  R := Color and $FF + Amount;
-  G := Color shr 8 and $FF + Amount;
-  B := Color shr 16 and $FF + Amount;
+  if AColor < 0 then AColor := GetSysColor(AColor and $000000FF);
+  R := AColor and $FF + Amount;
+  G := AColor shr 8 and $FF + Amount;
+  B := AColor shr 16 and $FF + Amount;
   if R < 0 then R := 0 else if R > 255 then R := 255;
   if G < 0 then G := 0 else if G > 255 then G := 255;
   if B < 0 then B := 0 else if B > 255 then B := 255;
@@ -3490,7 +3488,6 @@ begin
   else if (not Value) and FEditing then
   begin
     ApplyEditText;
-
     if not AlwaysEdit then
       HideEdit;
   end;
@@ -4082,7 +4079,7 @@ begin
   if (FEdit <> nil) and FEdit.Focused then
     Exit;
   { можно ли устанавливать фокус }
-  if not (csDesigning in ComponentState) and (Parent <> nil) and (Parent.CanFocus) and CanFocus then
+  if not (csDesigning in ComponentState) and (Parent <> nil) and Parent.CanFocus and CanFocus then
   begin
     UpdateFocus;
     Result := IsActiveControl;
@@ -4200,19 +4197,19 @@ begin
   end;
 end;
 
-procedure TCustomGridView.ColumnResize(Column: Integer; var Width: Integer);
+procedure TCustomGridView.ColumnResize(Column: Integer; var AWidth: Integer);
 begin
-  if Assigned(FOnColumnResize) then FOnColumnResize(Self, Column, Width);
+  if Assigned(FOnColumnResize) then FOnColumnResize(Self, Column, AWidth);
 end;
 
-procedure TCustomGridView.ColumnResizing(Column: Integer; var Width: Integer);
+procedure TCustomGridView.ColumnResizing(Column: Integer; var AWidth: Integer);
 begin
-  if Assigned(FOnColumnResizing) then FOnColumnResizing(Self, Column, Width);
+  if Assigned(FOnColumnResizing) then FOnColumnResizing(Self, Column, AWidth);
 end;
 
-procedure TCustomGridView.ColumnSizeToFit(Column: Integer; var Width: Integer);
+procedure TCustomGridView.ColumnSizeToFit(Column: Integer; var AWidth: Integer);
 begin
-  if Assigned(FOnColumnSizeToFit) then FOnColumnSizeToFit(Self, Column, Width);
+  if Assigned(FOnColumnSizeToFit) then FOnColumnSizeToFit(Self, Column, AWidth);
 end;
 
 function TCustomGridView.CreateColumn(Columns: TGridColumns): TCustomGridColumn;
@@ -4317,7 +4314,7 @@ begin
   begin
     if DefaultHeaderMenu then
     begin
-      ClickEvent := HeaderMenuClick;
+      ClickEvent := @HeaderMenuClick;
       if Header.PopupMenu <> nil then
       begin
         Menu := Header.PopupMenu;
@@ -4434,7 +4431,7 @@ end;
 
 procedure TCustomGridView.DoTextNotFound(const FindText: string);
 var
-  S, Caption: string;
+  S, Captn: string;
   Form: TCustomForm;
 begin
   if Assigned(FOnTextNotFound) then
@@ -4443,9 +4440,9 @@ begin
   begin
     S := Format('Can not find "%s".', [FindText]);
     Form := GetParentForm(Self);
-    if Form <> nil then Caption := Form.Caption
-    else Caption := Application.Title;
-    Application.MessageBox(PChar(S), PChar(Caption), MB_ICONINFORMATION);
+    if Form <> nil then Captn := Form.Caption
+    else Captn := Application.Title;
+    Application.MessageBox(PChar(S), PChar(Captn), MB_ICONINFORMATION);
   end;
 end;
 
@@ -4513,53 +4510,53 @@ begin
   if Assigned(FOnEditSelectNext) then FOnEditSelectNext(Self, Cell, Value);
 end;
 
-procedure TCustomGridView.GetCellColors(Cell: TGridCell; Canvas: TCanvas);
+procedure TCustomGridView.GetCellColors(Cell: TGridCell; ACanvas: TCanvas);
 begin
   if Cell.Col < Fixed.Count then
   begin
-    Canvas.Font := Fixed.Font;
-    Canvas.Brush.Color := Fixed.Color;
+    ACanvas.Font := Fixed.Font;
+    ACanvas.Brush.Color := Fixed.Color;
     { if the button face color is used for a fixed cell, then with themes
       enabled it should be slightly discolored to match the highlighted
       row with the HighlightFocusRow turned on }
     if (Fixed.Color = clBtnFace) and ThemeServices.ThemesEnabled then
-      Canvas.Brush.Color := GetLightenColor(Canvas.Brush.Color, 8);
+      ACanvas.Brush.Color := GetLightenColor(ACanvas.Brush.Color, 8);
     { highlight every other row }
     if Fixed.GridColor and ThemeServices.ThemesEnabled and
       HighlightEvenRows and IsEvenRow(Cell) then
-        Canvas.Brush.Color := GetLightenColor(Canvas.Brush.Color, -8);
+        ACanvas.Brush.Color := GetLightenColor(ACanvas.Brush.Color, -8);
     { highlight row with focused cell }
     if Fixed.GridColor and HighlightFocusRow then
       if (Cell.Row = CellFocused.Row) and ((Cell.Col <> CellFocused.Col) or not Editing) then
         if ThemeServices.ThemesEnabled then
-          Canvas.Brush.Color := GetLightenColor(clBtnFace, 8)
+          ACanvas.Brush.Color := GetLightenColor(clBtnFace, 8)
         else
-          Canvas.Brush.Color := clBtnFace;
+          ACanvas.Brush.Color := clBtnFace;
     { set gray text color for read-only cell }
     if GrayReadOnly and IsCellReadOnly(Cell) then
-      Canvas.Font.Color := clGrayText;
+      ACanvas.Font.Color := clGrayText;
   end
   else
   begin
-    Canvas.Brush.Color := Self.Color;
-    Canvas.Font := Self.Font;
+    ACanvas.Brush.Color := Self.Color;
+    ACanvas.Font := Self.Font;
     { set gray text color for disabled and read-only cells }
     if not Enabled then
-      Canvas.Font.Color := clGrayText
+      ACanvas.Font.Color := clGrayText
     else if GrayReadOnly and IsCellReadOnly(Cell) then
-      Canvas.Font.Color := clGrayText;
+      ACanvas.Font.Color := clGrayText;
     { focused cell }
-    if (Enabled and IsCellFocused(Cell) and (not IsCellEditing(Cell))) then
+    if Enabled and IsCellFocused(Cell) and (not IsCellEditing(Cell)) then
     begin
       if Focused or EditFocused then
       begin
-        Canvas.Brush.Color := clHighlight;
-        Canvas.Font.Color := clHighlightText;
+        ACanvas.Brush.Color := clHighlight;
+        ACanvas.Font.Color := clHighlightText;
       end
       else if not HideSelection then
       begin
-        Canvas.Brush.Color := clBtnFace;
-        Canvas.Font.Color := Font.Color;
+        ACanvas.Brush.Color := clBtnFace;
+        ACanvas.Font.Color := Font.Color;
       end;
     end
     else
@@ -4567,17 +4564,17 @@ begin
       { highlight every other row without windows theme }
       if ThemeServices.ThemesEnabled then
         if HighlightEvenRows and IsEvenRow(Cell) then
-          Canvas.Brush.Color := GetLightenColor(Canvas.Brush.Color, -8);
+          ACanvas.Brush.Color := GetLightenColor(ACanvas.Brush.Color, -8);
       { highlight row with focused cell }
       if HighlightFocusRow then
         if (Cell.Row = CellFocused.Row) and ((Cell.Col <> CellFocused.Col) or not Editing) then
           if ThemeServices.ThemesEnabled then
-            Canvas.Brush.Color := GetLightenColor(clBtnFace, 8)
+            ACanvas.Brush.Color := GetLightenColor(clBtnFace, 8)
           else
-            Canvas.Brush.Color := clBtnFace;
+            ACanvas.Brush.Color := clBtnFace;
     end;
   end;
-  if Assigned(FOnGetCellColors) then FOnGetCellColors(Self, Cell, Canvas);
+  if Assigned(FOnGetCellColors) then FOnGetCellColors(Self, Cell, ACanvas);
 end;
 
 function TCustomGridView.GetCellImage(Cell: TGridCell; out OverlayIndex: Integer): Integer;
@@ -5282,14 +5279,14 @@ begin
   else Result := clActiveBorder;
 end;
 
-procedure TCustomGridView.GetHeaderColors(Section: TGridHeaderSection; Canvas: TCanvas);
+procedure TCustomGridView.GetHeaderColors(Section: TGridHeaderSection; ACanvas: TCanvas);
 begin
   { стандартные цвета }
-  Canvas.Brush.Color := Header.Color;
-  Canvas.Font := Header.Font;
-  if not Enabled then Canvas.Font.Color := clGrayText;
+  ACanvas.Brush.Color := Header.Color;
+  ACanvas.Font := Header.Font;
+  if not Enabled then ACanvas.Font.Color := clGrayText;
   { событие пользователя }                                           
-  if Assigned(FOnGetHeaderColors) then FOnGetHeaderColors(Self, Section, Canvas);
+  if Assigned(FOnGetHeaderColors) then FOnGetHeaderColors(Self, Section, ACanvas);
 end;
 
 function TCustomGridView.GetGridHint: string;
@@ -5346,8 +5343,8 @@ begin
   if Assigned(FOnGetSortImage) then FOnGetSortImage(Self, Section, SortImage);
 end;
 
-function TCustomGridView.GetTextRect(Canvas: TCanvas; Rect: TRect; LeftIndent: Integer;
-  Alignment: TAlignment; WantReturns, WordWrap: Boolean; const Text: string): TRect;
+function TCustomGridView.GetTextRect(ACanvas: TCanvas; Rect: TRect; LeftIndent: Integer;
+  Alignment: TAlignment; WantReturns, WordWrap: Boolean; const AText: string): TRect;
 var
   R: TRect;
   F, W, H: Integer;
@@ -5376,15 +5373,15 @@ begin
     if WordWrap then F := F or DT_WORDBREAK;
     { вычисляем размеры текста }
     R := Rect;
-    DrawText(Canvas.Handle, PChar(Text), Length(Text), R, F or DT_CALCRECT);
+    DrawText(ACanvas.Handle, PChar(AText), Length(AText), R, F or DT_CALCRECT);
     W := MaxIntValue([Rect.Right - Rect.Left, R.Right - R.Left + LeftIndent + TextRightIndent]);
     H := MaxIntValue([Rect.Bottom - Rect.Top, R.Bottom - R.Top]);
   end
   else
   begin
     { высота и ширина текста }
-    W := MaxIntValue([Rect.Right - Rect.Left, Canvas.TextWidth(Text) + LeftIndent + TextRightIndent]);
-    H := MaxIntValue([Rect.Bottom - Rect.Top, Canvas.TextHeight(Text)]);
+    W := MaxIntValue([Rect.Right - Rect.Left, ACanvas.TextWidth(AText) + LeftIndent + TextRightIndent]);
+    H := MaxIntValue([Rect.Bottom - Rect.Top, ACanvas.TextHeight(AText)]);
   end;
   { формируем прямоугольник }
   case Alignment of
@@ -6255,9 +6252,9 @@ end;
 
 procedure TCustomGridView.PaintFixedGridLines;
 var
-  Points: array of TPoint = [];
+  Points: array of TPoint = ();
   PointCount: Integer;
-  StrokeList: array of DWORD = [];
+  StrokeList: array of DWORD = ();
   StrokeCount: Integer;
   I, L, R, T, B, X, Y, C, W: Integer;
   Rect: TRect;
@@ -6542,9 +6539,9 @@ end;
 
 procedure TCustomGridView.PaintGridLines;
 var
-  Points: array of TPoint = [];
+  Points: array of TPoint = ();
   PointCount: Integer;
-  StrokeList: array of DWORD = [];
+  StrokeList: array of DWORD = ();
   StrokeCount: Integer;
   I: Integer;
   L, R, T, B, X, Y, C: Integer;
@@ -6636,7 +6633,7 @@ begin
   if DefDraw then DefaultDrawHeader(Section, Rect);
 end;
 
-procedure TCustomGridView.PaintHeaderBackground(Rect: TRect; Color: TColor; PaintState: TGridPaintStates);
+procedure TCustomGridView.PaintHeaderBackground(Rect: TRect; AColor: TColor; PaintState: TGridPaintStates);
 // NOTE !! отрисовка в винде через ThemeServices глючит !!
 {$IFDEF UNIX}
 var
@@ -6649,7 +6646,7 @@ begin
     if not ThemeServices.ThemesEnabled then
   {$ENDIF}
     begin
-      Brush.Color := Color;
+      Brush.Color := AColor;
       FillRect(Rect);
       if psFlat in PaintState then
       begin
@@ -6818,16 +6815,16 @@ begin
   end;
 end;
 
-procedure TCustomGridView.PaintText(Canvas: TCanvas; Rect: TRect; LeftIndent: Integer;
-  Alignment: TAlignment; WantReturns, WordWrap: Boolean; const Text: string);
+procedure TCustomGridView.PaintText(ACanvas: TCanvas; Rect: TRect; LeftIndent: Integer;
+  Alignment: TAlignment; WantReturns, WordWrap: Boolean; const AText: string);
 var
   ts: TTextStyle;
   DX: Integer;
 begin
   { draw text using DrawTextEx for multiline text, draw text using TextOut
     for single line text }
-  // переписано для использования Canvas.TextRect
-  ts := Canvas.TextStyle;
+  // переписано для использования ACanvas.TextRect
+  ts := ACanvas.TextStyle;
   ts.Opaque := False;
   ts.Layout := tlCenter;
   ts.Alignment := Alignment;
@@ -6846,8 +6843,8 @@ begin
     { отступ справа }
     Dec(Rect.Right, TextRightIndent);
     { выводим текст }
-    SetBkMode(Canvas.Handle, TRANSPARENT);
-    Canvas.TextRect(Rect, Rect.Left + LeftIndent, Rect.Top {+ TopIndent}, Text, ts);
+    SetBkMode(ACanvas.Handle, TRANSPARENT);
+    ACanvas.TextRect(Rect, Rect.Left + LeftIndent, Rect.Top {+ TopIndent}, AText, ts);
   end
   else
   begin
@@ -6860,24 +6857,24 @@ begin
     end;
     ts.Clipping := True;
     { стандартный вывод текста }
-    SetBkMode(Canvas.Handle, TRANSPARENT);
-    Canvas.TextRect(Rect, Rect.Left + DX, Rect.Top {+ TopIndent}, Text, ts);
+    SetBkMode(ACanvas.Handle, TRANSPARENT);
+    ACanvas.TextRect(Rect, Rect.Left + DX, Rect.Top {+ TopIndent}, AText, ts);
   end;
 end;
 
-procedure TCustomGridView.PreparePatternBitmap(Canvas: TCanvas; FillColor: TColor; Remove: Boolean);
+procedure TCustomGridView.PreparePatternBitmap(ACanvas: TCanvas; FillColor: TColor; Remove: Boolean);
 begin
   if Remove then
   begin
-    if Canvas.Brush.Bitmap = nil then
+    if ACanvas.Brush.Bitmap = nil then
       Exit;
-    Canvas.Brush.Bitmap := nil;
+    ACanvas.Brush.Bitmap := nil;
   end
   else
   begin
-    if Canvas.Brush.Bitmap = FPatternBitmap then Exit;
+    if ACanvas.Brush.Bitmap = FPatternBitmap then Exit;
     { Линии точечками рисуются с использованием точечной заливки. Формат
-      заливки устанавливается сразу на весь Canvas относительно верхнего
+      заливки устанавливается сразу на весь ACanvas относительно верхнего
       левого угла компонента. Поэтому, даже заливая линию, сдвинутую на 1
       пиксел от предыдущей, мы все равно получим чередующуюся заливку.
       При горизонтальном смещение таблицы на 1 пиксел старая сетка смещается,
@@ -6898,10 +6895,10 @@ begin
       FPatternBitmap.Canvas.Pixels[1, 0] := Color;
     end;
     { устанавливаем заливку }
-    Canvas.Brush.Bitmap := FPatternBitmap;
+    ACanvas.Brush.Bitmap := FPatternBitmap;
   end;
   { обновляем полотно }
-  Canvas.Refresh;
+  ACanvas.Refresh;
 end;
 
 procedure TCustomGridView.ResetClickPos;
@@ -6941,7 +6938,7 @@ begin
   { показываем строку ввода }
   Editing := True;
   { вставляем символ }
-  if Editing then
+  if (Edit <> nil) and Editing then
     PostMessage(Edit.Handle, LM_CHAR, Word(C), 0);
 end;
 
@@ -7206,20 +7203,20 @@ end;
 
 procedure TCustomGridView.ApplyEditText;
 var
-  EditFocused: Boolean;
-  EditText: string;
+  EdFocused: Boolean;
+  EdText: string;
 begin
   if (not ReadOnly) and (Edit <> nil) and (not IsCellReadOnly(EditCell)) then
   begin
-    EditFocused := Editing;
+    EdFocused := Editing;
     { text input can be canceled by throwing an exception in the
       OnSetEditText event }
     try
-      EditText := Edit.Text;
+      EdText := Edit.Text;
       try
-        SetEditText(EditCell, EditText);
+        SetEditText(EditCell, EdText);
       finally
-        Edit.Text := EditText;
+        Edit.Text := EdText;
       end;
     except
       on E: Exception do
@@ -7227,7 +7224,7 @@ begin
         MakeCellVisible(CellFocused, False);
         { if the input line is visible, then put the focus on it, otherwise
           it will be hidden after opening the error message box }
-        if EditFocused then
+        if EdFocused then
           LCLIntf.SetFocus(Edit.Handle);
         raise;
       end;
@@ -7496,7 +7493,7 @@ begin
   end;
 end;
 
-function TCustomGridView.FindText(const FindText: string; Options: TFindOptions): Boolean;
+function TCustomGridView.FindText(const AText: string; Options: TFindOptions): Boolean;
 
   function CompareCell(Col, Row: Integer): Boolean;
   var
@@ -7509,7 +7506,7 @@ function TCustomGridView.FindText(const FindText: string; Options: TFindOptions)
     begin
       C := GridCell(Col, Row);
       T := GetCellText(C);
-      if CompareStrings(FindText, T, frWholeWord in Options, frMatchCase in Options) then
+      if CompareStrings(AText, T, frWholeWord in Options, frMatchCase in Options) then
       begin
         SetGridCursor(C, True, True);
         Result := True;
@@ -7569,7 +7566,7 @@ begin
       end;
     end;
     { text not found event }
-    DoTextNotFound(FindText);
+    DoTextNotFound(AText);
   end;
   Result := False;
 end;
@@ -7784,7 +7781,7 @@ begin
   if FFindDialog = nil then
   begin
     FFindDialog := TGridFindDialog.Create(Self);
-    FFindDialog.OnFind := HandlerFind;
+    FFindDialog.OnFind := @HandlerFind;
   end;
   Result := FFindDialog;
 end;
@@ -7841,14 +7838,14 @@ begin
   if Result.Left > L then Result.Left := L;
 end;
 
-function TCustomGridView.GetFontHeight(Font: TFont): Integer;
+function TCustomGridView.GetFontHeight(AFont: TFont): Integer;
 var
   DC: HDC;
   SaveFont: HFont;
   Metrics: TTextMetric;
 begin
   DC := GetDC(0);
-  SaveFont := SelectObject(DC, Font.Handle);
+  SaveFont := SelectObject(DC, AFont.Handle);
   Metrics := Default(TTextMetric);
   GetTextMetrics(DC, Metrics);
   SelectObject(DC, SaveFont);
@@ -7856,23 +7853,23 @@ begin
   Result := Metrics.tmHeight;
 end;
 
-function TCustomGridView.GetFontWidth(Font: TFont; TextLength: Integer): Integer;
+function TCustomGridView.GetFontWidth(AFont: TFont; TextLength: Integer): Integer;
 var
   DC: HDC;
-  Canvas: TCanvas;
+  ACanvas: TCanvas;
   TM: TTextMetric;
 begin
   DC := GetDC(0);
   try
-    Canvas := TCanvas.Create;
+    ACanvas := TCanvas.Create;
     try
-      Canvas.Handle := DC;
-      Canvas.Font := Font;
+      ACanvas.Handle := DC;
+      ACanvas.Font := AFont;
       TM := Default(TTextMetric);
       GetTextMetrics(DC, TM);
-      Result := TextLength * (Canvas.TextWidth('0') - TM.tmOverhang) + TM.tmOverhang + 4;
+      Result := TextLength * (ACanvas.TextWidth('0') - TM.tmOverhang) + TM.tmOverhang + 4;
     finally
-      Canvas.Free;
+      ACanvas.Free;
     end;
   finally
     ReleaseDC(0, DC);
@@ -7994,7 +7991,7 @@ end;
 
 function TCustomGridView.GetRowAtY(Y: Integer): Integer;
 var
-  Row: Integer;
+  ARow: Integer;
   GRT, GOY: Integer;
 begin
   Result := -1;
@@ -8004,9 +8001,9 @@ begin
     Exit;
   if Rows.Height > 0 then
   begin
-    Row := (Y - GRT - GOY) div Rows.Height;
+    ARow := (Y - GRT - GOY) div Rows.Height;
     { проверяем ячейку }
-    if (Row >= 0) and (Row < Rows.Count) then Result := Row;
+    if (ARow >= 0) and (ARow < Rows.Count) then Result := ARow;
   end;
 end;
 
@@ -8406,18 +8403,18 @@ begin
   end;
 end;
 
-procedure TCustomGridView.SetGridCursor(Cell: TGridCell; IsSelected, IsVisible: Boolean);
+procedure TCustomGridView.SetGridCursor(Cell: TGridCell; ASelected, AVisible: Boolean);
 var
   PartialOK: Boolean;
   OldCell: TGridCell;
 begin
   { проверяем выделение }
-  UpdateSelection(Cell, IsSelected);
+  UpdateSelection(Cell, ASelected);
   { изменилось ли что нибудь }
-  if (not IsCellEqual(FCellFocused, Cell)) or (FCellSelected <> IsSelected) then
+  if (not IsCellEqual(FCellFocused, Cell)) or (FCellSelected <> ASelected) then
   begin
     { ячейка меняется }
-    Changing(Cell, IsSelected);
+    Changing(Cell, ASelected);
     { устанавливаем активную ячейку }
     if not IsCellEqual(FCellFocused, Cell) then
     begin
@@ -8430,13 +8427,13 @@ begin
       PartialOK := RowSelect or (FCellFocused.Col = Cell.Col);
       OldCell := FCellFocused;
       FCellFocused := Cell;
-      FCellSelected := IsSelected;
+      FCellSelected := ASelected;
       InvalidateCell(OldCell);
-      if IsVisible then MakeCellVisible(CellFocused, PartialOK);
+      if AVisible then MakeCellVisible(CellFocused, PartialOK);
       ShowCursor;
     end
     { устанавливаем выделение }
-    else if FCellSelected <> IsSelected then
+    else if FCellSelected <> ASelected then
     begin
       { строка видна - фокус на нее, состояние не трогаем }
       if Editing then ShowEdit;
@@ -8444,8 +8441,8 @@ begin
       if not Editing then
       begin
         HideCursor;
-        FCellSelected := IsSelected;
-        if IsVisible then MakeCellVisible(CellFocused, True);
+        FCellSelected := ASelected;
+        if AVisible then MakeCellVisible(CellFocused, True);
         ShowCursor;
       end;
     end;
@@ -8516,7 +8513,6 @@ procedure TCustomGridView.UpdateEdit(Activate: Boolean);
   begin
     FEditCell := FCellFocused;
     FEdit.Updating;
-
     FEdit.UpdateBounds(FEdit.Visible, Editing);
     if not Editing then
       FEdit.UpdateContents;
