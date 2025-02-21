@@ -1124,7 +1124,7 @@ type
     procedure StartButtonTracking(X, Y: Integer);
     procedure StepButtonTracking(X, Y: Integer);
     procedure StopButtonTracking;
-    procedure UpdateBounds(AShowing, ScrollCaret: Boolean); virtual;
+    procedure UpdateBounds(ScrollCaret: Boolean); virtual;
     procedure UpdateColors; virtual;
     procedure UpdateContents; virtual;
     procedure UpdateList; virtual;

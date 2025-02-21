@@ -2041,7 +2041,7 @@ begin
   inherited;
   { in Borland C ++ Builder, after changing the font, the position of the
     inplace editor is shifted, it must be corrected }
-  UpdateBounds(Visible, False);
+  UpdateBounds(False);
 end;
 
 procedure TCustomGridEdit.CMMouseEnter(var Message);
@@ -2121,7 +2121,7 @@ begin
       они выставляются в зависимости от размера шрифта) }
     UpdateColors;
     { получаем размеры }
-    UpdateBounds(True, ScrollCaret);
+    UpdateBounds(ScrollCaret);
     { hot flag to draw a button when themes are enabled }
     CursorPos := Default(TPoint);
     if LCLIntf.GetCursorPos(CursorPos) then
@@ -2430,7 +2430,7 @@ end;
 type
   THackWinControl = class(TWinControl);
 
-procedure TCustomGridEdit.UpdateBounds(AShowing, ScrollCaret: Boolean);
+procedure TCustomGridEdit.UpdateBounds(ScrollCaret: Boolean);
 const
   EM_SETRECTNP = 180;
   EM_SCROLLCARET = 183;
@@ -2439,50 +2439,47 @@ var
   L, T, W, H: Integer;
   TI: TPoint;
 begin
-  if Grid <> nil then
+  if not Visible or (Grid = nil) then
+    Exit;
+  { определяем прямоугольник ячейки строки ввоа }
+  R := Grid.GetEditRect(Grid.EditCell);
+  F := R;
+  { подправляем строку в соотвествии с фиксированными }
+  with Grid.GetFixedRect do
   begin
-    { определяем прямоугольник ячейки строки ввоа }
-    R := Grid.GetEditRect(Grid.EditCell);
-    F := R;
-    { подправляем строку в соотвествии с фиксированными }
-    with Grid.GetFixedRect do
+    if R.Left < Right then R.Left := Right;
+    if R.Right < Right then R.Right := Right;
+  end;
+  { подправляем строку в соотвествии с заголовком }
+  with Grid.GetHeaderRect do
+    if (R.Top < Bottom) or (R.Bottom < Bottom) then
     begin
-      if R.Left < Right then R.Left := Right;
-      if R.Right < Right then R.Right := Right;
+      Self.Visible := False;
+      Exit;
     end;
-    { подправляем строку в соотвествии с заголовком }
-    with Grid.GetHeaderRect do
-    begin
-      if not AShowing or (R.Top < Bottom) or ( R.Bottom < Bottom) then
-      begin
-        Self.Visible := False;
-        Exit;
-      end;
-    end;
-    { устанавливаем положение }
-    BoundsRect := R;
-    { вычисляем новые границы текста }
-    L := F.Left - R.Left;
-    T := F.Top - R.Top;
-    W := F.Right - F.Left;
-    H := F.Bottom - F.Top;
-    { смещение текста }
-    TI := Grid.GetCellTextIndent(Grid.EditCell);
-    { учитываем кнопку }
-    if EditStyle <> geSimple then
-      Dec(W, ButtonWidth + 4)
-    else
-      Dec(W, Grid.TextRightIndent);
-    { устанавливаем границы текста }
-    R := Bounds(L + TI.X, T + TI.Y, W - TI.X + Ord(Alignment = taRightJustify), H);
-    SendMessage(Handle, EM_SETRECTNP, 0, {%H-}LPARAM(@R));
-    { курсор в конец строки }
-    if ScrollCaret then SendMessage(Handle, EM_SCROLLCARET, 0, 0);
-    { when scrolling the grid horizontally, inplace editor should be redrawn
-      immediately, otherwise a black rectangle (garbage) will flash
-      in its place if grid Doublebuffered is True }
-    if Grid.DoubleBuffered then UpdateWindow(Handle);
-  end
+  { устанавливаем положение }
+  BoundsRect := R;
+  { вычисляем новые границы текста }
+  L := F.Left - R.Left;
+  T := F.Top - R.Top;
+  W := F.Right - F.Left;
+  H := F.Bottom - F.Top;
+  { смещение текста }
+  TI := Grid.GetCellTextIndent(Grid.EditCell);
+  { учитываем кнопку }
+  if EditStyle <> geSimple then
+    Dec(W, ButtonWidth + 4)
+  else
+    Dec(W, Grid.TextRightIndent);
+  { устанавливаем границы текста }
+  R := Bounds(L + TI.X, T + TI.Y, W - TI.X + Ord(Alignment = taRightJustify), H);
+  SendMessage(Handle, EM_SETRECTNP, 0, {%H-}LPARAM(@R));
+  { курсор в конец строки }
+  if ScrollCaret then SendMessage(Handle, EM_SCROLLCARET, 0, 0);
+  { when scrolling the grid horizontally, inplace editor should be redrawn
+    immediately, otherwise a black rectangle (garbage) will flash
+    in its place if grid Doublebuffered is True }
+  if Grid.DoubleBuffered then UpdateWindow(Handle);
 end;
 
 procedure TCustomGridEdit.UpdateColors;
@@ -8521,7 +8518,7 @@ procedure TCustomGridView.UpdateEdit(Activate: Boolean);
   begin
     FEditCell := FCellFocused;
     FEdit.Updating;
-    FEdit.UpdateBounds(FEdit.Visible, Editing);
+    FEdit.UpdateBounds(Editing);
     if not Editing then
       FEdit.UpdateContents;
     FEdit.UpdateStyle;
