@@ -134,7 +134,7 @@ end;
 
 procedure TGridColumnsProperty.Edit;
 begin
-  if EditGridColumns(TGridColumns(GetInt64Value).Grid) then Modified;
+  if EditGridColumns(TGridColumns(GetObjectValue).Grid) then Modified;
 end;
 
 function TGridColumnsProperty.GetAttributes: TPropertyAttributes;
@@ -146,7 +146,7 @@ end;
 
 procedure TGridHeaderProperty.Edit;
 begin
-  if EditGridHeader(TGridHeaderSections(GetInt64Value).Header.Grid) then Modified;
+  if EditGridHeader(TGridHeaderSections(GetObjectValue).Header.Grid) then Modified;
 end;
 
 function TGridHeaderProperty.GetAttributes: TPropertyAttributes;
