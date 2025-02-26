@@ -1124,7 +1124,7 @@ begin
           I := 0;
       end;
       if I < 7 then I := 7;
-      // TODO !!! check !!!
+      // TODO: !!! check !!!
       //RowCount := I;
     end;
 end;
@@ -1170,7 +1170,7 @@ begin
         if IsLookupField(Grid.EditField, MasterField) and Grid.DataLink.Edit then
         begin
           MasterField.Value := ListValue;
-          Grid.EditField.Value := KeyValue; // NOTE !! was SelectedItem !!
+          Grid.EditField.Value := KeyValue; // NOTE: !! was SelectedItem !!
         end;
       end
     else if ActiveList is TGridListBox then
@@ -1605,7 +1605,7 @@ begin
   FIndicatorsDef.BkColor := clFuchsia;
   //FIndicatorsDef.GetResource(rtBitmap, 'BM_GRIDVIEW_DB', 0, [], clFuchsia);
   //FIndicatorsDef.ResInstLoad(HInstance, rtBitmap, 'BM_GRIDVIEW_DB', clFuchsia);
-  FIndicatorsDef.AddResourceName(HInstance, 'BM_GRIDVIEW_DB', clFuchsia); // TODO !!! check !!!
+  FIndicatorsDef.AddResourceName(HInstance, 'BM_GRIDVIEW_DB', clFuchsia); // TODO: !!! check !!!
   FAllowDeleteRecord := True;
   FAllowInsertRecord := True;
   FSelectedRows := TDBGridSelectedRows.Create(Self);

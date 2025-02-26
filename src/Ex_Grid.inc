@@ -6,6 +6,9 @@ uses
   Dialogs, StdCtrls, Math, MaskEdit, ImgList, Menus,
   Ex_Utils;
 
+const
+  GRID_LINE_WIDTH = 1;
+
 type
   TGridHeaderSections = class;
   TCustomGridHeader = class;
@@ -46,7 +49,7 @@ type
                         это индекс, соотвествующий последнему видимому
                         подзаголовку, для самой нижней секции это ColumnIndex.
     Visible -           Видимость секции. Секция видна, если видна хотябы одна
-                        из подсекций или если видна соотвествующая олонка или
+                        из подсекций или если видна соотвествующая колонка или
                         для секции нет колонки.
 
     Alignment -         Выравнивание текста заголовка по горизонтали.
@@ -1091,7 +1094,6 @@ type
     procedure LMPaste(var Message); message LM_PASTE;
     procedure LMCut(var Message); message LM_CUT;
     procedure LMClear(var Message); message LM_CLEAR;
-    // NOTE `procedure WMUndo(); message LM_UNDO` replaced with `Undo()`
     procedure LMCancelMode(var Message); message LM_CANCELMODE;
     procedure LMKillFocus(var Message); message LM_KILLFOCUS;
     procedure LMWindowPosChanged(var Message); message LM_WINDOWPOSCHANGED;
@@ -1099,7 +1101,7 @@ type
     procedure LMLButtonDown(var Message: TLMLButtonDown); message LM_LBUTTONDOWN;
     procedure LMLButtonDblClk(var Message: TLMLButtonDblClk); message LM_LBUTTONDBLCLK;
     procedure LMSetCursor(var Message); message LM_SETCURSOR;
-    procedure CMCancelMode(var Message: TCMCancelMode); message CM_CANCELMODE{%H-}; // NOTE !! not implemented !!
+    procedure CMCancelMode(var Message: TCMCancelMode); message CM_CANCELMODE{%H-}; // NOTE: !! not implemented !!
     procedure CMEnabledChanged(var Message); message CM_ENABLEDCHANGED;
     procedure LMContextMenu(var Message: TLMessage); message LM_CONTEXTMENU;
     procedure CMFontChanged(var Message); message CM_FONTCHANGED;
@@ -2437,7 +2439,6 @@ type
     FHideSelection: Boolean;
     FShowHeader: Boolean;
     FGridLines: Boolean;
-    FGridLineWidth: Integer;
     FGridStyle: TGridStyles;
     FGridColor: TColor;
     FEndEllipsis: Boolean;
@@ -2931,7 +2932,6 @@ type
     property GridHint: string read FGridHint write SetGridHint;
     property GridHintColor: TColor read FGridHintColor write SetGridHintColor default clGrayText;
     property GridLines: Boolean read FGridLines write SetGridLines default True;
-    property GridLineWidth: Integer read FGridLineWidth;
     property GridStyle: TGridStyles read FGridStyle write SetGridStyle default [gsHorzLine, gsVertLine];
     property Fixed: TCustomGridFixed read GetFixed write SetFixed;
     property FlatBorder: Boolean read FFlatBorder write SetFlatBorder default False;

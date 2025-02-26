@@ -84,7 +84,7 @@ begin
   end;
   //if FContinue then
   //  EditProperty(Prop, FContinue);
-  // NOTE !! об освобождении редактора свойства необходимо заботится самим? !!
+  // NOTE: !! об освобождении редактора свойства необходимо заботится самим? !!
   //PropertyEditor.Free;
 end;
 

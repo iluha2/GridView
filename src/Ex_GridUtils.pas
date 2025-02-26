@@ -14,7 +14,7 @@ procedure GV_DrawNoFocusCell(Grid: TGridView; Cell: TGridCell; Canvas: TCanvas);
 procedure GV_RegStorColumns(const Path: string; Grid: TGridView);
 procedure GV_RegRetrColumns(const Path: string; Grid: TGridView);
 //{$IFDEF WINDOWS}
-//function GV_ExportToExcel(GV: TCustomGridView; const Caption: String): Boolean; // NOTE !! not working !!
+//function GV_ExportToExcel(GV: TCustomGridView; const Caption: String): Boolean; // NOTE: !! not working !!
 //{$ENDIF}
 procedure GV_ExportToStrings(GV: TCustomGridView; const Caption: String; Ss: TStrings);
 

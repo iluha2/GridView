@@ -1053,7 +1053,7 @@ procedure TCustomGridColumn.SetEditStyle(Value: TGridEditStyle);
 begin
   if FEditStyle <> Value then
   begin
-  // NOTE !! Linux: `TGridColumn.EditStyle` does not support lists (gePickList, geDataList) !!
+  // NOTE: !! Linux: `TGridColumn.EditStyle` does not support lists (gePickList, geDataList) !!
   {$IFDEF UNIX}
     if Value in [gePickList, geDataList] then
     begin
@@ -1301,7 +1301,7 @@ begin
       GH := 0
     else
     begin
-      GH := Grid.FGridLineWidth;
+      GH := GRID_LINE_WIDTH;
       if (Grid.Fixed.Count > 0) and
          (not Grid.Fixed.Flat) and
          (not ThemeServices.ThemesEnabled) then
@@ -2006,7 +2006,7 @@ begin
     inherited;
 end;
 
-procedure TCustomGridEdit.CMCancelMode(var Message: TCMCancelMode); // NOTE !! not implemented !!
+procedure TCustomGridEdit.CMCancelMode(var Message: TCMCancelMode); // NOTE: !! not implemented !!
 begin
   if (Message.Sender <> Self) and (Message.Sender <> FActiveList) then
     CloseUp(False);
@@ -3031,11 +3031,6 @@ constructor TCustomGridView.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
   ControlStyle := ControlStyle + [csOpaque, csNeedsBorderPaint];
-  //Width := 185;
-  //Height := 105;
-  //Color := clWindow;
-  //ParentColor := False;
-  //TabStop := True;
   FHorzScrollBar := CreateScrollBar(sbHorizontal);
   FHorzScrollBar.OnScroll := @HorzScroll;
   FHorzScrollBar.OnChange := @HorzScrollChange;
@@ -3056,7 +3051,6 @@ begin
   FBorderStyle := bsSingle;
   FShowHeader := True;
   FGridLines := True;
-  FGridLineWidth := 1; // NOTE !! не менять !!
   FGridStyle := [gsHorzLine, gsVertLine];
   FGridColor := clWindow;
   FEndEllipsis := True;
@@ -3828,7 +3822,7 @@ begin
   if Rows.Count > 0 then
   begin
     InvalidateFocus;
-    // TODO !! check: `and (Message.FocusedWnd <> 0)`
+    // TODO: !! check: `and (Message.FocusedWnd <> 0)`
     if (FEdit <> nil) and (Message.FocusedWnd <> FEdit.Handle) then
       HideCursor;
   end;
@@ -4521,7 +4515,7 @@ begin
     else if GrayReadOnly and IsCellReadOnly(Cell) then
       ACanvas.Font.Color := clGrayText;
     { focused cell }
-    // TODO !! check: `and IsCellFocused(Cell)`
+    // TODO: !! check: `and IsCellFocused(Cell)`
     if Enabled and IsCellHighlighted(Cell) and (not IsCellEditing(Cell)) then
     begin
       if Focused or EditFocused then
@@ -5407,7 +5401,7 @@ begin
     Free;
   end;
   if R.Bottom - R.Top > Rows.Height then
-    { NOTE !! для текста, больше, чем высота строки - поправка !! }
+    { NOTE: !! для текста, больше, чем высота строки - поправка !! }
     { correction if text height is greater than the height of the row }
     Inc(R.Bottom, TextTopIndent * 2);
   InflateRect(R, 1, 1); // <- border
@@ -6193,7 +6187,7 @@ begin
       if not (gsDotLines in GridStyle) then
       begin
         Canvas.Pen.Color := GetFixedDividerColor;
-        Canvas.Pen.Width := FGridLineWidth;
+        Canvas.Pen.Width := GRID_LINE_WIDTH;
         Canvas.MoveTo(R.Right - 1, R.Bottom - 1);
         Canvas.LineTo(R.Right - 1, R.Top - 1);
       end
@@ -6390,7 +6384,7 @@ begin
         if not (gsDotLines in GridStyle) then
         begin
           Canvas.Pen.Color := GetFixedGridColor;
-          Canvas.Pen.Width := FGridLineWidth;
+          Canvas.Pen.Width := GRID_LINE_WIDTH;
           PolyPolyLine(Canvas.Handle, Points, StrokeList);
         end
         else
@@ -6463,8 +6457,8 @@ begin
     R := GetFocusRect;
     if GridLines then
     begin
-      if gsVertLine in GridStyle then Dec(R.Right, FGridLineWidth);
-      if gsHorzLine in GridStyle then Dec(R.Bottom, FGridLineWidth);
+      if gsVertLine in GridStyle then Dec(R.Right , GRID_LINE_WIDTH);
+      if gsHorzLine in GridStyle then Dec(R.Bottom, GRID_LINE_WIDTH);
     end;
     { focus by default is displayed as a dotted rectangle }
     with Canvas do
@@ -6584,7 +6578,7 @@ begin
     if not (gsDotLines in GridStyle) then
     begin
       Canvas.Pen.Color := GetGridLineColor(Color);
-      Canvas.Pen.Width := FGridLineWidth;
+      Canvas.Pen.Width := GRID_LINE_WIDTH;
       PolyPolyLine(Canvas.Handle, Points, StrokeList);
     end
     else
@@ -6610,7 +6604,7 @@ begin
 end;
 
 procedure TCustomGridView.PaintHeaderBackground(Rect: TRect; AColor: TColor; PaintState: TGridPaintStates);
-// NOTE !! отрисовка в винде через ThemeServices глючит !!
+// NOTE: !! отрисовка в винде через ThemeServices глючит !!
 {$IFDEF UNIX}
 var
   Detail: TThemedHeader;
@@ -6705,7 +6699,7 @@ begin
       if Header.GridColor then
       begin
         Pen.Color := GetGridLineColor(Color);
-        Pen.Width := FGridLineWidth;
+        Pen.Width := GRID_LINE_WIDTH;
         MoveTo(R.Left, R.Bottom - 1);
         LineTo(R.Right, R.Bottom - 1);
       end
@@ -7682,7 +7676,7 @@ begin
     { место под картинку }
     if IsCellHasImage(C) then Inc(W, Images.Width + GetCellImageIndent(C).X);
     { учитываем сетку }
-    if GridLines and (gsVertLine in GridStyle) then Inc(W, FGridLineWidth);
+    if GridLines and (gsVertLine in GridStyle) then Inc(W, GRID_LINE_WIDTH);
     { запоминаем }
     if Result < W then Result := W;
   end;
@@ -7729,8 +7723,8 @@ begin
   { учитываем сетку }
   if GridLines then
   begin
-    if gsVertLine in GridStyle then Dec(Result.Right, FGridLineWidth);
-    if gsHorzLine in GridStyle then Dec(Result.Bottom, FGridLineWidth);
+    if gsVertLine in GridStyle then Dec(Result.Right , GRID_LINE_WIDTH);
+    if gsHorzLine in GridStyle then Dec(Result.Bottom, GRID_LINE_WIDTH);
   end;
   { проверяем правый край }
   if Result.Left > Result.Right then Result.Left := Result.Right;
@@ -7969,7 +7963,7 @@ begin
   Result := -1;
   GRT := GetGridRect.Top;
   GOY := GetGridOrigin.Y;
-  if Y - GRT - GOY < 0 then // NOTE !! вот это ключевой момент !!
+  if Y - GRT - GOY < 0 then // NOTE: !!
     Exit;
   if Rows.Height > 0 then
   begin
