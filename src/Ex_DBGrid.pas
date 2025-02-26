@@ -2913,7 +2913,7 @@ begin
       if not (gsDotLines in GridStyle) then
       begin
         Canvas.Pen.Color := GetFixedDividerColor;
-        Canvas.Pen.Width := GridLineWidth;
+        Canvas.Pen.Width := GRID_LINE_WIDTH;
         Canvas.MoveTo(R.Right - 1, R.Bottom - 1);
         Canvas.LineTo(R.Right - 1, R.Top - 1);
       end
@@ -3045,7 +3045,7 @@ begin
         if not (gsDotLines in GridStyle) then
         begin
           Canvas.Pen.Color := GetFixedGridColor;
-          Canvas.Pen.Width := GridLineWidth;
+          Canvas.Pen.Width := GRID_LINE_WIDTH;
           PolyPolyLine(Canvas.Handle, Points, StrokeList);
         end
         else
