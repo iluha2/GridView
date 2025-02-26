@@ -2443,23 +2443,22 @@ begin
     Exit;
   { определяем прямоугольник ячейки строки ввоа }
   R := Grid.GetEditRect(Grid.EditCell);
-  F := R;
+  { ушли за заголовок вверх }
+  if R.Top < Grid.GetHeaderRect.Bottom then
+  begin
+    Visible := False;
+    Exit;
+  end;
   { подправляем строку в соотвествии с фиксированными }
   with Grid.GetFixedRect do
   begin
     if R.Left < Right then R.Left := Right;
     if R.Right < Right then R.Right := Right;
   end;
-  { подправляем строку в соотвествии с заголовком }
-  with Grid.GetHeaderRect do
-    if (R.Top < Bottom) or (R.Bottom < Bottom) then
-    begin
-      Self.Visible := False;
-      Exit;
-    end;
   { устанавливаем положение }
   BoundsRect := R;
   { вычисляем новые границы текста }
+  F := R;
   L := F.Left - R.Left;
   T := F.Top - R.Top;
   W := F.Right - F.Left;
@@ -3859,7 +3858,8 @@ begin
   if Rows.Count > 0 then
   begin
     InvalidateFocus;
-    if (FEdit <> nil) and (Message.FocusedWnd <> 0) and (Message.FocusedWnd <> FEdit.Handle) then
+    // TODO !! check: `and (Message.FocusedWnd <> 0)`
+    if (FEdit <> nil) and (Message.FocusedWnd <> FEdit.Handle) then
       HideCursor;
   end;
 end;
@@ -3870,7 +3870,7 @@ begin
   if Rows.Count > 0 then
   begin
     InvalidateFocus; 
-    if (FEdit <> nil) and ((Message.FocusedWnd <> FEdit.Handle) or (not FEdit.FDefocusing)) then
+    if (FEdit = nil) or ((Message.FocusedWnd <> FEdit.Handle) or (not FEdit.FDefocusing)) then
       ShowCursor;
   end;
 end;
@@ -4551,7 +4551,8 @@ begin
     else if GrayReadOnly and IsCellReadOnly(Cell) then
       ACanvas.Font.Color := clGrayText;
     { focused cell }
-    if Enabled and IsCellFocused(Cell) and (not IsCellEditing(Cell)) and IsColumnTabStoped(Cell) then
+    // TODO !! check: `and IsCellFocused(Cell)`
+    if Enabled and IsCellHighlighted(Cell) and (not IsCellEditing(Cell)) then
     begin
       if Focused or EditFocused then
       begin
@@ -5742,14 +5743,9 @@ begin
       end
       else
       begin
-        { колонка, в которой располагается ячейка, должна разрешать установку курсора в ячейку }
-        if IsColumnTabStoped(C) then
-        begin
-          { в ячейку - выделяем ее }
-          SetGridCursor(C, True, True);
-          CellClick(C, Shift, X, Y);
-        end;
-
+        { в ячейку - выделяем ее }
+        SetGridCursor(C, True, True);
+        CellClick(C, Shift, X, Y);
         { проверяем попадание на флажок }
         { check clicking on the check box }
         if PtInRect(GetCheckRect(C), Classes.Point(X, Y)) then
@@ -7634,14 +7630,6 @@ begin
   Result.Bottom := CR.Bottom; // <- RR.Bottom ???
 end;
 
-function TCustomGridView.GetColumnOfCell(Cell: TGridCell): TCustomGridColumn;
-begin
-  Result := nil;
-  if (Cell.Col < 0) or (Columns.Count < 1) or (Cell.Col > Columns.Count-1) then
-    Exit;
-  Result := Columns[Cell.Col];  
-end;
-
 function TCustomGridView.GetColumnAtX(X: Integer): Integer;
 var
   L, R: Integer;
@@ -8325,14 +8313,6 @@ begin
   Result := IntersectRect(R, CR, GR);
   { полная видимость }
   if not PartialOK then Result := EqualRect(R, CR);
-end;
-
-function TCustomGridView.IsColumnTabStoped(Cell: TGridCell): Boolean;
-var
-  LCol: TCustomGridColumn = nil;
-begin
-  LCol := GetColumnOfCell(Cell);
-  Result := Assigned(LCol) and LCol.TabStop;
 end;
 
 function TCustomGridView.IsColumnVisible(Column: Integer): Boolean;
