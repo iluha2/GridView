@@ -2825,6 +2825,7 @@ type
     function GetCellAt(X, Y: Integer): TGridCell; virtual;
     function GetCellRect(Cell: TGridCell): TRect;
     function GetCellsRect(Cell1, Cell2: TGridCell): TRect;
+    function GetColumnOfCell(Cell: TGridCell): TCustomGridColumn; virtual;
     function GetColumnAtX(X: Integer): Integer; virtual;
     function GetColumnLeftRight(Column: Integer): TRect;
     function GetColumnMaxWidth(Column: Integer): Integer;
@@ -2881,6 +2882,7 @@ type
     function IsCellValid(Cell: TGridCell): Boolean;
     function IsCellValidEx(Cell: TGridCell; CheckPosition, CheckVisible: Boolean): Boolean;
     function IsCellVisible(Cell: TGridCell; PartialOK: Boolean): Boolean;
+    function IsColumnTabStoped(Cell: TGridCell): Boolean;
     function IsColumnVisible(Column: Integer): Boolean;
     function IsEvenRow(Cell: TGridCell): Boolean; virtual;
     function IsFixedVisible: Boolean;

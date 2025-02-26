@@ -4551,7 +4551,7 @@ begin
     else if GrayReadOnly and IsCellReadOnly(Cell) then
       ACanvas.Font.Color := clGrayText;
     { focused cell }
-    if Enabled and IsCellFocused(Cell) and (not IsCellEditing(Cell)) then
+    if Enabled and IsCellFocused(Cell) and (not IsCellEditing(Cell)) and IsColumnTabStoped(Cell) then
     begin
       if Focused or EditFocused then
       begin
@@ -5742,9 +5742,14 @@ begin
       end
       else
       begin
-        { в ячейку - выделяем ее }
-        SetGridCursor(C, True, True);
-        CellClick(C, Shift, X, Y);
+        { колонка, в которой располагается ячейка, должна разрешать установку курсора в ячейку }
+        if IsColumnTabStoped(C) then
+        begin
+          { в ячейку - выделяем ее }
+          SetGridCursor(C, True, True);
+          CellClick(C, Shift, X, Y);
+        end;
+
         { проверяем попадание на флажок }
         { check clicking on the check box }
         if PtInRect(GetCheckRect(C), Classes.Point(X, Y)) then
@@ -7629,6 +7634,14 @@ begin
   Result.Bottom := CR.Bottom; // <- RR.Bottom ???
 end;
 
+function TCustomGridView.GetColumnOfCell(Cell: TGridCell): TCustomGridColumn;
+begin
+  Result := nil;
+  if (Cell.Col < 0) or (Columns.Count < 1) or (Cell.Col > Columns.Count-1) then
+    Exit;
+  Result := Columns[Cell.Col];  
+end;
+
 function TCustomGridView.GetColumnAtX(X: Integer): Integer;
 var
   L, R: Integer;
@@ -8312,6 +8325,14 @@ begin
   Result := IntersectRect(R, CR, GR);
   { полная видимость }
   if not PartialOK then Result := EqualRect(R, CR);
+end;
+
+function TCustomGridView.IsColumnTabStoped(Cell: TGridCell): Boolean;
+var
+  LCol: TCustomGridColumn = nil;
+begin
+  LCol := GetColumnOfCell(Cell);
+  Result := Assigned(LCol) and LCol.TabStop;
 end;
 
 function TCustomGridView.IsColumnVisible(Column: Integer): Boolean;
