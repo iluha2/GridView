@@ -1292,9 +1292,8 @@ type
                            следующие значения:
                              taLeftJustify - флажок слева.
                              taCenter -      флажок по центру ячейки.
-    GetCheckImage -        Венруть картинку ячейки. Картинка должна быть
-                           размерами CheckWidth х CheckHeight пикселов
-                           (т.е. 16х16), желательно с прозрачным фоном.
+    GetCheckImage -        Венруть картинку ячейки.
+                           Картинка должна быть желательно с прозрачным фоном.
     GetCheckKind -         Вернуть тип флажка ячейки. Резальтат может
                            принимать следующие значения:
                              gcNone -        Ячейка не сожержит флажка.
@@ -1581,20 +1580,11 @@ type
     Cells -                Доступ к содержимому ячейки.
     CellSelected -         Признак выделенности курсора.
     CheckBoxes -           Отображение флажков ячеек.
-    CheckHeight -          Высота картинок флажков. Всегда равна 16 пикселам,
-                           не подлежит изменению.
-    CheckLeftIndent -      Смещение флажка ячейки от левого края. Влияет на
-                           отрисовку флажка ячейки. Не следует без особой
-                           необходимости менять это значение (а также
-                           значение CheckTopIndent).
     CheckStyle -           Стиль флажков ячеек. Может принимать следующие
                            значения:
                              csFlat -  Плоские флажки.
                              cs3D -    Выпуклые флажки.
                              csWin95 - Флажки в стиле Windows 95.
-    CheckTopIndent -       Смещение флажка от верхнего края ячейки.
-    CheckWidth -           Ширина картинок флажков. Всегда равна 16 пикселам,
-                           не подлежит изменению.
     Col -                  Текущая колонка ячейки фокуса. Равно CellFocused.Col.
     ColumnClick -          Можно или нет нажимать заголовок колонки.
     Columns -              Список колонок таблицы.
@@ -2146,16 +2136,12 @@ type
                            cells in the grid.
     Checked -              Specifies whether the check box of the cell is checked.
     CheckEnabled -         Specifies whether the check box of the cell is enabled.
-    CheckHeight -          Indicates the height of the check boxes. Do not modify
-                           this property.
     CheckStyle -           Specifies the style of the check box border:
                              csFlat -  Flat border.
                              cs3D -    3D border.
                              csWin95 - Windows 95 style border.
                            If Windows themes are enabled, the check box is
                            displayed using the current theme.
-    CheckWidth -           Indicates the width of check boxes. Do not modify
-                           this property.
     Col -                  Specifies the index of the column that contains
                            the selected cell. Same as CellFocused.Col.
     ColumnClick -          Determines whether the column header behaves like
@@ -2499,10 +2485,6 @@ type
     FTipsText: string;
     FCheckBoxes: Boolean;
     FCheckStyle: TGridCheckStyle;
-    FCheckWidth: Integer;
-    FCheckHeight: Integer;
-    FCheckLeftIndent: Integer;
-    FCheckTopIndent: Integer;
     FCheckBuffer: TBitmap;
     FSortLeftIndent: Integer;
     FSortTopIndent: Integer;
@@ -2611,9 +2593,7 @@ type
     procedure SetCellFocused(Value: TGridCell);
     procedure SetCellSelected(Value: Boolean);
     procedure SetCheckBoxes(Value: Boolean);
-    procedure SetCheckLeftIndent(Value: Integer);
     procedure SetCheckStyle(Value: TGridCheckStyle);
-    procedure SetCheckTopIndent(Value: Integer);
     procedure SetCol(Value: Longint);
     procedure SetColumns(Value: TGridColumns);
     procedure SetCursorKeys(Value: TGridCursorKeys);
@@ -2732,6 +2712,7 @@ type
     function GetCellTextIndent(Cell: TGridCell): TPoint; virtual;
     function GetCheckAlignment(Cell: TGridCell): TAlignment; virtual;
     procedure GetCheckImage(Cell: TGridCell; CheckImage: Graphics.TBitmap); virtual;
+    function GetCheckSize: Integer;
     function GetCheckIndent(Cell: TGridCell): TPoint; virtual;
     function GetCheckKind(Cell: TGridCell): TGridCheckKind; virtual;
     function GetCheckRect(Cell: TGridCell): TRect; virtual;
@@ -2925,11 +2906,7 @@ type
     property Checked[Col, Row: Longint]: Boolean read GetChecked;
     property CheckEnabled[Col, Row: Longint]: Boolean read GetCheckBoxEnabled;
     property CheckState[Col, Row: Longint]: TCheckBoxState read GetCheckBoxState;
-    property CheckHeight: Integer read FCheckHeight write FCheckHeight default 16;
-    property CheckLeftIndent: Integer read FCheckLeftIndent write SetCheckLeftIndent default 0;
     property CheckStyle: TGridCheckStyle read FCheckStyle write SetCheckStyle default csWin95;
-    property CheckTopIndent: Integer read FCheckTopIndent write SetCheckTopIndent default 0;
-    property CheckWidth: Integer read FCheckWidth write FCheckWidth default 16;
     property Col: Longint read GetCol write SetCol;
     property ColResizing: Boolean read FColResizing;
     property ColumnClick: Boolean read FColumnClick write FColumnClick default True;

@@ -1280,7 +1280,7 @@ end;
 
 procedure TCustomGridRows.SetHeight(Value: Integer);
 var
-  TH, FH, CH, IH, GH: Integer;
+  TH, FH, IH, GH: Integer;
 begin
   { проверяем автоподбор }
   if AutoHeight and (Grid <> nil) then
@@ -1289,12 +1289,6 @@ begin
     { the height of text }
     TH := Grid.GetFontHeight(Grid.Font)       + Grid.TextTopIndent + 1;
     FH := Grid.GetFontHeight(Grid.Fixed.Font) + Grid.TextTopIndent + 1;
-    { высота флажков }
-    { the height of check boxes }
-    if not Grid.CheckBoxes then
-      CH := 0
-    else
-      CH := Grid.CheckHeight + Grid.CheckTopIndent + 1;
     { высота картинки }
     { the height of images }
     if Grid.Images = nil then
@@ -1314,7 +1308,7 @@ begin
         Inc(GH, 1); // <- 3D
     end;
     { высота строки }
-    Value := MaxIntValue([0, TH, FH, CH, IH]) + GH + 1;
+    Value := MaxIntValue([0, TH, FH, IH]) + GH + 1;
   end;
   { высота строк не может быть нулевой }
   if Value < 0 then Value := 0;
@@ -3080,10 +3074,6 @@ begin
   FColumnClick := True;
   FEditCell := GridCell(-1, -1);
   FCheckStyle := csWin95;
-  FCheckWidth := 16;
-  FCheckHeight := 16;
-  FCheckLeftIndent := 0;
-  FCheckTopIndent := 0;
   FCheckBuffer := Graphics.TBitmap.Create;
   FSortLeftIndent := 4;
   FSortTopIndent := 0;
@@ -3417,31 +3407,11 @@ begin
   end;
 end;
 
-procedure TCustomGridView.SetCheckLeftIndent(Value: Integer);
-begin
-  if FCheckLeftIndent <> Value then
-  begin
-    FCheckLeftIndent := Value;
-    InvalidateGrid;
-  end;
-end;
-
 procedure TCustomGridView.SetCheckStyle(Value: TGridCheckStyle);
 begin
   if FCheckStyle <> Value then
   begin
     FCheckStyle := Value;
-    InvalidateGrid;
-  end;
-end;
-
-procedure TCustomGridView.SetCheckTopIndent(Value: Integer);
-begin
-  if FCheckTopIndent <> Value then
-  begin
-    FCheckTopIndent := Value;
-    UpdateRows;
-    UpdateEdit(Editing);
     InvalidateGrid;
   end;
 end;
@@ -4617,7 +4587,7 @@ begin
   R := GetCellRect(Cell);
   { учитываем флажок }
   if IsCellHasCheck(Cell) then
-    Inc(R.Left, CheckWidth + GetCheckIndent(Cell).X);
+    Inc(R.Left, GetCheckSize + GetCheckIndent(Cell).X);
   { прямоугольник картинки }
   with Result do
   begin
@@ -4704,15 +4674,19 @@ begin
   if Assigned(FOnGetCheckImage) then FOnGetCheckImage(Self, Cell, CheckImage);
 end;
 
+function TCustomGridView.GetCheckSize: Integer;
+begin
+  Result:= Rows.Height - 4;
+end;
+
 function TCustomGridView.GetCheckIndent(Cell: TGridCell): TPoint;
 begin
-  Result.X := CheckLeftIndent;
-  Result.Y := CheckTopIndent;
+  Result := Point(0, 1);
   { учитываем 3D эффект }
   if GridLines and (Fixed.Count > 0) and (not Fixed.Flat) and
     (not ThemeServices.ThemesEnabled) then Inc(Result.Y, 1);
   { учитываем выравнивание флажка }
-  if GetCheckAlignment(Cell) = taCenter then Result.X := (Columns[Cell.Col].Width - CheckWidth) div 2 - 1;
+  if GetCheckAlignment(Cell) = taCenter then Result.X := (Columns[Cell.Col].Width - GetCheckSize) div 2 - 1;
   { событие пользователя }
   if Assigned(FOnGetCheckIndent) then FOnGetCheckIndent(Self, Cell, Result);
 end;
@@ -4730,21 +4704,17 @@ end;
 function TCustomGridView.GetCheckRect(Cell: TGridCell): TRect;
 var
   IC: TPoint;
-  R: TRect;
 begin
   { а есть ли флажок }
   if not IsCellHasCheck(Cell) then
     Exit( Classes.Rect(0, 0, 0, 0) );
   { получаем прямоугольник ячейки }
-  R := GetCellRect(Cell);
-  { прямоугольник флажка }
+  Result := GetCellRect(Cell);
+  IC := GetCheckIndent(Cell);
   with Result do
   begin
-    IC := GetCheckIndent(Cell);
-    Left := R.Left + IC.X;
-    Right := Min(Left + CheckWidth, R.Right);
-    Top := R.Top + IC.Y;
-    Bottom := R.Top + CheckHeight;
+    Left := Left + IC.X;
+    Right := Min(Left + GetCheckSize, Right);
   end;
 end;
 
@@ -4768,7 +4738,7 @@ end;
 function TCustomGridView.GetClientOrigin: TPoint;
 begin
   if Parent = nil then
-    Result := Classes.Point(0, 0) // GetClientRect.TopLeft
+    Result := Point(0, 0) // GetClientRect.TopLeft
   else
     Result := inherited GetClientOrigin;
 end;
@@ -7288,7 +7258,7 @@ begin
   R := Rect;
   if IH then
   begin
-    if CK <> gcNone then Inc(R.Left, IC.X + CheckWidth);
+    if CK <> gcNone then Inc(R.Left, IC.X + GetCheckSize);
     if CI <> -1 then Inc(R.Left, II.X + Images.Width);
   end;
   Canvas.FillRect(R);
@@ -7297,17 +7267,15 @@ begin
   begin
     if IH then Canvas.Brush.Color := Color;
     R := Rect;
-    R.Right := Min(R.Left + CheckWidth + IC.X, Rect.Right);
+    R.Right := Min(R.Left + GetCheckSize + IC.X, Rect.Right);
     if R.Left < Rect.Right then
     begin
       with Canvas do
       begin
         X := R.Left + IC.X;
         Y := R.Top + IC.Y;
-        W := CheckWidth;
-        if X + W > R.Right then W := R.Right - X;
-        H := CheckHeight;
-        if Y + H > R.Bottom then H := R.Bottom - Y;
+        W := Min(GetCheckSize, R.Right - X);
+        H := Min(GetCheckSize, R.Bottom - Y);
         if CK <> gcUserDefine then
         begin
           CS := GetCheckStateEx(Cell, CE);
@@ -7336,10 +7304,8 @@ begin
     begin
       X := R.Left + II.X;
       Y := R.Top + II.Y;
-      W := Images.Width;
-      if X + W > R.Right then W := R.Right - X;
-      H := Images.Height;
-      if Y + H > R.Bottom then H := R.Bottom - Y;
+      W := Min(Images.Width, R.Right - X);
+      H := Min(Images.Height, R.Bottom - Y);
       { exclude image rect from text rect }
       Rect.Left := R.Right;
     end;
@@ -7712,7 +7678,7 @@ begin
     { определяем ширину }
     W := R.Right - R.Left;
     { место под флажок }
-    if IsCellHasCheck(C) then Inc(W, CheckWidth + GetCheckIndent(C).X);
+    if IsCellHasCheck(C) then Inc(W, GetCheckSize + GetCheckIndent(C).X);
     { место под картинку }
     if IsCellHasImage(C) then Inc(W, Images.Width + GetCellImageIndent(C).X);
     { учитываем сетку }
@@ -7757,7 +7723,7 @@ function TCustomGridView.GetEditRect(Cell: TGridCell): TRect;
 begin
   Result := GetCellRect(Cell);
   { место под флажок  }
-  if IsCellHasCheck(Cell) then Inc(Result.Left, CheckWidth + GetCheckIndent(Cell).X);
+  if IsCellHasCheck(Cell) then Inc(Result.Left, GetCheckSize + GetCheckIndent(Cell).X);
   { место под картинку }
   if IsCellHasImage(Cell) then Inc(Result.Left, Images.Width + GetCellImageIndent(Cell).X);
   { учитываем сетку }
@@ -7835,7 +7801,7 @@ begin
   begin
     { neither the picture nor the check box are highlighted }
     { место под флажок }
-    if IsCellHasCheck(C) then Inc(Result.Left, CheckWidth + GetCheckIndent(C).X);
+    if IsCellHasCheck(C) then Inc(Result.Left, GetCheckSize + GetCheckIndent(C).X);
     { место под картинку }
     if IsCellHasImage(C) then Inc(Result.Left, Images.Width + GetCellImageIndent(C).X);
   end;
