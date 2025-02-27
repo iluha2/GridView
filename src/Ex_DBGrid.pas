@@ -1042,7 +1042,8 @@ end;
 
 procedure TDBGridColumns.Update(Item: TCollectionItem);
 begin
-  if (Grid <> nil) and (Grid.LayoutLock = 0) {and (not Grid.ColResizing) }then Grid.DefaultLayout := False;
+  if (Grid <> nil) and (Grid.LayoutLock = 0) then
+    Grid.DefaultLayout := False;
   inherited;
 end;
 
@@ -2589,13 +2590,12 @@ begin
     FSelectPending := False;
   end;
   { ignore cell selection when changing column widths }
-  if (gkMouseMove in CursorKeys) and (not ColResizing) then
+  if (gkMouseMove in CursorKeys) and (not FColResizing) then
     MoveByXY(X, Y, Shift);
   inherited;
 end;
 
-procedure TCustomDBGridView.MouseUp(Button: TMouseButton; Shift: TShiftState; X,
-  Y: Integer);
+procedure TCustomDBGridView.MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 begin
   if FSelectPending then
   begin

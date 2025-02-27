@@ -2457,7 +2457,6 @@ type
     FColumnsResize: Boolean;
     FColumnsFullDrag: Boolean;
     FColumnClick: Boolean;
-    FColResizing: Boolean;
     FColResizeSection: TGridHeaderSection;
     FColResizeLevel: Integer;
     FColResizeIndex: Integer;
@@ -2481,6 +2480,7 @@ type
     FEdit: TCustomGridEdit;
     FEditCell: TGridCell;
     FEditing: Boolean;
+    FEditPending: Boolean;
     FShowCellTips: Boolean;
     FTipsCell: TGridCell;
     FTipsText: string;
@@ -2640,7 +2640,7 @@ type
     procedure VertScroll(Sender: TObject; {%H-}ScrollCode: Integer; var {%H-}ScrollPos: Integer);
     procedure VertScrollChange(Sender: TObject);
   protected
-    FEditPending: Boolean;
+    FColResizing: Boolean;
     procedure LMGetDlgCode(var Message: TLMGetDlgCode); message LM_GETDLGCODE;
     procedure LMKillFocus(var Message: TLMKillFocus); message LM_KILLFOCUS;
     procedure LMSetFocus(var Message: TLMSetFocus); message LM_SETFOCUS;
@@ -2909,11 +2909,9 @@ type
     property CheckState[Col, Row: Longint]: TCheckBoxState read GetCheckBoxState;
     property CheckStyle: TGridCheckStyle read FCheckStyle write SetCheckStyle default csWin95;
     property Col: Longint read GetCol write SetCol;
-    property ColResizing: Boolean read FColResizing;
     property ColumnClick: Boolean read FColumnClick write FColumnClick default True;
     property Columns: TGridColumns read FColumns write SetColumns;
     property ColumnsFullDrag: Boolean read FColumnsFullDrag write FColumnsFullDrag default False;
-    property ColumnsResize: Boolean read FColumnsResize write FColumnsResize default True;
     property ContextPopupCol: Integer read FContextPopupCol;
     property ContextPopupRow: Integer read FContextPopupRow;
     property CursorKeys: TGridCursorKeys read FCursorKeys write SetCursorKeys default [gkArrows, gkMouse, gkMouseWheel];

@@ -581,7 +581,7 @@ begin
     {$ENDIF}
         Inc(Value, 3);
     end;
-  end;
+  end; // if AutoHeight then
   { высота секций не может быть нулевой }
   if Value < 0 then Value := 0;
   { устанавливаем }
@@ -1645,37 +1645,36 @@ begin
     CheckScrollPos(FMin, FMax, FPageStep, Value);
   end;
   { изменилась ли позиция }
-  if Value <> FPosition then
+  if Value = FPosition then
+    Exit;
+  { сдвигаем сетку }
+  with FGrid do
   begin
-    { сдвигаем сетку }
-    with FGrid do
+    { гасим фокус }
+    { focus rect should be hidden while scrolling grid }
+    HideFocus;
+    { сдвигаем }
+    if FKind = sbHorizontal then
     begin
-      { гасим фокус }
-      { focus rect should be hidden while scrolling grid }
-      HideFocus;
-      { сдвигаем }
-      if FKind = sbHorizontal then
-      begin
-        R := Default(TRect);
-        UnionRect(R, GetHeaderRect, GetGridRect);
-        R.Left := GetFixedRect.Right;
-        ScrollWindowEx(Handle, (FPosition - Value) * FLineSize, 0, @R, @R, 0, nil, SW_INVALIDATE);
-      end
-      else
-      begin
-        R := GetGridRect;
-        ScrollWindowEx(Handle, 0, (FPosition - Value) * FLineSize, @R, @R, 0, nil, SW_INVALIDATE);
-      end;
-      { устанавливаем новую позицию }
-      FPosition :=  Value;
-      { показываем фокус }
-      ShowFocus;
+      R := Default(TRect);
+      UnionRect(R, GetHeaderRect, GetGridRect);
+      R.Left := GetFixedRect.Right;
+      ScrollWindowEx(Handle, (FPosition - Value) * FLineSize, 0, @R, @R, 0, nil, SW_INVALIDATE);
+    end
+    else
+    begin
+      R := GetGridRect;
+      ScrollWindowEx(Handle, 0, (FPosition - Value) * FLineSize, @R, @R, 0, nil, SW_INVALIDATE);
     end;
-    { устанавливаем скроллер }
-    Update;
-    { изменение }
-    Change;
-  end;
+    { устанавливаем новую позицию }
+    FPosition :=  Value;
+    { показываем фокус }
+    ShowFocus;
+  end; // with FGrid do
+  { устанавливаем скроллер }
+  Update;
+  { изменение }
+  Change;
 end;
 
 procedure TGridScrollBar.Update;
@@ -1967,15 +1966,10 @@ begin
 end;
 
 procedure TCustomGridEdit.LMSetCursor(var Message);
-//var
-//  P: TPoint;
 begin
   { не попала ли мышка на кнопку }
-  //GetCursorPos(P);
-  //if (FEditStyle <> geSimple) and PtInRect(GetButtonRect, ScreenToClient(P)) then
   if (FEditStyle <> geSimple) and PtInRect(GetButtonRect, ScreenToClient(Mouse.CursorPos)) then
   begin
-    //LCLIntf.SetCursor(Screen.Cursors[crArrow]);
     Cursor := crArrow;
     Exit;
   end;
@@ -2733,26 +2727,25 @@ end;
 
 procedure TCustomGridEdit.CloseUp(Accept: Boolean);
 begin
-  if FDropListVisible then
-  begin
-    if GetCapture <> 0 then 
-      SendMessage(GetCapture, LM_CANCELMODE, 0, 0);
-    { скрываем список }
-    //SetWindowPos(FActiveList.Handle, 0, 0, 0, 0, 0,
-    //  SWP_NOZORDER or SWP_NOMOVE or SWP_NOSIZE or SWP_NOACTIVATE or SWP_HIDEWINDOW);
-    FDropListVisible := False;
-    FActiveList.Hide;
-    Invalidate;
-    { set ClosingUp state for WMKillFocus }
-    Inc(FCloseUpCount);
-    try
-      ApplyListValue(Accept);
-      { return focus to the inplace editor in case the OnEditCloseUp event
-        handler displayed a dialog, for example, a color dialog }
-      LCLIntf.SetFocus(Handle);
-    finally
-      Dec(FCloseUpCount);
-    end;
+  if not FDropListVisible then
+    Exit;
+  if GetCapture <> 0 then
+    SendMessage(GetCapture, LM_CANCELMODE, 0, 0);
+  { скрываем список }
+  //SetWindowPos(FActiveList.Handle, 0, 0, 0, 0, 0,
+  //  SWP_NOZORDER or SWP_NOMOVE or SWP_NOSIZE or SWP_NOACTIVATE or SWP_HIDEWINDOW);
+  FDropListVisible := False;
+  FActiveList.Hide;
+  Invalidate;
+  { set ClosingUp state for WMKillFocus }
+  Inc(FCloseUpCount);
+  try
+    ApplyListValue(Accept);
+    { return focus to the inplace editor in case the OnEditCloseUp event
+      handler displayed a dialog, for example, a color dialog }
+    LCLIntf.SetFocus(Handle);
+  finally
+    Dec(FCloseUpCount);
   end;
 end;
 
@@ -2763,33 +2756,31 @@ end;
 
 procedure TCustomGridEdit.DropDown;
 begin
-  if (not FDropListVisible) and (Grid <> nil) and (EditStyle in [gePickList, geDataList]) then
+  if FDropListVisible or (Grid = nil) or not (EditStyle in [gePickList, geDataList]) then
+    Exit;
+  { получаем выпадающий список }
+  FActiveList := GetDropList;
+  if FActiveList = nil then
+    Exit;
+  { заполяем список, устанавливаем размеры }
+  UpdateList;
+  UpdateListItems;
+  { protection against exotic errors: if, when retrieving a list the user
+    decides to cancel editing, then the list should not be shown }
+  if not Grid.Editing then
   begin
-    { получаем выпадающий список }
-    FActiveList := GetDropList;
-    if FActiveList <> nil then
-    begin
-      { заполяем список, устанавливаем размеры }
-      UpdateList;
-      UpdateListItems;
-      { protection against exotic errors: if, when retrieving a list the user
-        decides to cancel editing, then the list should not be shown }
-      if not Grid.Editing then
-      begin
-        StopButtonTracking;
-        Exit;
-      end;
-      UpdateListBounds;
-      { показываем список }
-      //SetWindowPos(FActiveList.Handle, HWND_TOP, FActiveList.Left, FActiveList.Top, 0, 0,
-      //  SWP_NOSIZE or SWP_NOACTIVATE or SWP_SHOWWINDOW);
-      FDropListVisible := True;
-      FActiveList.Show;
-      Invalidate;
-      { устанавливаем на него фокус }
-      LCLIntf.SetFocus(FActiveList.Handle);
-    end;
+    StopButtonTracking;
+    Exit;
   end;
+  UpdateListBounds;
+  { показываем список }
+  //SetWindowPos(FActiveList.Handle, HWND_TOP, FActiveList.Left, FActiveList.Top, 0, 0,
+  //  SWP_NOSIZE or SWP_NOACTIVATE or SWP_SHOWWINDOW);
+  FDropListVisible := True;
+  FActiveList.Show;
+  Invalidate;
+  { устанавливаем на него фокус }
+  LCLIntf.SetFocus(FActiveList.Handle);
 end;
 
 procedure TCustomGridEdit.Invalidate;
@@ -2838,18 +2829,16 @@ procedure TCustomGridEdit.SelectNext;
 var
   OldText, NewText: string;
 begin
-  if Grid <> nil then
+  if Grid = nil then
+    Exit;
+  // не будем лишний раз вызывать `GetText()`
+  OldText := Text;
+  NewText := OldText;
+  Grid.EditSelectNext(Grid.EditCell, NewText);
+  if NewText <> OldText then
   begin
-    OldText := Text;
-    NewText := OldText;
-    { вызываем метод таблицы }
-    Grid.EditSelectNext(Grid.EditCell, NewText);
-    { устанавливаем новое значение }
-    if NewText <> OldText then
-    begin
-      Text := NewText;
-      SetSel(0, -1);
-    end;
+    Text := NewText;
+    SetSel(0, -1);
   end;
 end;
 
@@ -3086,17 +3075,17 @@ end;
 
 destructor TCustomGridView.Destroy;
 begin
-  FreeandNil(FPatternBitmap);
-  FreeandNil(FSortBuffer);
-  FreeandNil(FCheckBuffer);
-  FreeandNil(FImagesLink);
+  FreeAndNil(FPatternBitmap);
+  FreeAndNil(FSortBuffer);
+  FreeAndNil(FCheckBuffer);
+  FreeAndNil(FImagesLink);
   inherited Destroy;
-  FreeandNil(FFixed);
-  FreeandNil(FRows);
-  FreeandNil(FColumns);
-  FreeandNil(FHeader);
-  FreeandNil(FHorzScrollBar);
-  FreeandNil(FVertScrollBar);
+  FreeAndNil(FFixed);
+  FreeAndNil(FRows);
+  FreeAndNil(FColumns);
+  FreeAndNil(FHeader);
+  FreeAndNil(FHorzScrollBar);
+  FreeAndNil(FVertScrollBar);
 end;
 
 function TCustomGridView.GetCell(Col, Row: Longint): string;
@@ -3219,19 +3208,22 @@ begin
   ChangeColumns;
 end;
 
-function TCustomGridView.CompareStrings(const S1, S2: string; WholeWord,
-  MatchCase: Boolean): Boolean;
+function TCustomGridView.CompareStrings(const S1, S2: string; WholeWord, MatchCase: Boolean): Boolean;
 begin
   if WholeWord then
+  begin
     if MatchCase then
       Result := UTF8CompareStr(S1, S2) = 0
     else
       Result := UTF8CompareText(S1, S2) = 0
+  end
   else
+  begin
     if MatchCase then
       Result := UTF8Pos(S1, S2) > 0
     else
       Result := UTF8Pos(UTF8Uppercase(S1), UTF8Uppercase(S2)) > 0;
+  end;
 end;
 
 procedure TCustomGridView.FixedChange(Sender: TObject);
@@ -3929,106 +3921,107 @@ end;
 
 procedure TCustomGridView.CMHintShow(var Message: TLMessage);
 var
+  HintInfo: THintInfo;
   AllowTips: Boolean;
   R, TR: TRect;
   W: Integer;
 begin
-  with Message, {%H-}PHintInfo(LParam)^ do
+  if not ShowCellTips then
   begin
-    if not ShowCellTips then
-    begin
-      inherited;
-      Exit;
-    end;
-    { если не попали в таблицу - выход }
-    if not PtInRect(GetGridRect, CursorPos) then
-    begin
-      Result := 1;
-      Exit;
-    end;
-    { ищем ячейку, на которую указывает курсор }
-    FTipsCell := GetCellAt(CursorPos.X, CursorPos.Y);
-    { если не попали - подсказки нет, выход }
-    if IsCellEmpty(FTipsCell) then
-    begin
-      Result := 1;
-      Exit;
-    end;
-    { а не идет ли редактирование этой ячейки }
-    { hint is not allowed when editing cell text }
-    if IsCellEditing(FTipsCell) then
-    begin
-      Result := 1;
-      Exit;
-    end;
-    { а нужны ли подсказки для ячейки }
-    { hint can be disabled by OnCellTips event }
-    CellTips(FTipsCell, AllowTips);
-    if not AllowTips then
-    begin
-      Result := 1;
-      Exit;
-    end;
-    { hint is shown only if the cell text gets out of cell bounds }
-    { получаем прямоугольник ячейки (без картинки) }
-    R := GetCellHintRect(FTipsCell);
-    { получаем прямоугольник текста ячейки }
-    TR := GetCellTextBounds(FTipsCell);
-    { смещаем его в соотвествии с выравниванием }
-    W := TR.Right - TR.Left;
-    case Columns[FTipsCell.Col].Alignment of
-      taCenter:
-        begin
-          TR.Left := R.Left - (W - (R.Right - R.Left)) div 2;
-          TR.Right := TR.Left + W;
-        end;
-      taRightJustify:
-        begin
-          TR.Right := R.Right;
-          TR.Left := TR.Right - W;
-        end;
-    else
-      TR.Left := R.Left;
-      TR.Right := TR.Left + W;
-    end;
-    { учитываем видимую часть таблицы }
-    IntersectRect(R, R, ClientRect);
-    if ShowHeader then SubtractRect(R, R, GetHeaderRect);
-    if FTipsCell.Col >= Fixed.Count then SubtractRect(R, R, GetFixedRect);
-    { а вылезает ли текст за ячейку (слева, справа или по высоте) }
-    if (TR.Left >= R.Left) and (TR.Right <= R.Right) and
-      (TR.Bottom - TR.Top <= R.Bottom - R.Top) then
-    begin
-      Result := 1;
-      Exit;
-    end;
-    { получаем текст подсказки }
-    FTipsText := GetTipsText(FTipsCell);
-    { получаем прямоугольник подсказки }
-    R := GetTipsRect(FTipsCell, FTipsText);
-    { настраиваем положение и текст подсказки }
-    HintPos := ClientToScreen(R.TopLeft);
-    HintStr := FTipsText;
-    { настраиваем прямоугольник реакции мышки }
-    R := GetCellRect(FTipsCell);
-    if FTipsCell.Col < Fixed.Count then
-    begin
-      R.Left := MaxIntValue([R.Left, GetFixedRect.Left]);
-      R.Right := MinIntValue([R.Right, GetFixedRect.Right]);
-    end
-    else
-    begin
-      R.Left := MaxIntValue([R.Left, GetFixedRect.Right]);
-      R.Right := MinIntValue([R.Right, GetGridRect.Right]);
-    end;
-    InflateRect(R, 1, 1);
-    CursorRect := R;
-    { тип окна подсказки }
-    HintWindowClass := GetTipsWindowClass;
-    HintData := Self;
-    { хинт можно показать }
-    Result := 0;
+    inherited;
+    Exit;
   end;
+  { если не попали в таблицу - выход }
+  HintInfo := {%H-}PHintInfo(Message.LParam)^;
+  if not PtInRect(GetGridRect, HintInfo.CursorPos) then
+  begin
+    Message.Result := 1;
+    Exit;
+  end;
+  { ищем ячейку, на которую указывает курсор }
+  FTipsCell := GetCellAt(
+    HintInfo.CursorPos.X,
+    HintInfo.CursorPos.Y);
+  { если не попали - подсказки нет, выход }
+  if IsCellEmpty(FTipsCell) then
+  begin
+    Message.Result := 1;
+    Exit;
+  end;
+  { а не идет ли редактирование этой ячейки }
+  { hint is not allowed when editing cell text }
+  if IsCellEditing(FTipsCell) then
+  begin
+    Message.Result := 1;
+    Exit;
+  end;
+  { а нужны ли подсказки для ячейки }
+  { hint can be disabled by OnCellTips event }
+  CellTips(FTipsCell, AllowTips);
+  if not AllowTips then
+  begin
+    Message.Result := 1;
+    Exit;
+  end;
+  { hint is shown only if the cell text gets out of cell bounds }
+  { получаем прямоугольник ячейки (без картинки) }
+  R := GetCellHintRect(FTipsCell);
+  { получаем прямоугольник текста ячейки }
+  TR := GetCellTextBounds(FTipsCell);
+  { смещаем его в соотвествии с выравниванием }
+  W := TR.Right - TR.Left;
+  case Columns[FTipsCell.Col].Alignment of
+    taCenter:
+      begin
+        TR.Left := R.Left - (W - (R.Right - R.Left)) div 2;
+        TR.Right := TR.Left + W;
+      end;
+    taRightJustify:
+      begin
+        TR.Right := R.Right;
+        TR.Left := TR.Right - W;
+      end;
+  else
+    TR.Left := R.Left;
+    TR.Right := TR.Left + W;
+  end;
+  { учитываем видимую часть таблицы }
+  IntersectRect(R, R, ClientRect);
+  if ShowHeader then SubtractRect(R, R, GetHeaderRect);
+  if FTipsCell.Col >= Fixed.Count then SubtractRect(R, R, GetFixedRect);
+  { а вылезает ли текст за ячейку (слева, справа или по высоте) }
+  if (TR.Left >= R.Left) and (TR.Right <= R.Right) and
+    (TR.Bottom - TR.Top <= R.Bottom - R.Top) then
+  begin
+    Message.Result := 1;
+    Exit;
+  end;
+  { получаем текст подсказки }
+  FTipsText := GetTipsText(FTipsCell);
+  { получаем прямоугольник подсказки }
+  R := GetTipsRect(FTipsCell, FTipsText);
+  { настраиваем положение и текст подсказки }
+  HintInfo.HintPos := ClientToScreen(R.TopLeft);
+  HintInfo.HintStr := FTipsText;
+  { настраиваем прямоугольник реакции мышки }
+  R := GetCellRect(FTipsCell);
+  if FTipsCell.Col < Fixed.Count then
+  begin
+    R.Left := MaxIntValue([R.Left, GetFixedRect.Left]);
+    R.Right := MinIntValue([R.Right, GetFixedRect.Right]);
+  end
+  else
+  begin
+    R.Left := MaxIntValue([R.Left, GetFixedRect.Right]);
+    R.Right := MinIntValue([R.Right, GetGridRect.Right]);
+  end;
+  InflateRect(R, 1, 1);
+  HintInfo.CursorRect := R;
+  { тип окна подсказки }
+  HintWindowClass := GetTipsWindowClass;
+  HintInfo.HintData := Self;
+  { хинт можно показать }
+  Message.Result := 0;
 end;
 
 procedure TCustomGridView.CMMouseLeave(var Message);
@@ -4043,12 +4036,12 @@ end;
 
 function TCustomGridView.AcquireFocus: Boolean;
 begin
-  Result := True;
   { if the focus is now on the input line, then grid is in focus too }
   if (FEdit <> nil) and FEdit.Focused then
-    Exit;
+    Exit( True );
   { можно ли устанавливать фокус }
-  if not (csDesigning in ComponentState) and (Parent <> nil) and Parent.CanFocus and CanFocus then
+  Result := False;
+  if not (csDesigning in ComponentState) and CanFocus and (Parent <> nil) and Parent.CanFocus then
   begin
     UpdateFocus;
     Result := IsActiveControl;
@@ -4122,32 +4115,31 @@ var
   I: Integer;
 begin
   inherited ChangeScale(M, D);
-  if M <> D then
+  if M = D then
+    Exit;
+  with Columns do
   begin
-    with Columns do
-    begin
-      BeginUpdate;
-      try
-        for I := 0 to Count-1 do
-        begin
-          Columns[I].FMaxWidth := MulDiv(Columns[I].FMaxWidth, M, D);
-          Columns[I].FMinWidth := MulDiv(Columns[I].FMinWidth, M, D);
-          Columns[I].DefWidth := MulDiv(Columns[I].DefWidth, M, D);
-        end;
-      finally
-        EndUpdate;
+    BeginUpdate;
+    try
+      for I := 0 to Count-1 do
+      begin
+        Columns[I].FMaxWidth := MulDiv(Columns[I].FMaxWidth, M, D);
+        Columns[I].FMinWidth := MulDiv(Columns[I].FMinWidth, M, D);
+        Columns[I].DefWidth := MulDiv(Columns[I].DefWidth, M, D);
       end;
+    finally
+      EndUpdate;
     end;
-    with Rows do
-      Height := MulDiv(Height, M, D);
-    with Header do
-    begin
-      SectionHeight := MulDiv(SectionHeight, M, D);
-      if not GridFont then Font.Size := MulDiv(Font.Size, M, D);
-    end;
-    with Fixed do
-      if not GridFont then Font.Size := MulDiv(Font.Size, M, D);
   end;
+  with Rows do
+    Height := MulDiv(Height, M, D);
+  with Header do
+  begin
+    SectionHeight := MulDiv(SectionHeight, M, D);
+    if not GridFont then Font.Size := MulDiv(Font.Size, M, D);
+  end;
+  with Fixed do
+    if not GridFont then Font.Size := MulDiv(Font.Size, M, D);
 end;
 
 procedure TCustomGridView.Changing(var Cell: TGridCell; var Selected: Boolean);
@@ -4409,8 +4401,10 @@ begin
   begin
     S := Format('Can not find "%s".', [FindText]);
     Form := GetParentForm(Self);
-    if Form <> nil then Captn := Form.Caption
-    else Captn := Application.Title;
+    if Form <> nil then
+      Captn := Form.Caption
+    else
+      Captn := Application.Title;
     Application.MessageBox(PChar(S), PChar(Captn), MB_ICONINFORMATION);
   end;
 end;
@@ -4484,37 +4478,39 @@ begin
   if Cell.Col < Fixed.Count then
   begin
     ACanvas.Font := Fixed.Font;
-    ACanvas.Brush.Color := Fixed.Color;
-    { if the button face color is used for a fixed cell, then with themes
-      enabled it should be slightly discolored to match the highlighted
-      row with the HighlightFocusRow turned on }
-    if (Fixed.Color = clBtnFace) and ThemeServices.ThemesEnabled then
-      ACanvas.Brush.Color := GetLightenColor(ACanvas.Brush.Color, 8);
-    { highlight every other row }
-    if Fixed.GridColor and ThemeServices.ThemesEnabled and
-      HighlightEvenRows and IsEvenRow(Cell) then
-        ACanvas.Brush.Color := GetLightenColor(ACanvas.Brush.Color, -8);
-    { highlight row with focused cell }
-    if Fixed.GridColor and HighlightFocusRow then
-      if (Cell.Row = CellFocused.Row) and ((Cell.Col <> CellFocused.Col) or not Editing) then
-        if ThemeServices.ThemesEnabled then
-          ACanvas.Brush.Color := GetLightenColor(clBtnFace, 8)
-        else
-          ACanvas.Brush.Color := clBtnFace;
     { set gray text color for read-only cell }
     if GrayReadOnly and IsCellReadOnly(Cell) then
       ACanvas.Font.Color := clGrayText;
+    { highlight row with focused cell }
+    if Fixed.GridColor and HighlightFocusRow and
+      (Cell.Row = CellFocused.Row) and
+      ((Cell.Col <> CellFocused.Col) or not Editing) then
+    begin
+      if ThemeServices.ThemesEnabled then
+        ACanvas.Brush.Color := GetLightenColor(clBtnFace, 8)
+      else
+        ACanvas.Brush.Color := clBtnFace;
+    end
+    { highlight every other row }
+    else if Fixed.GridColor and ThemeServices.ThemesEnabled and
+            HighlightEvenRows and IsEvenRow(Cell) then
+      ACanvas.Brush.Color := GetLightenColor(ACanvas.Brush.Color, -8)
+    { if the button face color is used for a fixed cell, then with themes
+      enabled it should be slightly discolored to match the highlighted
+      row with the HighlightFocusRow turned on }
+    else if (Fixed.Color = clBtnFace) and ThemeServices.ThemesEnabled then
+      ACanvas.Brush.Color := GetLightenColor(ACanvas.Brush.Color, 8)
+    else
+      ACanvas.Brush.Color := Fixed.Color;
   end
   else
   begin
-    ACanvas.Brush.Color := Self.Color;
     ACanvas.Font := Self.Font;
     { set gray text color for disabled and read-only cells }
-    if not Enabled then
-      ACanvas.Font.Color := clGrayText
-    else if GrayReadOnly and IsCellReadOnly(Cell) then
+    if not Enabled or (GrayReadOnly and IsCellReadOnly(Cell)) then
       ACanvas.Font.Color := clGrayText;
     { focused cell }
+    ACanvas.Brush.Color := Self.Color;
     // TODO: !! check: `and IsCellFocused(Cell)`
     if Enabled and IsCellHighlighted(Cell) and (not IsCellEditing(Cell)) then
     begin
@@ -4531,17 +4527,19 @@ begin
     end
     else
     begin
-      { highlight every other row without windows theme }
-      if ThemeServices.ThemesEnabled then
-        if HighlightEvenRows and IsEvenRow(Cell) then
-          ACanvas.Brush.Color := GetLightenColor(ACanvas.Brush.Color, -8);
       { highlight row with focused cell }
-      if HighlightFocusRow then
-        if (Cell.Row = CellFocused.Row) and ((Cell.Col <> CellFocused.Col) or not Editing) then
-          if ThemeServices.ThemesEnabled then
-            ACanvas.Brush.Color := GetLightenColor(clBtnFace, 8)
-          else
-            ACanvas.Brush.Color := clBtnFace;
+      if HighlightFocusRow and
+        (Cell.Row = CellFocused.Row) and
+        ((Cell.Col <> CellFocused.Col) or not Editing) then
+      begin
+        if ThemeServices.ThemesEnabled then
+          ACanvas.Brush.Color := GetLightenColor(clBtnFace, 8)
+        else
+          ACanvas.Brush.Color := clBtnFace;
+      end
+      { highlight every other row without windows theme }
+      else if ThemeServices.ThemesEnabled and HighlightEvenRows and IsEvenRow(Cell) then
+        ACanvas.Brush.Color := GetLightenColor(ACanvas.Brush.Color, -8);
     end;
   end;
   if Assigned(FOnGetCellColors) then FOnGetCellColors(Self, Cell, ACanvas);
@@ -4551,9 +4549,11 @@ function TCustomGridView.GetCellImage(Cell: TGridCell; out OverlayIndex: Integer
 begin
   OverlayIndex := -1;
   Result := -1;
-  if not Assigned(Images) then Exit;
+  if not Assigned(Images) then
+    Exit;
   { only the first column has default image }
-  if Cell.Col = GetFirstImageColumn then Result := ImageIndexDef;
+  if Cell.Col = GetFirstImageColumn then
+    Result := ImageIndexDef;
   if Assigned(FOnGetCellImage) then FOnGetCellImage(Self, Cell, Result);
   if Assigned(FOnGetCellImageEx) then FOnGetCellImageEx(Self, Cell, Result, OverlayIndex);
 end;
@@ -4563,8 +4563,9 @@ begin
   Result.X := ImageLeftIndent;
   Result.Y := ImageTopIndent;
   { учитываем 3D эффект }
-  if GridLines and (Fixed.Count > 0) and (not Fixed.Flat) and
-    (not ThemeServices.ThemesEnabled) then Inc(Result.Y, 1);
+  if GridLines and (Fixed.Count > 0) and
+    not Fixed.Flat and not ThemeServices.ThemesEnabled then
+      Inc(Result.Y, 1);
   { событие пользователя }
   if Assigned(FOnGetCellImageIndent) then FOnGetCellImageIndent(Self, Cell, Result);
 end;
@@ -6922,7 +6923,7 @@ var
   I: Integer;
   Column: TCustomGridColumn;
 begin
-  if ColumnsResize then
+  if FColumnsResize then
     for I := 0 to Columns.Count-1 do
     begin
       Column := Columns[I];
@@ -6991,90 +6992,88 @@ var
   R: TRect;
   S: TGridHeaderSection;
 begin
-  { а идёт ли изменение размера колонки }
-  if FColResizing then
+  if not FColResizing then
+    Exit;
+  { текущее положение линии }
+  X := X + FColResizeOffset;
+  { текущая ширина }
+  W := X - FColResizeRect.Left;
+  { подправляем ширину в соотвествии с границами }
+  if W < FColResizeMinWidth then W := FColResizeMinWidth;
+  if W > FColResizeMaxWidth then W := FColResizeMaxWidth;
+  ColumnResizing(FColResizeIndex, W);
+  { опять подправляем шщирину }
+  if W < FColResizeMinWidth then W := FColResizeMinWidth;
+  if W > FColResizeMaxWidth then W := FColResizeMaxWidth;
+  { новое положение линии }
+  X := FColResizeRect.Left + W;
+  { проводим линию }
+  if FColResizePos <> X then
   begin
-    { текущее положение линии }
-    X := X + FColResizeOffset;
-    { текущая ширина }
-    W := X - FColResizeRect.Left;
-    { подправляем ширину в соотвествии с границами }
-    if W < FColResizeMinWidth then W := FColResizeMinWidth;
-    if W > FColResizeMaxWidth then W := FColResizeMaxWidth;
-    ColumnResizing(FColResizeIndex, W);
-    { опять подправляем шщирину }
-    if W < FColResizeMinWidth then W := FColResizeMinWidth;
-    if W > FColResizeMaxWidth then W := FColResizeMaxWidth;
+    { закрашиваем старую линию }
+    if (FColResizeCount > 0) and not FColumnsFullDrag then PaintResizeLine;
+    Inc(FColResizeCount);
     { новое положение линии }
-    X := FColResizeRect.Left + W;
-    { проводим линию }
-    if FColResizePos <> X then
+    FColResizePos := X;
+    { устанавливаем ширину }
+    if FColumnsFullDrag and (FColResizeIndex < Columns.Count) then
     begin
-      { закрашиваем старую линию }
-      if (FColResizeCount > 0) and not FColumnsFullDrag then PaintResizeLine;
-      Inc(FColResizeCount);
-      { новое положение линии }
-      FColResizePos := X;
-      { устанавливаем ширину }
-      if FColumnsFullDrag and (FColResizeIndex < Columns.Count) then
+      { перед изменение ширины столбца вычисляем и обновляем изменяющуюся
+        часть ячеек таблицы }
+      { calculate and update the changing part of the grid cells }
+      R := Default(TRect);
+      UnionRect(R, GetHeaderRect, GetGridRect);
+      R.Left := GetColumnLeftRight(FColResizeIndex).Left;
+      if FColResizeIndex >= Fixed.Count then
       begin
-        { перед изменение ширины столбца вычисляем и обновляем изменяющуюся
-          часть ячеек таблицы }
-        { calculate and update the changing part of the grid cells }
-        R := Default(TRect);
-        UnionRect(R, GetHeaderRect, GetGridRect);
-        R.Left := GetColumnLeftRight(FColResizeIndex).Left;
-        if FColResizeIndex >= Fixed.Count then
-        begin
-          { если нефиксированная колонка частично закрыта фиксированными,
-            то эту закрытую часть перерисовывать не надо }
-          R.Left := MaxIntValue([R.Left, GetFixedRect.Right]);
-        end;
-        if (W < Columns[FColResizeIndex].Width) and
-           (R.Right >= GetColumnLeftRight(Columns.Count - 1).Right) and
-           (HorzScrollBar.Max - HorzScrollBar.Min > HorzScrollBar.PageStep) then
-        begin
-          { граничный случай: если горизонтальный скроллер в самом
-            правом положении, то уменьшение ширины колонки приводит к
-            сдвигу вправо всех нефиксированных колонок, расположенных
-            слева от текущей }
-          R.Left := GetFixedRect.Right;
-          R.Right := GetColumnLeftRight(FColResizeIndex + 1).Left;
-        end;
+        { если нефиксированная колонка частично закрыта фиксированными,
+          то эту закрытую часть перерисовывать не надо }
+        R.Left := MaxIntValue([R.Left, GetFixedRect.Right]);
+      end;
+      if (W < Columns[FColResizeIndex].Width) and
+         (R.Right >= GetColumnLeftRight(Columns.Count - 1).Right) and
+         (HorzScrollBar.Max - HorzScrollBar.Min > HorzScrollBar.PageStep) then
+      begin
+        { граничный случай: если горизонтальный скроллер в самом
+          правом положении, то уменьшение ширины колонки приводит к
+          сдвигу вправо всех нефиксированных колонок, расположенных
+          слева от текущей }
+        R.Left := GetFixedRect.Right;
+        R.Right := GetColumnLeftRight(FColResizeIndex + 1).Left;
+      end;
+      InvalidateRect(R);
+      { если у колонки многоуровневый заголовок, то дополнительно
+        обновляем самую верхнюю секцию }
+      S := GetHeaderSection(FColResizeIndex, 0);
+      if S <> nil then
+      begin
+        R := S.BoundsRect;
+        R.Bottom := GetHeaderRect.Bottom;
         InvalidateRect(R);
-        { если у колонки многоуровневый заголовок, то дополнительно
-          обновляем самую верхнюю секцию }
-        S := GetHeaderSection(FColResizeIndex, 0);
-        if S <> nil then
-        begin
-          R := S.BoundsRect;
-          R.Bottom := GetHeaderRect.Bottom;
-          InvalidateRect(R);
-        end;
-        { запрещаем перерисовку всей таблицы, устанавливаем новую ширину
-          столбца  }
-        LockUpdate;
-        try
-          Columns[FColResizeIndex].Width := W;
-        finally
-          { теперь перерисовываем (лучше сразу - так меньше моргает) }
-          { update grid instead of invalidate (blinks less) }
-          UnlockUpdate(False);
-          Update;
-        end;
-      end
-      else
-        { рисуем новую линию }
-        { hide the line in the new position }
-        PaintResizeLine;
+      end;
+      { запрещаем перерисовку всей таблицы, устанавливаем новую ширину
+        столбца  }
+      LockUpdate;
+      try
+        Columns[FColResizeIndex].Width := W;
+      finally
+        { теперь перерисовываем (лучше сразу - так меньше моргает) }
+        { update grid instead of invalidate (blinks less) }
+        UnlockUpdate(False);
+        Update;
+      end;
     end
     else
-    begin
-      { рисуем линию первый раз }
-      { show the resize line }
-      if (FColResizeCount = 0) and not FColumnsFullDrag then PaintResizeLine;
-      Inc(FColResizeCount);
-    end;
+      { рисуем новую линию }
+      { hide the line in the new position }
+      PaintResizeLine;
+  end // if FColResizePos <> X then
+  else
+  begin
+    { рисуем линию первый раз }
+    { show the resize line }
+    if (FColResizeCount = 0) and not FColumnsFullDrag then PaintResizeLine;
+    Inc(FColResizeCount);
   end;
 end;
 
@@ -7082,8 +7081,9 @@ procedure TCustomGridView.StopColResize(Abort: Boolean);
 var
   W: Integer;
 begin
-  if FColResizing then
-  try
+  if not FColResizing then
+    Exit;
+  TRY
     { освобождаем мышку }
     MouseCapture := False;
     { было ли хотябы одно перемещение }
@@ -7112,9 +7112,9 @@ begin
           Columns[FColResizeIndex].Width := W;
       end;
     end;
-  finally
+  FINALLY
     FColResizing := False;
-  end;
+  END;
 end;
 
 procedure TCustomGridView.StartHeaderClick(Section: TGridHeaderSection; X, Y: Integer);
@@ -7371,68 +7371,69 @@ begin
       Rect.Left := R.Right;
     end;
   end;
-  if Rect.Left < Rect.Right then
+
+  if Rect.Left >= Rect.Right then
+    Exit;
+
+  T := Section.DisplayText;
+  TL := UTF8Length(T);
+  { draw sort image before section text }
+  if SD <> gsNone then
   begin
-    T := Section.DisplayText;
-    TL := UTF8Length(T);
-    { draw sort image before section text }
-    if SD <> gsNone then
+    SS := GetSortArrowSize;
+    if ThemeServices.ThemesEnabled {and CheckWin32Version(6, 0)} then
     begin
-      SS := GetSortArrowSize;
-      if ThemeServices.ThemesEnabled {and CheckWin32Version(6, 0)} then
+      SR.Left := Rect.Left + (Rect.Right - Rect.Left - SS.cx) div 2;
+      SR.Right := SR.Left + SS.cx;
+      SR.Top := Rect.Top;
+      SR.Bottom := SR.Top + SS.cy;
+      { sort image is never "pressed" (like in Explorer) }
+      if IsPressed then OffsetRect(SR, -1, -1);
+      if SD = gsAscending then
+        ElementDetails := ThemeServices.GetElementDetails(thHeaderSortArrowSortedUp)
+      else
+        ElementDetails := ThemeServices.GetElementDetails(thHeaderSortArrowSortedDown);
+      ThemeServices.DrawElement(Canvas.Handle, ElementDetails, SR);
+    end
+    else
+    begin
+      SR := Bounds(0, 0, SS.cx, SS.cy);
+      OffsetRect(SR, Rect.Right - 10 - SS.cx,
+        Rect.Top + ((Rect.Bottom - Rect.Top) - SS.cy) div 2 + SortTopIndent);
+      { sort image is never "pressed" (like in Explorer) }
+      if IsPressed then OffsetRect(SR, -1, -1);
+      if SD = gsAscending then
       begin
-        SR.Left := Rect.Left + (Rect.Right - Rect.Left - SS.cx) div 2;
-        SR.Right := SR.Left + SS.cx;
-        SR.Top := Rect.Top;
-        SR.Bottom := SR.Top + SS.cy;
-        { sort image is never "pressed" (like in Explorer) }
-        if IsPressed then OffsetRect(SR, -1, -1);
-        if SD = gsAscending then
-          ElementDetails := ThemeServices.GetElementDetails(thHeaderSortArrowSortedUp)
-        else
-          ElementDetails := ThemeServices.GetElementDetails(thHeaderSortArrowSortedDown);
-        ThemeServices.DrawElement(Canvas.Handle, ElementDetails, SR);
+        OffsetRect(SR, 0, -1);
+        Points[0] := Classes.Point(SR.Left, SR.Bottom);
+        Points[1] := Classes.Point(SR.Left + SS.cx div 2, SR.Top);
+        Points[2] := Classes.Point(SR.Right, SR.Bottom);
       end
       else
       begin
-        SR := Bounds(0, 0, SS.cx, SS.cy);
-        OffsetRect(SR, Rect.Right - 10 - SS.cx,
-          Rect.Top + ((Rect.Bottom - Rect.Top) - SS.cy) div 2 + SortTopIndent);
-        { sort image is never "pressed" (like in Explorer) }
-        if IsPressed then OffsetRect(SR, -1, -1);
-        if SD = gsAscending then
-        begin
-          OffsetRect(SR, 0, -1);
-          Points[0] := Classes.Point(SR.Left, SR.Bottom);
-          Points[1] := Classes.Point(SR.Left + SS.cx div 2, SR.Top);
-          Points[2] := Classes.Point(SR.Right, SR.Bottom);
-        end
-        else
-        begin
-          OffsetRect(SR, 0, 1);
-          Points[0] := Classes.Point(SR.Left + 1, SR.Top);
-          Points[1] := Classes.Point(SR.Right, SR.Top);
-          Points[2] := Classes.Point(SR.Left + SS.cx div 2, SR.Bottom - 1);
-        end;
-        PS := Canvas.Pen.Style;
-        Canvas.Pen.Style := psClear;
-        Canvas.Brush.Color := clGrayText;
-        Canvas.Polygon(Points);
-        Canvas.Pen.Style := PS;
-        { sort image is always on the right when on disabled themes }
-        Rect.Right := SR.Left - SortLeftIndent;
+        OffsetRect(SR, 0, 1);
+        Points[0] := Classes.Point(SR.Left + 1, SR.Top);
+        Points[1] := Classes.Point(SR.Right, SR.Top);
+        Points[2] := Classes.Point(SR.Left + SS.cx div 2, SR.Bottom - 1);
       end;
+      PS := Canvas.Pen.Style;
+      Canvas.Pen.Style := psClear;
+      Canvas.Brush.Color := clGrayText;
+      Canvas.Polygon(Points);
+      Canvas.Pen.Style := PS;
+      { sort image is always on the right when on disabled themes }
+      Rect.Right := SR.Left - SortLeftIndent;
     end;
-    if (TL > 0) and (Rect.Left < Rect.Right) then
-    begin
-      R := Rect;
-      R.Top := R.Top + 2;
-      { section text indent is the same as cells text indent }
-      IT.X := TextLeftIndent;
-      IT.Y := TextTopIndent;
-      if I <> -1 then Inc(IT.X, 4);
-      PaintText(Canvas, R, IT.X, Section.Alignment, False, Section.WordWrap, T);
-    end;
+  end;
+  if (TL > 0) and (Rect.Left < Rect.Right) then
+  begin
+    R := Rect;
+    R.Top := R.Top + 2;
+    { section text indent is the same as cells text indent }
+    IT.X := TextLeftIndent;
+    IT.Y := TextTopIndent;
+    if I <> -1 then Inc(IT.X, 4);
+    PaintText(Canvas, R, IT.X, Section.Alignment, False, Section.WordWrap, T);
   end;
 end;
 
@@ -7460,6 +7461,8 @@ begin
 end;
 
 function TCustomGridView.FindText(const AText: string; Options: TFindOptions): Boolean;
+var
+  I, R: Integer;
 
   function CompareCell(Col, Row: Integer): Boolean;
   var
@@ -7480,60 +7483,60 @@ function TCustomGridView.FindText(const AText: string; Options: TFindOptions): B
     end;
   end;
 
-var
-  I, R: Integer;
 begin
-  if Rows.Count > 0 then
+  Result := (Rows.Count > 0);
+  if not Result then
+    Exit;
+
+  if frDown in Options then
   begin
-    Result := True;
-    if frDown in Options then
+    { search forward: iterate the cells down from left to right, starting
+      with next cell relative to the current one }
+    I := CellFocused.Col + 1;
+    R := CellFocused.Row;
+    while R <= Rows.Count-1 do
     begin
-      { search forward: iterate the cells down from left to right, starting
-        with next cell relative to the current one }
-      I := CellFocused.Col + 1;
-      R := CellFocused.Row;
-      while R <= Rows.Count-1 do
+      while I <= Columns.Count-1 do
       begin
-        while I <= Columns.Count-1 do
-        begin
-          if CompareCell(I, R) then Exit;
-          Inc(I);
-        end;
-        Inc(R);
-        I := 0;
+        if CompareCell(I, R) then
+          Exit;
+        Inc(I);
       end;
-    end
-    else
-    begin
-      { search backward: iterate the cells up from right to left, starting
-        with previous cell relative to the current one }
-      I := CellFocused.Col - 1;
-      R := CellFocused.Row;
-      { special case: during backward search, a fixed cell should be skipped,
-        since it cannot be selected, the cell to the right will be selected
-        instead of it; the next reverse search will again detect this fixed
-        cell, and the cell to the right will be selected again, and so on.
-        outwardly, it will look as if the search is frozen in one cell }
-      while (I >= 0) and (Columns[I].Width = 0) do Dec(I);
-      if (I < Fixed.Count) and (R >= 0) then
-      begin
-        Dec(R);
-        I := Columns.Count - 1;
-      end;
-      while R >= 0 do
-      begin
-        while I >= 0 do
-        begin
-          if CompareCell(I, R) then Exit;
-          Dec(I);
-        end;
-        Dec(R);
-        I := Columns.Count - 1;
-      end;
+      Inc(R);
+      I := 0;
     end;
-    { text not found event }
-    DoTextNotFound(AText);
+  end
+  else
+  begin
+    { search backward: iterate the cells up from right to left, starting
+      with previous cell relative to the current one }
+    I := CellFocused.Col - 1;
+    R := CellFocused.Row;
+    { special case: during backward search, a fixed cell should be skipped,
+      since it cannot be selected, the cell to the right will be selected
+      instead of it; the next reverse search will again detect this fixed
+      cell, and the cell to the right will be selected again, and so on.
+      outwardly, it will look as if the search is frozen in one cell }
+    while (I >= 0) and (Columns[I].Width = 0) do Dec(I);
+    if (I < Fixed.Count) and (R >= 0) then
+    begin
+      Dec(R);
+      I := Columns.Count - 1;
+    end;
+    while R >= 0 do
+    begin
+      while I >= 0 do
+      begin
+        if CompareCell(I, R) then
+          Exit;
+        Dec(I);
+      end;
+      Dec(R);
+      I := Columns.Count - 1;
+    end;
   end;
+  { text not found event }
+  DoTextNotFound(AText);
   Result := False;
 end;
 
@@ -7928,7 +7931,7 @@ function TCustomGridView.GetResizeSectionAt(X, Y: Integer): TGridHeaderSection;
         begin
           { проверяем колонку на фиксированный размер }
           { some columns cannot resize }
-          if (C < Columns.Count) and (Columns[C].FixedSize or (not ColumnsResize)) then
+          if (C < Columns.Count) and (Columns[C].FixedSize or (not FColumnsResize)) then
           begin
             Section := nil;
             Result := False;
@@ -8553,8 +8556,7 @@ begin
     if GetFocus = Handle then
       Perform(CM_UIACTIVATE, 0, 0);
   end
-  else if {IsWindowVisible(Handle) and} TabStop and
-    (CanFocus or (GetParentForm(Self) = nil)) then
+  else if TabStop and (CanFocus or (GetParentForm(Self) = nil)) then
   begin
     Show;
     LCLIntf.SetFocus(Handle);
