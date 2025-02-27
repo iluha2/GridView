@@ -6029,7 +6029,9 @@ begin
   with Canvas do
   begin
     CR := Rect;
-    InflateRect(CR, -1, -1); Inc(CR.Left); Inc(CR.Top);
+    InflateRect(CR, -1, -1);
+    Inc(CR.Left);
+    Inc(CR.Top);
     if not ThemeServices.ThemesEnabled then
     begin
       if CheckKind = gcCheckBox then
