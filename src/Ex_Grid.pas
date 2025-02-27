@@ -3834,7 +3834,7 @@ begin
   if Rows.Count > 0 then
   begin
     InvalidateFocus; 
-    if (FEdit = nil) or ((Message.FocusedWnd <> FEdit.Handle) or (not FEdit.FDefocusing)) then
+    if (FEdit = nil) or (Message.FocusedWnd <> FEdit.Handle) or not FEdit.FDefocusing then
       ShowCursor;
   end;
 end;
@@ -5717,7 +5717,7 @@ begin
           CheckClick(C);
           Exit;
         end;
-        { проверяем начало редактирования (толко левой кнопкой) }
+        { проверяем начало редактирования (только левой кнопкой) }
         if (Button = mbLeft) and IsCellEqual(C, CellFocused) and AllowEdit then
           { редактирование по двойному или повторному щелчку на одной и
             той же ячейке }
