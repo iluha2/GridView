@@ -538,7 +538,6 @@ end;
 
 procedure TCustomGridHeader.SetSections(Value: TGridHeaderSections);
 begin
-  { устанавливаем заголовок }
   FSections.Assign(Value);
 end;
 
@@ -1788,8 +1787,9 @@ end;
 procedure TGridListBox.MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 begin
   inherited MouseUp(Button, Shift, X, Y);
-  if (Grid <> nil) and (Grid.Edit <> nil) then
-    Grid.Edit.CloseUp((X >= 0) and (Y >= 0) and (X < Width) and (Y < Height));
+  if (Grid <> nil) and (Grid.FEdit <> nil) then
+    Grid.FEdit.CloseUp(
+      (X >= 0) and (Y >= 0) and (X < Width) and (Y < Height));
 end;
 
 { TCustomGridEdit }
@@ -3113,16 +3113,6 @@ begin
   Result := CellFocused.Col;
 end;
 
-function TCustomGridView.GetFixed: TCustomGridFixed;
-begin
-  Result := FFixed;
-end;
-
-function TCustomGridView.GetEdit: TCustomGridEdit;
-begin
-  Result := FEdit;
-end;
-
 function TCustomGridView.GetEditColumn: TCustomGridColumn;
 begin
   Result := nil;
@@ -3131,7 +3121,7 @@ end;
 
 function TCustomGridView.GetEditDropDown: Boolean;
 begin
-  Result := (Edit <> nil) and Edit.DropListVisible;
+  Result := (FEdit <> nil) and FEdit.DropListVisible;
 end;
 
 function TCustomGridView.GetEditFocused: Boolean;
@@ -3142,11 +3132,6 @@ end;
 function TCustomGridView.GetEditing: Boolean;
 begin
   Result := FEditing and (FEdit <> nil);
-end;
-
-function TCustomGridView.GetHeader: TCustomGridHeader;
-begin
-  Result := FHeader;
 end;
 
 function TCustomGridView.GetLeftCol: Longint;
@@ -3171,11 +3156,6 @@ end;
 function TCustomGridView.GetRow: Longint;
 begin
   Result := CellFocused.Row;
-end;
-
-function TCustomGridView.GetRows: TCustomGridRows;
-begin
-  Result := FRows;
 end;
 
 function TCustomGridView.GetTopRow: Longint;
@@ -3328,7 +3308,6 @@ begin
   if FAllowSelect <> Value then
   begin
     FAllowSelect := Value;
-    RowSelect := FRowSelect or (not Value);
     InvalidateFocus;
   end;
 end;
@@ -3426,7 +3405,7 @@ begin
   { переводим ячейку в режим редактирвания }
   Editing := True;
   { показываем выпадающий список }
-  if Edit <> nil then Edit.DropListvisible := True;
+  if FEdit <> nil then FEdit.DropListvisible := True;
 end;
 
 procedure TCustomGridView.SetEditing(Value: Boolean);
@@ -3668,7 +3647,6 @@ begin
   begin
     FRowSelect := Value;
     if Value then AllowEdit := False;
-    AllowSelect := AllowSelect or (not Value);
     InvalidateGrid;
   end;
 end;
@@ -3814,8 +3792,7 @@ begin
   if Rows.Count > 0 then
   begin
     InvalidateFocus;
-    // TODO: !! check: `and (Message.FocusedWnd <> 0)`
-    if (FEdit <> nil) and (Message.FocusedWnd <> FEdit.Handle) then
+    if (FEdit <> nil) and (Message.FocusedWnd <> 0) and (Message.FocusedWnd <> FEdit.Handle) then
       HideCursor;
   end;
 end;
@@ -4244,8 +4221,6 @@ end;
 
 procedure TCustomGridView.DoContextPopup(MousePos: TPoint; var Handled: Boolean);
 begin
-  FContextPopupCol := GetColumnAtX(MousePos.X);
-  FContextPopupRow := GetRowAtY(MousePos.Y);
   inherited DoContextPopup(MousePos, Handled);
   if not Handled then DoHeaderPopup(MousePos, Handled);
 end;
@@ -5699,13 +5674,9 @@ begin
       P := FClickPos;
       ResetClickPos;
       { смортим куда попали }
-      { select cell or clear selection }
       if IsCellEmpty(C) then
-      begin
-        { никуда - гасим выделение курсора }
-        Editing := False;
-        SetGridCursor(CellFocused, False, False);
-      end
+        { никуда }
+        Editing := False
       else
       begin
         { в ячейку - выделяем ее }
@@ -6909,8 +6880,8 @@ begin
   { показываем строку ввода }
   Editing := True;
   { вставляем символ }
-  if (Edit <> nil) and Editing then
-    PostMessage(Edit.Handle, LM_CHAR, Word(C), 0);
+  if (FEdit <> nil) and Editing then
+    PostMessage(FEdit.Handle, LM_CHAR, Word(C), 0);
 end;
 
 procedure TCustomGridView.ShowFocus;
@@ -7176,17 +7147,17 @@ var
   EdFocused: Boolean;
   EdText: string;
 begin
-  if (not ReadOnly) and (Edit <> nil) and (not IsCellReadOnly(EditCell)) then
+  if (not ReadOnly) and (FEdit <> nil) and (not IsCellReadOnly(EditCell)) then
   begin
     EdFocused := Editing;
     { text input can be canceled by throwing an exception in the
       OnSetEditText event }
     try
-      EdText := Edit.Text;
+      EdText := FEdit.Text;
       try
         SetEditText(EditCell, EdText);
       finally
-        Edit.Text := EdText;
+        FEdit.Text := EdText;
       end;
     except
       on E: Exception do
@@ -7195,7 +7166,7 @@ begin
         { if the input line is visible, then put the focus on it, otherwise
           it will be hidden after opening the error message box }
         if EdFocused then
-          LCLIntf.SetFocus(Edit.Handle);
+          LCLIntf.SetFocus(FEdit.Handle);
         raise;
       end;
     end;
@@ -7733,16 +7704,11 @@ begin
   if Result.Left > Result.Right then Result.Left := Result.Right;
 end;
 
-function TCustomGridView.GetHeaderHeight: Integer;
-begin
-  Result := Header.Height;
-end;
-
 function TCustomGridView.GetHeaderRect: TRect;
 begin
   Result := GetClientRect;
   Result.Bottom := Result.Top;
-  if ShowHeader then Inc(Result.Bottom, GetHeaderHeight);
+  if ShowHeader then Inc(Result.Bottom, Header.Height);
 end;
 
 function TCustomGridView.GetFindDialog: TGridFindDialog;
@@ -8088,7 +8054,7 @@ end;
 
 procedure TCustomGridView.InvalidateEdit;
 begin
-  if Editing then Edit.Invalidate;
+  if Editing then FEdit.Invalidate;
 end;
 
 procedure TCustomGridView.InvalidateFixed;
@@ -8118,7 +8084,7 @@ begin
   begin
     Rect := GetColumnRect(CellFocused.Col);
     Rect.Top := 0;
-    Rect.Bottom := GetHeaderHeight;
+    Rect.Bottom := Header.Height;
     InvalidateRect(Rect);
   end;
 end;
@@ -8375,7 +8341,6 @@ end;
 procedure TCustomGridView.SetGridCursor(Cell: TGridCell; ASelected, AVisible: Boolean);
 var
   PartialOK: Boolean;
-  OldCell: TGridCell;
 begin
   { проверяем выделение }
   UpdateSelection(Cell, ASelected);
@@ -8394,10 +8359,8 @@ begin
       { меняем ячейку }
       HideCursor;
       PartialOK := RowSelect or (FCellFocused.Col = Cell.Col);
-      OldCell := FCellFocused;
       FCellFocused := Cell;
       FCellSelected := ASelected;
-      InvalidateCell(OldCell);
       if AVisible then MakeCellVisible(CellFocused, PartialOK);
       ShowCursor;
     end
@@ -8529,13 +8492,13 @@ var
 begin
   if Editing then
   begin
-    EditText := Edit.Text;
+    EditText := FEdit.Text;
     { чтобы строка обновилась полностью, ее необходимо погасить }
     HideEdit;
     { обновляем и вновь показываем строку }
     UpdateEdit(True);
     { восстанавливаем текст }
-    if SaveText then Edit.Text := EditText;
+    if SaveText then FEdit.Text := EditText;
   end;
 end;
 
@@ -8560,7 +8523,7 @@ begin
   begin
     Show;
     LCLIntf.SetFocus(Handle);
-    if AlwaysEdit and (Edit <> nil) then
+    if AlwaysEdit and (FEdit <> nil) then
       UpdateEdit(True);
   end;
 end;

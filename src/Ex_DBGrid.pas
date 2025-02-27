@@ -484,6 +484,9 @@ type
     FFieldText: string;
     FMultiSelect: Boolean;
     FSelectedRows: TDBGridSelectedRows;
+    FSelectPending: Boolean;
+    FSelectPos: TPoint;
+    FSelectShift: TShiftState;
     FCancelOnDeactivate: Boolean;
     FOnDataChange: TNotifyEvent;
     FOnDataEditError: TDBGridDataErrorEvent;
@@ -519,9 +522,6 @@ type
     procedure ReadColumns(Reader: TReader);
     procedure WriteColumns(Writer: TWriter);
   protected
-    FSelectPending: Boolean;
-    FSelectPos: TPoint;
-    FSelectShift: TShiftState;
     procedure CMExit(var Message); message CM_EXIT;
     procedure LMKillFocus(var Message); message LM_KILLFOCUS;
     procedure LMSetFocus(var Message); message LM_SETFOCUS;
@@ -2590,7 +2590,7 @@ begin
     FSelectPending := False;
   end;
   { ignore cell selection when changing column widths }
-  if (gkMouseMove in CursorKeys) and (not FColResizing) then
+  if (gkMouseMove in CursorKeys) and (not ColResizing) then
     MoveByXY(X, Y, Shift);
   inherited;
 end;

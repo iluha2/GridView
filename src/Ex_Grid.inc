@@ -1470,7 +1470,6 @@ type
                            движков скроллеров.
     GetGridRect -          Прямоугольник видимой части ячеек (в клиентских
                            координатах таблицы).
-    GetHeaderHeight -      Высота заголовка. Равна 0, если не видим.
     GetHeaderRect -        Прямоугольник заголовка.
     GetHeaderSection -     Найти секцию заголовка указанного уровня для
                            указанной колонки. Если в качестве уровня указана
@@ -1699,7 +1698,6 @@ type
     TextRightIndent -      Отсут текста ячейки от правого края.
     TextTopIndent -        Смещение текста ячейки сверху.
     TipsCell -             Ячейка, для которой показываетсся подсказка.
-    TipsText -             Строк подсказки для ячейки TipsCell.
     TopRow -               Верхняя видимая строка таблицы. Равно VesOrigin.Row.
     VertScrollBar -        Вертикальный скроллер.
     VisibleColCount -      Количество видимых колонок. Равно VisSize.Col.
@@ -2024,7 +2022,6 @@ type
                            position of the scrollers.
     GetGridRect -          Returns the rectangle of the visible cells in the
                            grid.
-    GetHeaderHeight -      Same as Header.Height.
     GetHeaderRect -        Returns the coordinates of the header in the grid.
     GetHeaderSection -     Returns the header section of the specified level for
                            the specified column. If the level is -1, it returns
@@ -2151,10 +2148,6 @@ type
     Columns -              Describes the properties of the columns in the grid.
     ColumnsFullDrag -      Specifies whether columns are repainted when they
                            are dragged.
-    ContextPopupCol -      Specifies the index of the column above which the
-                           context menu is displayed.
-    ContextPopupRow -      Specifies the index of the row above which the
-                           context menu is displayed.
     CursorKeys -           Defines the keys that can be used to move the cursor
                            in a grid:
                              gkArrows -     Move the cursor with arrows.
@@ -2457,6 +2450,7 @@ type
     FColumnsResize: Boolean;
     FColumnsFullDrag: Boolean;
     FColumnClick: Boolean;
+    FColResizing: Boolean;
     FColResizeSection: TGridHeaderSection;
     FColResizeLevel: Integer;
     FColResizeIndex: Integer;
@@ -2562,24 +2556,18 @@ type
     FOnGetGridColor: TGridColorEvent;
     FFindDialog: TGridFindDialog;
     FOnTextNotFound: TGridFindTextEvent;
-    FContextPopupCol: Integer;
-    FContextPopupRow: Integer;
     function GetCell(Col, Row: Longint): string;
     function GetChecked(Col, Row: Longint): Boolean;
     function GetCheckBoxEnabled(Col, Row: Longint): Boolean;
     function GetCheckBoxState(Col, Row: Longint): TCheckBoxState;
     function GetCol: Longint;
     function GetFindDialog: TGridFindDialog;
-    function GetFixed: TCustomGridFixed;
-    function GetEdit: TCustomGridEdit;
     function GetEditColumn: TCustomGridColumn;
     function GetEditDropDown: Boolean;
     function GetEditing: Boolean;
     function GetEditFocused: Boolean;
-    function GetHeader: TCustomGridHeader;
     function GetLeftCol: Longint;
     function GetRow: Longint;
-    function GetRows: TCustomGridRows;
     function GetTopRow: Longint;
     function GetVisibleColCount: Longint;
     function GetVisibleRowCount: Longint;
@@ -2640,7 +2628,6 @@ type
     procedure VertScroll(Sender: TObject; {%H-}ScrollCode: Integer; var {%H-}ScrollPos: Integer);
     procedure VertScrollChange(Sender: TObject);
   protected
-    FColResizing: Boolean;
     procedure LMGetDlgCode(var Message: TLMGetDlgCode); message LM_GETDLGCODE;
     procedure LMKillFocus(var Message: TLMKillFocus); message LM_KILLFOCUS;
     procedure LMSetFocus(var Message: TLMSetFocus); message LM_SETFOCUS;
@@ -2793,6 +2780,8 @@ type
     procedure StepHeaderClick(X, Y: Integer);
     procedure StopColResize(Abort: Boolean);
     procedure StopHeaderClick(Abort: Boolean);
+    property ColResizing: Boolean read FColResizing;
+    property Edit: TCustomGridEdit read FEdit;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
@@ -2822,7 +2811,6 @@ type
     function GetGridLineColor(BkColor: TColor): TColor; virtual;
     function GetGridOrigin: TPoint;
     function GetGridRect: TRect; virtual;
-    function GetHeaderHeight: Integer;
     function GetHeaderRect: TRect; virtual;
     function GetHeaderSection(ColumnIndex, Level: Integer): TGridHeaderSection;
     function GetLightenColor(AColor: TColor; Amount: Integer): TColor;
@@ -2912,12 +2900,9 @@ type
     property ColumnClick: Boolean read FColumnClick write FColumnClick default True;
     property Columns: TGridColumns read FColumns write SetColumns;
     property ColumnsFullDrag: Boolean read FColumnsFullDrag write FColumnsFullDrag default False;
-    property ContextPopupCol: Integer read FContextPopupCol;
-    property ContextPopupRow: Integer read FContextPopupRow;
     property CursorKeys: TGridCursorKeys read FCursorKeys write SetCursorKeys default [gkArrows, gkMouse, gkMouseWheel];
     property DefaultEditMenu: Boolean read FDefaultEditMenu write FDefaultEditMenu default False;
     property DefaultHeaderMenu: Boolean read FDefaultHeaderMenu write FDefaultHeaderMenu default False;
-    property Edit: TCustomGridEdit read GetEdit;
     property EditCell: TGridCell read FEditCell;
     property EditColumn: TCustomGridColumn read GetEditColumn;
     property EditDropDown: Boolean read GetEditDropDown write SetEditDropDown;
@@ -2931,10 +2916,10 @@ type
     property GridHintColor: TColor read FGridHintColor write SetGridHintColor default clGrayText;
     property GridLines: Boolean read FGridLines write SetGridLines default True;
     property GridStyle: TGridStyles read FGridStyle write SetGridStyle default [gsHorzLine, gsVertLine];
-    property Fixed: TCustomGridFixed read GetFixed write SetFixed;
+    property Fixed: TCustomGridFixed read FFixed write SetFixed;
     property FlatBorder: Boolean read FFlatBorder write SetFlatBorder default False;
     property FocusOnScroll: Boolean read FFocusOnScroll write FFocusOnScroll default False;
-    property Header: TCustomGridHeader read GetHeader write SetHeader;
+    property Header: TCustomGridHeader read FHeader write SetHeader;
     property HideSelection: Boolean read FHideSelection write SetHideSelection default False;
     property HighlightEvenRows: Boolean read FHighlightEvenRows write SetHighlightEvenRows default False;
     property HighlightFocusCol: Boolean read FHighlightFocusCol write SetHighlightFocusCol default False;
@@ -2949,7 +2934,7 @@ type
     property ReadOnly: Boolean read FReadOnly write SetReadOnly default False;
     property RightClickSelect: Boolean read FRightClickSelect write FRightClickSelect default True;
     property Row: Longint read GetRow write SetRow;
-    property Rows: TCustomGridRows read GetRows write SetRows;
+    property Rows: TCustomGridRows read FRows write SetRows;
     property RowSelect: Boolean read FRowSelect write SetRowSelect default False;
     property ShowCellTips: Boolean read FShowCellTips write SetShowCellTips;
     property ShowFocusRect: Boolean read FShowFocusRect write SetShowFocusRect default True;
@@ -2961,7 +2946,6 @@ type
     property TextRightIndent: Integer read FTextRightIndent write SetTextRightIndent default 5;
     property TextTopIndent: Integer read FTextTopIndent write SetTextTopIndent default 0;
     property TipsCell: TGridCell read FTipsCell;
-    property TipsText: string read FTipsText;
     property TopRow: Longint read GetTopRow write SetTopRow;
     property UpdateLock: Integer read FUpdateLock;
     property VertScrollBar: TGridScrollBar read FVertScrollBar write SetVertScrollBar;
