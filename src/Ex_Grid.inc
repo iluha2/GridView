@@ -1097,7 +1097,6 @@ type
     procedure UpdateColors;
     procedure UpdateContents;
     procedure UpdateList;
-    procedure DropDown;
     procedure InvalidateButton;
     procedure Press;
     procedure SelectNext;
@@ -1142,7 +1141,8 @@ type
     procedure CloseUp(Accept: Boolean); virtual;
     procedure Invalidate; override;
     procedure Undo; override;
-    procedure Deselect; // for `TCustomDBGridView.DataRecordChanged`
+    procedure Deselect;
+    procedure DropDown;
     property ActiveList: TWinControl read FActiveList;
     property Alignment: TAlignment read FAlignment write SetAlignment default taLeftJustify;
     property ButtonRect: TRect read GetButtonRect;
@@ -2779,7 +2779,6 @@ type
     procedure StopColResize(Abort: Boolean);
     procedure StopHeaderClick(Abort: Boolean);
     property ColResizing: Boolean read FColResizing;
-    property Edit: TCustomGridEdit read FEdit;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
@@ -2901,6 +2900,7 @@ type
     property CursorKeys: TGridCursorKeys read FCursorKeys write SetCursorKeys default [gkArrows, gkMouse, gkMouseWheel];
     property DefaultEditMenu: Boolean read FDefaultEditMenu write FDefaultEditMenu default False;
     property DefaultHeaderMenu: Boolean read FDefaultHeaderMenu write FDefaultHeaderMenu default False;
+    property Edit: TCustomGridEdit read FEdit;
     property EditCell: TGridCell read FEditCell;
     property EditColumn: TCustomGridColumn read GetEditColumn;
     property EditDropDown: Boolean read GetEditDropDown write SetEditDropDown;
