@@ -4461,7 +4461,7 @@ begin
       enabled it should be slightly discolored to match the highlighted
       row with the HighlightFocusRow turned on }
     else if (Fixed.Color = clBtnFace) and ThemeServices.ThemesEnabled then
-      ACanvas.Brush.Color := GetLightenColor(ACanvas.Brush.Color, 8)
+      ACanvas.Brush.Color := GetLightenColor(Fixed.Color, 8)
     else
       ACanvas.Brush.Color := Fixed.Color;
   end
