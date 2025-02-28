@@ -629,7 +629,7 @@ type
     property DataSource: TDataSource read GetDataSource write SetDataSource;
     property DefaultLayout: Boolean read FDefaultLayout write SetDefaultLayout default True;
     property Header: TDBGridHeader read GetHeader write SetHeader;
-    property Fixed: TDBGridFixed read GetFixed write SetFixed; { <- must be after Header !!! }
+    property Fixed: TDBGridFixed read GetFixed write SetFixed; // NOTE: <- must be after Header !!
     property LayoutLock: Integer read FLayoutLock;
     property EditColumn: TDBGridColumn read GetEditColumn;
     property EditField: TField read GetEditField;

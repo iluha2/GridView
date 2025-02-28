@@ -1052,7 +1052,7 @@ procedure TCustomGridColumn.SetEditStyle(Value: TGridEditStyle);
 begin
   if FEditStyle <> Value then
   begin
-  // NOTE: !! Linux: `TGridColumn.EditStyle` does not support lists (gePickList, geDataList) !!
+  // TODO: !! Linux: add support `gePickList`, `geDataList` !!
   {$IFDEF UNIX}
     if Value in [gePickList, geDataList] then
     begin
@@ -1929,6 +1929,13 @@ begin
   Invalidate;
 end;
 
+procedure TCustomGridEdit.LMPaint(var Message: TLMPaint);
+begin
+  inherited;
+  if EditStyle <> geSimple then
+    PaintButton(Message.DC, GetButtonRect);
+end;
+
 procedure TCustomGridEdit.LMLButtonDown(var Message: TLMLButtonDown);
 begin
   //SendCancelMode(Self); not implemented in Lazarus
@@ -2362,21 +2369,6 @@ begin
   else
     //
   end;
-end;
-
-procedure TCustomGridEdit.PaintWindow(DC: HDC);
-var
-  R: TRect;
-begin
-  if (EditStyle <> geSimple) then
-  begin
-    R := GetButtonRect;
-    { рисуем кнопку }
-    PaintButton(DC, R);
-    { убираем прямоугольник кнопки из области отрисовки }
-    ExcludeClipRect(DC, R.Left, R.Top, R.Right, R.Bottom);
-  end;
-  inherited;
 end;
 
 procedure TCustomGridEdit.StartButtonTracking(X, Y: Integer);
@@ -5372,8 +5364,7 @@ begin
     Free;
   end;
   if R.Bottom - R.Top > Rows.Height then
-    { NOTE: !! для текста, больше, чем высота строки - поправка !! }
-    { correction if text height is greater than the height of the row }
+    // NOTE: correction if text height is greater than the height of the row
     Inc(R.Bottom, TextTopIndent * 2);
   InflateRect(R, 1, 1); // <- border
   Result := R;
@@ -5447,8 +5438,8 @@ var
   Cell: TGridCell;
   Handled: Boolean;
 begin
-  // !! `inherited KeyDown()` вызовем в конце
-  // !! при обработке всегда обнуляем `Key` (в GTK2 иначе может потеряться фокус)
+  // `inherited KeyDown()` вызовем в конце
+  // NOTE: !! при обработке всегда обнуляем `Key` (в GTK2 иначе может потеряться фокус)
   if gkArrows in CursorKeys then
   begin
     Handled := True;
@@ -5574,16 +5565,14 @@ begin
     end;
   end;
   { нажат ESC - закрываем строку ввода }
-  if Key = #27 then
+  if (Key = #27) and Editing then
   begin
     Key := #0;
-    { проверяем редактирование }
-    if Editing then
-      { гасим строку или восстанавливаем значение }
-      if not AlwaysEdit then
-        CancelEdit
-      else
-        ResetEdit;
+    { гасим строку или восстанавливаем значение }
+    if not AlwaysEdit then
+      CancelEdit
+    else
+      ResetEdit;
   end;
 end;
 

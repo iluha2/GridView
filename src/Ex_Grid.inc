@@ -322,12 +322,12 @@ type
     procedure SetSections(Value: TGridHeaderSections);
     procedure SetSectionHeight(Value: Integer);
     procedure SetPopupMenu(const Value: TPopupMenu);
-  protected
     procedure Change;
-    procedure DefineProperties(Filer: TFiler); override;
-    function GetOwner: TPersistent; override;
     procedure GridColorChanged(NewColor: TColor);
     procedure GridFontChanged(NewFont: TFont);
+  protected
+    procedure DefineProperties(Filer: TFiler); override;
+    function GetOwner: TPersistent; override;
   public
     constructor Create(AGrid: TCustomGridView);
     destructor Destroy; override;
@@ -505,10 +505,12 @@ type
     procedure SetCheckAlignment(Value: TAlignment);
     procedure SetCheckKind(Value: TGridCheckKind);
     procedure SetEditWordWrap(Value: TGridEditWordWrap);
+    procedure SetFixedSize(Value: Boolean);
     procedure SetMaxWidth(Value: Integer);
     procedure SetMinWidth(Value: Integer);
     procedure SetPickList(Value: TStrings);
     procedure SetTabStop(Value: Boolean);
+    procedure SetVisible(Value: Boolean);
     procedure SetWantReturns(Value: Boolean);
     procedure SetWordWrap(Value: Boolean);
   protected
@@ -519,10 +521,8 @@ type
     procedure SetCaption(const Value: string); virtual;
     procedure SetEditMask(const Value: string); virtual;
     procedure SetEditStyle(Value: TGridEditStyle); virtual;
-    procedure SetFixedSize(Value: Boolean);
     procedure SetMaxLength(Value: Integer); virtual;
     procedure SetReadOnly(Value: Boolean); virtual;
-    procedure SetVisible(Value: Boolean);
     procedure SetWidth(Value: Integer); virtual;
   public
     constructor Create(ACollection: TCollection); override;
@@ -782,11 +782,11 @@ type
     procedure SetGridColor(Value: Boolean);
     procedure SetGridFont(Value: Boolean);
     procedure SetShowDivider(Value: Boolean);
-  protected
     procedure Change;
     procedure GridColorChanged(NewColor: TColor);
     procedure GridFontChanged(NewFont: TFont);
-    procedure SetCount(Value: Integer);
+  protected
+    procedure SetCount(Value: Integer); // for `TDBGridFixed.SetDefCount`
   public
     constructor Create(AGrid: TCustomGridView);
     destructor Destroy; override;
@@ -902,15 +902,15 @@ type
     procedure SetMax(Value: Integer);
     procedure SetMin(Value: Integer);
     procedure SetPageStep(Value: Integer);
+    procedure SetPosition(Value: Integer);
     procedure SetVisible(Value: Boolean);
-  protected
-    FBarCode: Integer;
     procedure Change;
     procedure ChangeParams;
     procedure Scroll(ScrollCode: Integer; var ScrollPos: Integer);
+  protected
+    FBarCode: Integer;
     procedure ScrollMessage(var Message: TLMScroll); virtual;
     procedure SetParams(AMin, AMax, APageStep, ALineStep: Integer); virtual;
-    procedure SetPosition(Value: Integer);
     procedure SetPositionEx(Value: Integer; ScrollCode: Integer); virtual;
     procedure Update; virtual;
   public
@@ -1089,6 +1089,18 @@ type
     procedure SetDropListVisible(Value: Boolean);
     procedure SetEditStyle(Value: TGridEditStyle);
     procedure SetWordWrap(Value: Boolean);
+    procedure PaintButton(DC: HDC; Rect: TRect);
+    procedure StartButtonTracking(X, Y: Integer);
+    procedure StepButtonTracking(X, Y: Integer);
+    procedure StopButtonTracking;
+    procedure UpdateBounds(ScrollCaret: Boolean);
+    procedure UpdateColors;
+    procedure UpdateContents;
+    procedure UpdateList;
+    procedure DropDown;
+    procedure InvalidateButton;
+    procedure Press;
+    procedure SelectNext;
   protected
     procedure LMGetDlgCode(var Message: TLMGetDlgCode); message LM_GETDLGCODE;
     procedure LMPaste(var Message); message LM_PASTE;
@@ -1097,6 +1109,7 @@ type
     procedure LMCancelMode(var Message); message LM_CANCELMODE;
     procedure LMKillFocus(var Message); message LM_KILLFOCUS;
     procedure LMWindowPosChanged(var Message); message LM_WINDOWPOSCHANGED;
+    procedure LMPaint(var Message: TLMPaint); message LM_PAINT;
     procedure LMLButtonDown(var Message: TLMLButtonDown); message LM_LBUTTONDOWN;
     procedure LMLButtonDblClk(var Message: TLMLButtonDblClk); message LM_LBUTTONDBLCLK;
     procedure LMSetCursor(var Message); message LM_SETCURSOR;
@@ -1120,15 +1133,6 @@ type
     procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); override;
     procedure MouseMove(Shift: TShiftState; X, Y: Integer); override;
     procedure MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); override;
-    procedure PaintButton(DC: HDC; Rect: TRect);
-    procedure PaintWindow(DC: HDC); override;
-    procedure StartButtonTracking(X, Y: Integer);
-    procedure StepButtonTracking(X, Y: Integer);
-    procedure StopButtonTracking;
-    procedure UpdateBounds(ScrollCaret: Boolean);
-    procedure UpdateColors;
-    procedure UpdateContents;
-    procedure UpdateList;
     procedure UpdateListBounds; virtual;
     procedure UpdateListItems; virtual;
     procedure UpdateStyle; virtual;
@@ -1136,13 +1140,9 @@ type
   public
     constructor Create(AOwner: TComponent); override;
     procedure CloseUp(Accept: Boolean); virtual;
-    procedure Deselect;
-    procedure DropDown;
     procedure Invalidate; override;
-    procedure InvalidateButton;
-    procedure Press;
-    procedure SelectNext;
     procedure Undo; override;
+    procedure Deselect; // for `TCustomDBGridView.DataRecordChanged`
     property ActiveList: TWinControl read FActiveList;
     property Alignment: TAlignment read FAlignment write SetAlignment default taLeftJustify;
     property ButtonRect: TRect read GetButtonRect;
@@ -2685,8 +2685,7 @@ type
     function EditCanShow(Cell: TGridCell): Boolean; virtual;
     function EditCanUndo(Cell: TGridCell): Boolean;
     procedure EditChange(Cell: TGridCell);
-    procedure EditCloseUp(Cell: TGridCell; Items: TStrings; ItemIndex: Integer;
-      var ItemText: string; var Accept: Boolean);
+    procedure EditCloseUp(Cell: TGridCell; Items: TStrings; ItemIndex: Integer; var ItemText: string; var Accept: Boolean);
     procedure EditSelectNext(Cell: TGridCell; var Value: string);
     procedure FixedChange(Sender: TObject);
     procedure GetCellColors(Cell: TGridCell; ACanvas: TCanvas); virtual;
