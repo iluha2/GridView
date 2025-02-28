@@ -1929,11 +1929,6 @@ begin
   Invalidate;
 end;
 
-procedure TCustomGridEdit.LMPaint(var Message: TLMPaint);
-begin
-  PaintHandler(Message);
-end;
-
 procedure TCustomGridEdit.LMLButtonDown(var Message: TLMLButtonDown);
 begin
   //SendCancelMode(Self); not implemented in Lazarus

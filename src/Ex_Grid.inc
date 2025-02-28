@@ -1097,7 +1097,6 @@ type
     procedure LMCancelMode(var Message); message LM_CANCELMODE;
     procedure LMKillFocus(var Message); message LM_KILLFOCUS;
     procedure LMWindowPosChanged(var Message); message LM_WINDOWPOSCHANGED;
-    procedure LMPaint(var Message: TLMPaint); message LM_PAINT;
     procedure LMLButtonDown(var Message: TLMLButtonDown); message LM_LBUTTONDOWN;
     procedure LMLButtonDblClk(var Message: TLMLButtonDblClk); message LM_LBUTTONDBLCLK;
     procedure LMSetCursor(var Message); message LM_SETCURSOR;
