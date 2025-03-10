@@ -4473,8 +4473,8 @@ begin
       ACanvas.Font.Color := clGrayText;
     { focused cell }
     ACanvas.Brush.Color := Self.Color;
-    // TODO: !! check: `and IsCellFocused(Cell)`
-    if Enabled and IsCellHighlighted(Cell) and (not IsCellEditing(Cell)) then
+    // NOTE: !! was `IsCellHighlighted()` instead of `IsCellFocused()`
+    if Enabled and IsCellFocused(Cell) and (not IsCellEditing(Cell)) then
     begin
       if Focused or EditFocused then
       begin
