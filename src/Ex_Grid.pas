@@ -4473,8 +4473,8 @@ begin
       ACanvas.Font.Color := clGrayText;
     { focused cell }
     ACanvas.Brush.Color := Self.Color;
-    // NOTE: !! was `IsCellHighlighted()` instead of `IsCellFocused()`
-    if Enabled and IsCellFocused(Cell) and (not IsCellEditing(Cell)) then
+    // TODO: !! check `IsCellFocused()` instead of `IsCellHighlighted()`
+    if Enabled and IsCellHighlighted(Cell) and (not IsCellEditing(Cell)) then
     begin
       if Focused or EditFocused then
       begin
@@ -8158,7 +8158,7 @@ end;
 function TCustomGridView.IsCellHighlighted(Cell: TGridCell): Boolean;
 begin
   Result := (Cell.Col >= Fixed.Count) and
-    ((CellSelected and IsCellFocused(Cell) and IsFocusAllowed) or IsRowHighlighted(Cell.Row));
+    (({CellSelected and} IsCellFocused(Cell) and IsFocusAllowed) or IsRowHighlighted(Cell.Row));
 end;
 
 function TCustomGridView.IsCellHasCheck(Cell: TGridCell): Boolean;
@@ -8270,7 +8270,7 @@ end;
 
 function TCustomGridView.IsRowHighlighted(Row: Integer): Boolean;
 begin
-  Result := CellSelected and RowSelect and (Row = CellFocused.Row);
+  Result := {CellSelected and} RowSelect and (Row = CellFocused.Row);
 end;
 
 function TCustomGridView.IsRowVisible(Row: Integer): Boolean;
