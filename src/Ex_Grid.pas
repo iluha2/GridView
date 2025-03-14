@@ -6894,7 +6894,7 @@ var
 begin
   if (ColumnIndex >= 0) and (ColumnIndex < Columns.Count) then
   begin
-    W := Min(Columns[ColumnIndex].MaxWidth, GetColumnMaxWidth(ColumnIndex));
+    W := GetColumnFitWidth(ColumnIndex);
     ColumnSizeToFit(ColumnIndex, W);
     ColumnResize(ColumnIndex, W);
     FColResizing := True;
@@ -7427,8 +7427,7 @@ var
     T: string;
   begin
     Result := False;
-    { skip hidden columns }
-    if Columns[Col].Width > 0 then
+    if Columns[Col].Visible then
     begin
       C := GridCell(Col, Row);
       T := GetCellText(C);
@@ -7474,7 +7473,8 @@ begin
       instead of it; the next reverse search will again detect this fixed
       cell, and the cell to the right will be selected again, and so on.
       outwardly, it will look as if the search is frozen in one cell }
-    while (I >= 0) and (Columns[I].Width = 0) do Dec(I);
+    while (I >= 0) and not Columns[I].Visible do
+      Dec(I);
     if (I < Fixed.Count) and (R >= 0) then
     begin
       Dec(R);
@@ -7608,7 +7608,7 @@ begin
   end;
 end;
 
-function TCustomGridView.GetColumnMaxWidth(Column: Integer): Integer;
+function TCustomGridView.GetColumnFitWidth(Column: Integer): Integer;
 var
   I, W: Integer;
   C: TGridCell;
@@ -7640,6 +7640,14 @@ begin
     { запоминаем }
     if Result < W then Result := W;
   end;
+  // учитываем ограничения
+  W := Columns[Column].MinWidth;
+  if W = 0 then
+     W:= Columns[Column].DefWidth;
+  if Result < W then
+     Result:= W;
+  if Result > Columns[Column].MaxWidth then
+     Result:= Columns[Column].MaxWidth;
 end;
 
 function TCustomGridView.GetColumnRect(Column: Integer): TRect;
@@ -8206,7 +8214,7 @@ begin
   begin
     C := (Col >= 0) and (Col < Columns.Count);
     R := (Row >= 0) and (Row < Rows.Count);
-    V := C and Columns[Col].Visible and (Columns[Col].Width > 0);
+    V := C and Columns[Col].Visible;
   end;
   { результат }
   Result := ((not CheckPosition) or (C and R)) and ((not CheckVisible) or V);

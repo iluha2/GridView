@@ -583,7 +583,6 @@ type
     property Tag;
     property Visible default True;
     property WantReturns;
-    property Width default 64;
     property WordWrap;
     property DefWidth default 64;
   end;
@@ -1446,9 +1445,8 @@ type
     GetCellsRect -         Получить прямоугольник ячеек.
     GetColumnAt -          Найти колонку по точке. Возвращает -1, если
                            колонка не найдена.
-    GetColumnMaxWidth -    Максмальная ширина видимого текста в указанной
-                           колонке. Если отсутствует хотябы одна видимая
-                           строка, возвращает ширину колонки.
+    GetColumnFitWidth -    Максмальная ширина видимого текста в указанной колонке, в пределах MinWidth..MaxWidth.
+                           Если отсутствует хотябы одна видимая строка, возвращает DefWidth.
     GetColumnRect -        Прямоугольник колонки.
     GetColumnsRect -       Прямоугольник колонок с указанную по указанную.
     GetColumnsWidth -      Суммарная ширина колонок с указанной по указанную.
@@ -1997,7 +1995,7 @@ type
                            the specified position returns -1.
     GetColumnLeftRight -   Returns left and right coordinates of the column in
                            the grid.
-    GetColumnMaxWidth -    Returns the maximum width of the text of the specified
+    GetColumnFitWidth -    Returns the maximum width of the text of the specified
                            column in visible rows. Called to automatically change
                            the width of column to fit its contents.
     GetColumnRect -        Returns the coordinates of the column in the grid.
@@ -2795,7 +2793,7 @@ type
     function GetCellsRect(Cell1, Cell2: TGridCell): TRect;
     function GetColumnAtX(X: Integer): Integer;
     function GetColumnLeftRight(Column: Integer): TRect;
-    function GetColumnMaxWidth(Column: Integer): Integer;
+    function GetColumnFitWidth(Column: Integer): Integer;
     function GetColumnRect(Column: Integer): TRect;
     function GetColumnsRect(Column1, Column2: Integer): TRect;
     function GetColumnsWidth(Column1, Column2: Integer): Integer;
