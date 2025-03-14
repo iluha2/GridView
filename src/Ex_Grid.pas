@@ -6880,12 +6880,15 @@ var
   I: Integer;
   Column: TCustomGridColumn;
 begin
-  if FColumnsResize then
-    for I := 0 to Columns.Count-1 do
-    begin
-      Column := Columns[I];
-      if Column.Visible and not Column.FixedSize then SizeColumnToFit(I);
-    end;
+  if not FColumnsResize then
+    Exit;
+  for I := 0 to Columns.Count-1 do
+  begin
+    Column := Columns[I];
+    if Column.Visible and not Column.FixedSize then
+      SizeColumnToFit(I);
+  end;
+  InvalidateGrid;
 end;
 
 procedure TCustomGridView.SizeColumnToFit(ColumnIndex: Integer);
