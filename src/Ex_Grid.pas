@@ -7614,31 +7614,23 @@ var
   C: TGridCell;
   R: TRect;
 begin
-  { проверяем колонку }
-  if (Column < 0) or (Column > Columns.Count - 1) then
-    Exit( 0 );
-  { а есть ли видимые строки }
-  if FVisSize.Row = 0 then
-    Exit( Columns[Column].DefWidth );
-
   Result := 0;
-  { вычисляем максимальную ширину по видимым строкам }
-  for I := 0 to FVisSize.Row - 1 do
+  if (Column < 0) or (Column > Columns.Count - 1) then
+    Exit;
+  // учитываем все строки! (а не только видимые)
+  for I := 0 to Rows.Count - 1 do
   begin
-    { колонка и текст ячейки }
-    C := GridCell(Column, VisOrigin.Row + I);
-    { определяем прямоугольник текста }
+    C := GridCell(Column, I);
     R := GetCellTextBounds(C);
-    { определяем ширину }
     W := R.Right - R.Left;
-    { место под флажок }
-    if IsCellHasCheck(C) then Inc(W, GetCheckSize + GetCheckIndent(C).X);
-    { место под картинку }
-    if IsCellHasImage(C) then Inc(W, Images.Width + GetCellImageIndent(C).X);
-    { учитываем сетку }
-    if GridLines and (gsVertLine in GridStyle) then Inc(W, GRID_LINE_WIDTH);
-    { запоминаем }
-    if Result < W then Result := W;
+    if IsCellHasCheck(C) then // флажок
+      Inc(W, GetCheckSize + GetCheckIndent(C).X);
+    if IsCellHasImage(C) then // картинка
+      Inc(W, Images.Width + GetCellImageIndent(C).X);
+    if GridLines and (gsVertLine in GridStyle) then // сетка
+      Inc(W, GRID_LINE_WIDTH);
+    if Result < W then
+       Result:= W;
   end;
   // учитываем ограничения
   W := Columns[Column].MinWidth;
