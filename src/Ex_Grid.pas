@@ -5461,7 +5461,10 @@ begin
       VK_UP: // курсор вверх
         begin
           { если фокуса нет, то смещаем всю таблицу }
-          if not AllowSelect then Cell := VisOrigin else Cell := CellFocused;
+          if not AllowSelect then
+            Cell := VisOrigin
+          else
+            Cell := CellFocused;
           { меняем выделенный }
           SetGridCursor(GetCursorCell(Cell, goUp), True, True);
         end;
@@ -5471,7 +5474,8 @@ begin
           if not AllowSelect then
           begin
             Cell := GridCell(VisOrigin.Col, VisOrigin.Row + VisSize.Row - 1);
-            if not IsCellVisible(Cell, False) then Dec(Cell.Row);
+            if not IsCellVisible(Cell, False) then
+              Dec(Cell.Row);
           end
           else
             Cell := CellFocused;
@@ -5518,7 +5522,8 @@ begin
       if CheckBoxes and (not EditCanShow(CellFocused) or (ssCtrl in Shift)) then
       begin
         Cell := CellFocused;
-        if RowSelect then Cell.Col := Fixed.Count;
+        if RowSelect then
+          Cell.Col := Fixed.Count;
         if GetCheckKind(Cell) <> gcNone then
         begin
           SetGridCursor(Cell, True, True);
@@ -8161,7 +8166,7 @@ end;
 function TCustomGridView.IsCellHighlighted(Cell: TGridCell): Boolean;
 begin
   Result := (Cell.Col >= Fixed.Count) and
-    (({CellSelected and} IsCellFocused(Cell) and IsFocusAllowed) or IsRowHighlighted(Cell.Row));
+    ((IsCellFocused(Cell) and IsFocusAllowed) or IsRowHighlighted(Cell.Row));
 end;
 
 function TCustomGridView.IsCellHasCheck(Cell: TGridCell): Boolean;
@@ -8273,7 +8278,7 @@ end;
 
 function TCustomGridView.IsRowHighlighted(Row: Integer): Boolean;
 begin
-  Result := {CellSelected and} RowSelect and (Row = CellFocused.Row);
+  Result := RowSelect and (Row = CellFocused.Row);
 end;
 
 function TCustomGridView.IsRowVisible(Row: Integer): Boolean;
@@ -8294,43 +8299,46 @@ var
   DX, DY, X, Y: Integer;
   R: TRect;
 begin
-  if not IsCellVisible(Cell, PartialOK) then
+  if IsCellVisible(Cell, PartialOK) then
+    Exit;
+  DX := 0;
+  DY := 0;
+  with GetGridRect do
   begin
-    DX := 0;
-    DY := 0;
-    with GetGridRect do
+    { смещение по горизонтали }
+    if not RowSelect then
     begin
-      { смещение по горизонтали }
-      // if not RowSelect then
-      begin
-        R := GetColumnRect(Cell.Col);
-        X := Left + GetFixedWidth;
-        if R.Right > Right then DX := Right - R.Right;
-        if R.Left < X then DX := X - R.Left;
-        if R.Right - R.Left > Right - X then DX := X - R.Left;
-      end;
-      { смещение по вертикали }
-      if Rows.Height > 0 then
-      begin
-        R := GetRowRect(Cell.Row);
-        if R.Bottom > Bottom then DY := Bottom - R.Bottom;
-        if R.Top < Top then DY := Top - R.Top;
-        if R.Bottom - R.Top > Bottom - Top then DY := Top - R.Top;
-        Y := DY div Rows.Height;
-        if (FVisSize.Row > 1) and (DY mod Rows.Height <> 0) then Dec(Y);
-        DY := Y;
-      end;
+      R := GetColumnRect(Cell.Col);
+      X := Left + GetFixedWidth;
+      if (R.Left < X) or (R.Right - R.Left > Right - X) then
+        DX := X - R.Left
+      else if R.Right > Right then
+        DX := Right - R.Right;
     end;
-    { изменяем положение }
-    with VertScrollBar do Position := Position - DY;
-    with HorzScrollBar do Position := Position - DX;
+    { смещение по вертикали }
+    if Rows.Height > 0 then
+    begin
+      R := GetRowRect(Cell.Row);
+      if (R.Top < Top) or (R.Bottom - R.Top > Bottom - Top) then
+        DY := Top - R.Top
+      else if R.Bottom > Bottom then
+        DY := Bottom - R.Bottom;
+      Y := DY div Rows.Height;
+      if (FVisSize.Row > 1) and (DY mod Rows.Height <> 0) then
+        Dec(Y);
+      DY := Y;
+    end;
   end;
+  { изменяем положение }
+  with VertScrollBar do Position := Position - DY;
+  with HorzScrollBar do Position := Position - DX;
 end;
 
 procedure TCustomGridView.SetGridCursor(Cell: TGridCell; ASelected, AVisible: Boolean);
 var
   PartialOK: Boolean;
 begin
+  PartialOK := RowSelect;
   { проверяем выделение }
   UpdateSelection(Cell, ASelected);
   { изменилось ли что нибудь }
@@ -8363,7 +8371,7 @@ begin
       begin
         HideCursor;
         FCellSelected := ASelected;
-        if AVisible then MakeCellVisible(CellFocused, True);
+        if AVisible then MakeCellVisible(CellFocused, PartialOK);
         ShowCursor;
       end;
     end;
@@ -8372,7 +8380,7 @@ begin
   end
   else
     { ячейка не изменилась - подправляем видимость }
-    if Visible then MakeCellVisible(CellFocused, False);
+    if AVisible then MakeCellVisible(CellFocused, PartialOK);
 end;
 
 procedure TCustomGridView.ResetEdit;
