@@ -8338,7 +8338,6 @@ procedure TCustomGridView.SetGridCursor(Cell: TGridCell; ASelected, AVisible: Bo
 var
   PartialOK: Boolean;
 begin
-  PartialOK := RowSelect;
   { проверяем выделение }
   UpdateSelection(Cell, ASelected);
   { изменилось ли что нибудь }
@@ -8371,7 +8370,7 @@ begin
       begin
         HideCursor;
         FCellSelected := ASelected;
-        if AVisible then MakeCellVisible(CellFocused, PartialOK);
+        if AVisible then MakeCellVisible(CellFocused, True);
         ShowCursor;
       end;
     end;
@@ -8380,7 +8379,7 @@ begin
   end
   else
     { ячейка не изменилась - подправляем видимость }
-    if AVisible then MakeCellVisible(CellFocused, PartialOK);
+    if AVisible then MakeCellVisible(CellFocused, False);
 end;
 
 procedure TCustomGridView.ResetEdit;
