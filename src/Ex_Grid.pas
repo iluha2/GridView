@@ -8552,8 +8552,9 @@ procedure TCustomGridView.UpdateScrollBars;
   begin
     if (Rows.Count > 0) and (Rows.Height > 0) then
     begin
-      R := Rows.Count - 1;
-      with GetGridRect do P := (Bottom - Top) div Rows.Height;
+      R := Rows.Count;
+      with GetGridRect do
+        P := (Bottom - Top) div Rows.Height;
       L := 1;
     end
     else
@@ -8576,7 +8577,8 @@ procedure TCustomGridView.UpdateScrollBars;
     if Columns.Count > 0 then
     begin
       R := GetColumnsWidth(0, Columns.Count - 1) - GetFixedWidth;
-      with GetGridRect do P := (Right - Left) - GetFixedWidth;
+      with GetGridRect do
+        P := (Right - Left) - GetFixedWidth;
       L := 8;
     end
     else
@@ -8600,7 +8602,6 @@ begin
   try
     UpdateVertScrollBar;
     UpdateHorzScrollBar;
-    //UpdateVertScrollBar;
   finally
     UnLockUpdate(False);
   end;
