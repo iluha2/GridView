@@ -1603,28 +1603,24 @@ end;
 
 procedure TGridScrollBar.SetParams(AMin, AMax, APageStep, ALineStep: Integer);
 begin
-  { подправляем новые значения }
   if AMax < AMin then
      AMax:= AMin;
   if APageStep > AMax - AMin + 1 then
      APageStep:= AMax - AMin + 1;
   if APageStep < 0 then APageStep := 0;
   if ALineStep < 0 then ALineStep := 0;
-  { изменилось ли что нибудь }
   if (FMin <> AMin) or (FMax <> AMax) or (FPageStep <> APageStep) or (FLineStep <> ALineStep) then
   begin
-    { устанавливаем новые значения }
+    // поправляем верт. позицию всегда, горизонтальную - если не `RowSelect`
+    if (FKind = sbVertical) or ((FGrid <> nil) and not FGrid.RowSelect) then
+      Inc(FPosition, FPageStep - APageStep);
     FMin := AMin;
     FMax := AMax;
-    Inc(FPosition, FPageStep - APageStep);
     FPageStep := APageStep;
     FLineStep := ALineStep;
-    { подправляем позицию }
     CheckScrollPos(FMin, FMax, FPageStep, FPosition);
-    { обновляем скроллер }
     Update;
-    { событие }
-    ChangeParams;
+    ChangeParams; // событие
   end;
 end;
 
@@ -7303,7 +7299,6 @@ var
   Points: array[0..2] of TPoint;
   ElementDetails: TThemedElementDetails;
   PS: TPenStyle;
-  IT: TPoint;
 begin
   IsPressed := IsHeaderPressed(Section);
   SD := gsNone;
@@ -7400,11 +7395,8 @@ begin
   begin
     R := Rect;
     R.Top := R.Top + 2;
-    { section text indent is the same as cells text indent }
-    IT.X := TextLeftIndent;
-    IT.Y := TextTopIndent;
-    if I <> -1 then Inc(IT.X, 4);
-    PaintText(Canvas, R, IT.X, Section.Alignment, False, Section.WordWrap, T);
+    R.Left := R.Left + TextLeftIndent;
+    PaintText(Canvas, R, 0, Section.Alignment, False, Section.WordWrap, T);
   end;
 end;
 
