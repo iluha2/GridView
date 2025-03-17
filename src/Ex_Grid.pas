@@ -1616,6 +1616,7 @@ begin
     { устанавливаем новые значения }
     FMin := AMin;
     FMax := AMax;
+    Inc(FPosition, FPageStep - APageStep);
     FPageStep := APageStep;
     FLineStep := ALineStep;
     { подправляем позицию }
@@ -3011,7 +3012,6 @@ begin
   FHorzScrollBar.OnScroll := @HorzScroll;
   FHorzScrollBar.OnChange := @HorzScrollChange;
   FVertScrollBar := CreateScrollBar(sbVertical);
-  FVertScrollBar.LineSize := 17;
   FVertScrollBar.OnScroll := @VertScroll;
   FVertScrollBar.OnChange := @VertScrollChange;
   FHeader := CreateHeader;
@@ -3166,11 +3166,11 @@ begin
   begin
     UpdateFixed;
     UpdateHeader;
+    UpdateScrollBars;
+    UpdateVisOriginSize;
+    UpdateCursor;
+    UpdateEdit(Editing);
   end;
-  UpdateScrollBars;
-  UpdateVisOriginSize;
-  UpdateCursor;
-  UpdateEdit(Editing);
   Invalidate;
   ChangeColumns;
 end;
@@ -3195,11 +3195,14 @@ end;
 
 procedure TCustomGridView.FixedChange(Sender: TObject);
 begin
-  UpdateRows;
-  UpdateScrollBars;
-  UpdateVisOriginSize;
-  UpdateCursor;
-  UpdateEdit(Editing);
+  if [csReading, csLoading] * ComponentState = [] then
+  begin
+    UpdateRows;
+    UpdateScrollBars;
+    UpdateVisOriginSize;
+    UpdateCursor;
+    UpdateEdit(Editing);
+  end;
   Invalidate;
   ChangeFixed; 
 end;
@@ -3234,10 +3237,13 @@ end;
 
 procedure TCustomGridView.HeaderChange(Sender: TObject);
 begin
-  UpdateScrollBars;
-  UpdateVisOriginSize;
-  UpdateEdit(Editing);
-  UpdateCursor;
+  if [csReading, csLoading] * ComponentState = [] then
+  begin
+    UpdateScrollBars;
+    UpdateVisOriginSize;
+    UpdateEdit(Editing);
+    UpdateCursor;
+  end;
   Invalidate;
 end;
 
@@ -8297,37 +8303,35 @@ end;
 procedure TCustomGridView.MakeCellVisible(Cell: TGridCell; PartialOK: Boolean);
 var
   DX, DY, X, Y: Integer;
-  R: TRect;
+  R, GR: TRect;
 begin
   if IsCellVisible(Cell, PartialOK) then
     Exit;
   DX := 0;
   DY := 0;
-  with GetGridRect do
+  GR := GetGridRect;
+  { смещение по горизонтали }
+  if not RowSelect then
   begin
-    { смещение по горизонтали }
-    if not RowSelect then
-    begin
-      R := GetColumnRect(Cell.Col);
-      X := Left + GetFixedWidth;
-      if (R.Left < X) or (R.Right - R.Left > Right - X) then
-        DX := X - R.Left
-      else if R.Right > Right then
-        DX := Right - R.Right;
-    end;
-    { смещение по вертикали }
-    if Rows.Height > 0 then
-    begin
-      R := GetRowRect(Cell.Row);
-      if (R.Top < Top) or (R.Bottom - R.Top > Bottom - Top) then
-        DY := Top - R.Top
-      else if R.Bottom > Bottom then
-        DY := Bottom - R.Bottom;
-      Y := DY div Rows.Height;
-      if (FVisSize.Row > 1) and (DY mod Rows.Height <> 0) then
-        Dec(Y);
-      DY := Y;
-    end;
+    R := GetColumnRect(Cell.Col);
+    X := GR.Left + GetFixedWidth;
+    if (R.Left < X) or (R.Right - R.Left > GR.Right - X) then
+      DX := X - R.Left
+    else if R.Right > GR.Right then
+      DX := GR.Right - R.Right;
+  end;
+  { смещение по вертикали }
+  if Rows.Height > 0 then
+  begin
+    R := GetRowRect(Cell.Row);
+    if (R.Top < GR.Top) or (R.Bottom - R.Top > GR.Bottom - GR.Top) then
+      DY := GR.Top - R.Top
+    else if R.Bottom > GR.Bottom then
+      DY := GR.Bottom - R.Bottom;
+    Y := DY div Rows.Height;
+    if (FVisSize.Row > 1) and (DY mod Rows.Height <> 0) then
+      Dec(Y);
+    DY := Y;
   end;
   { изменяем положение }
   with VertScrollBar do Position := Position - DY;
@@ -8548,13 +8552,14 @@ procedure TCustomGridView.UpdateScrollBars;
 
   procedure UpdateVertScrollBar;
   var
+    GR: TRect;
     R, P, L: Integer;
   begin
     if (Rows.Count > 0) and (Rows.Height > 0) then
     begin
       R := Rows.Count;
-      with GetGridRect do
-        P := (Bottom - Top) div Rows.Height;
+      GR := GetGridRect;
+      P := (GR.Bottom - GR.Top) div Rows.Height;
       L := 1;
     end
     else
