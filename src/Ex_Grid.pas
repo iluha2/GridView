@@ -8337,45 +8337,50 @@ begin
   { проверяем выделение }
   UpdateSelection(Cell, ASelected);
   { изменилось ли что нибудь }
-  if (not IsCellEqual(FCellFocused, Cell)) or (FCellSelected <> ASelected) then
+  if IsCellEqual(FCellFocused, Cell) and (FCellSelected = ASelected) then
   begin
-    { ячейка меняется }
-    Changing(Cell, ASelected);
-    { устанавливаем активную ячейку }
-    if not IsCellEqual(FCellFocused, Cell) then
-    begin
-      { при изменении положения курсора гасим подсказку }
-      CancelCellTips;
-      { если идет редактирование - проверяем текст }
-      Editing := False;
-      { меняем ячейку }
-      HideCursor;
-      PartialOK := RowSelect or (FCellFocused.Col = Cell.Col);
-      FCellFocused := Cell;
-      FCellSelected := ASelected;
-      if AVisible then MakeCellVisible(CellFocused, PartialOK);
-      ShowCursor;
-    end
-    { устанавливаем выделение }
-    else if FCellSelected <> ASelected then
-    begin
-      { строка видна - фокус на нее, состояние не трогаем }
-      if Editing then ShowEdit;
-      { если строка погасла - меняем состояние курсора }
-      if not Editing then
-      begin
-        HideCursor;
-        FCellSelected := ASelected;
-        if AVisible then MakeCellVisible(CellFocused, True);
-        ShowCursor;
-      end;
-    end;
-    { ячейка сменилась }
-    Change(FCellFocused, FCellSelected);
-  end
-  else
     { ячейка не изменилась - подправляем видимость }
-    if AVisible then MakeCellVisible(CellFocused, False);
+    if AVisible then
+      MakeCellVisible(CellFocused, False);
+    Exit;
+  end;
+
+  { ячейка меняется }
+  Changing(Cell, ASelected);
+  { устанавливаем активную ячейку }
+  if not IsCellEqual(FCellFocused, Cell) then
+  begin
+    { при изменении положения курсора гасим подсказку }
+    CancelCellTips;
+    { если идет редактирование - проверяем текст }
+    Editing := False;
+    { меняем ячейку }
+    HideCursor;
+    PartialOK := RowSelect or (FCellFocused.Col = Cell.Col);
+    FCellFocused := Cell;
+    FCellSelected := ASelected;
+    if AVisible then
+      MakeCellVisible(CellFocused, PartialOK);
+    ShowCursor;
+  end
+  { устанавливаем выделение }
+  else if FCellSelected <> ASelected then
+  begin
+    { строка видна - фокус на нее, состояние не трогаем }
+    if Editing then
+      ShowEdit;
+    { если строка погасла - меняем состояние курсора }
+    if not Editing then
+    begin
+      HideCursor;
+      FCellSelected := ASelected;
+      if AVisible then
+        MakeCellVisible(CellFocused, True);
+      ShowCursor;
+    end;
+  end;
+  { ячейка сменилась }
+  Change(FCellFocused, FCellSelected);
 end;
 
 procedure TCustomGridView.ResetEdit;
@@ -8392,20 +8397,24 @@ end;
 procedure TCustomGridView.UpdateCursor;
 var
   Cell: TGridCell;
-  IsValidCell, Dummy: Boolean;
+  IsValid, Dummy: Boolean;
 begin
   Cell := CellFocused;
-  IsValidCell := IsCellValid(Cell) and IsCellAcceptCursor(Cell);
+  if not IsCellValid(Cell) then
+    Exit;
+
+  IsValid := IsCellAcceptCursor(Cell);
   { если текущая ячейка недоступна, то ищем доступную ячейку вокруг или
     первую попавшуюся, если таковой нет }
-  if not IsValidCell then
+  if not IsValid then
   begin
     Dummy := False;
     UpdateSelection(Cell, Dummy);
-    if IsCellEqual(Cell, CellFocused) then Cell := GetCursorCell(Cell, goFirst);
+    if IsCellEqual(Cell, CellFocused) then
+      Cell := GetCursorCell(Cell, goFirst);
   end;
   { подправляем выделение ячейки }
-  SetGridCursor(Cell, CellSelected, not IsValidCell);
+  SetGridCursor(Cell, CellSelected, not IsValid);
 end;
 
 procedure TCustomGridView.UpdateColors;
