@@ -6428,8 +6428,8 @@ begin
     { focus by default is displayed as a dotted rectangle }
     with Canvas do
     begin
-      SetTextColor(Handle, ColorToRGB(clWhite));
-      SetBkColor(Handle, ColorToRGB(clBlack));
+      //SetTextColor(Handle, ColorToRGB(clWhite));
+      //SetBkColor(Handle, ColorToRGB(clBlack));
       SetBkMode(Handle, OPAQUE);
       SetRop2(Handle, R2_COPYPEN);
       DrawFocusRect(R);
