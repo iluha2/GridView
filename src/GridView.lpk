@@ -9,7 +9,7 @@
       <Version Value="11"/>
       <PathDelim Value="\"/>
       <SearchPaths>
-        <UnitOutputDirectory Value="..\zOut\$(PkgName)-$(TargetCPU)-$(TargetOS)-$(BuildMode)"/>
+        <UnitOutputDirectory Value="..\zOut\$(PkgName)-$(TargetCPU)-$(TargetOS)"/>
       </SearchPaths>
       <Parsing>
         <SyntaxOptions>
