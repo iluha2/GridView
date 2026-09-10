@@ -1506,9 +1506,9 @@ begin
     FBarCode := SB_HORZ
   else
     FBarCode := SB_VERT;
-  FPageStep := 100;
-  FLineStep := 8;
-  FLineSize := 1;
+  //FPageStep := 100;
+  //FLineStep := 8;
+  //FLineSize := 1;
   FTracking := True;
   FVisible  := True;
 end;
@@ -1611,9 +1611,11 @@ begin
   if ALineStep < 0 then ALineStep := 0;
   if (FMin <> AMin) or (FMax <> AMax) or (FPageStep <> APageStep) or (FLineStep <> ALineStep) then
   begin
-    // поправляем верт. позицию всегда, горизонтальную - если не `RowSelect`
-    if (FKind = sbVertical) or ((FGrid <> nil) and not FGrid.RowSelect) then
-      Inc(FPosition, FPageStep - APageStep);
+    // горизонтальную позицию поправляем, только если не `RowSelect`
+    if ((FKind = sbVertical) or ((FGrid <> nil) and not FGrid.RowSelect)) and
+      // если позиция уже сдвинута, и данные `*PageStep` валидны
+      (FPosition > 0) and (FPageStep > 0) and (APageStep > 0) and (FPosition + FPageStep - APageStep >= 0) then
+        Inc(FPosition, FPageStep - APageStep);
     FMin := AMin;
     FMax := AMax;
     FPageStep := APageStep;
@@ -7805,7 +7807,8 @@ end;
 
 function TCustomGridView.GetGridHeight: Integer;
 begin
-  with GetGridRect do Result := Bottom - Top;
+  with GetGridRect do
+    Result := Bottom - Top;
 end;
 
 function TCustomGridView.GetGridOrigin: TPoint;
