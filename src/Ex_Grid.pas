@@ -3043,8 +3043,6 @@ begin
   FEditCell := GridCell(-1, -1);
   FCheckStyle := csWin95;
   FCheckBuffer := Graphics.TBitmap.Create;
-  FSortLeftIndent := 4;
-  FSortTopIndent := 0;
   FSortBuffer := Graphics.TBitmap.Create;
   FPatternBitmap := Graphics.TBitmap.Create;
   FPatternBitmap.Width := 2;
@@ -3675,26 +3673,6 @@ begin
   begin
     FShowHeader := Value;
     HeaderChange(Header);
-  end;
-end;
-
-procedure TCustomGridView.SetSortLeftIndent(Value: Integer);
-begin
-  if FSortLeftIndent <> Value then
-  begin
-    FSortLeftIndent := Value;
-    UpdateHeader;
-    InvalidateHeader;
-  end;
-end;
-
-procedure TCustomGridView.SetSortTopIndent(Value: Integer);
-begin
-  if FSortTopIndent <> Value then
-  begin
-    FSortTopIndent := Value;
-    UpdateHeader;
-    InvalidateHeader;
   end;
 end;
 
@@ -7349,14 +7327,14 @@ begin
   if SD <> gsNone then
   begin
     SS := GetSortArrowSize;
+    SR := Bounds(0, 0, SS.cx, SS.cy);
+    OffsetRect(SR, Rect.Right - 10 - SS.cx,
+      Rect.Top + ((Rect.Bottom - Rect.Top) - SS.cy) div 2);
+    { sort image is never "pressed" (like in Explorer) }
+    if IsPressed then
+      OffsetRect(SR, -1, -1);
     if ThemeServices.ThemesEnabled {and CheckWin32Version(6, 0)} then
     begin
-      SR.Left := Rect.Left + (Rect.Right - Rect.Left - SS.cx) div 2;
-      SR.Right := SR.Left + SS.cx;
-      SR.Top := Rect.Top;
-      SR.Bottom := SR.Top + SS.cy;
-      { sort image is never "pressed" (like in Explorer) }
-      if IsPressed then OffsetRect(SR, -1, -1);
       if SD = gsAscending then
         ElementDetails := ThemeServices.GetElementDetails(thHeaderSortArrowSortedUp)
       else
@@ -7365,11 +7343,6 @@ begin
     end
     else
     begin
-      SR := Bounds(0, 0, SS.cx, SS.cy);
-      OffsetRect(SR, Rect.Right - 10 - SS.cx,
-        Rect.Top + ((Rect.Bottom - Rect.Top) - SS.cy) div 2 + SortTopIndent);
-      { sort image is never "pressed" (like in Explorer) }
-      if IsPressed then OffsetRect(SR, -1, -1);
       if SD = gsAscending then
       begin
         OffsetRect(SR, 0, -1);
@@ -7389,14 +7362,13 @@ begin
       Canvas.Brush.Color := clGrayText;
       Canvas.Polygon(Points);
       Canvas.Pen.Style := PS;
-      { sort image is always on the right when on disabled themes }
-      Rect.Right := SR.Left - SortLeftIndent;
     end;
+    Rect.Right := SR.Left;
   end;
   if (TL > 0) and (Rect.Left < Rect.Right) then
   begin
     R := Rect;
-    R.Top := R.Top + 2;
+    R.Top := R.Top + TextTopIndent + 2;
     R.Left := R.Left + TextLeftIndent;
     PaintText(Canvas, R, 0, Section.Alignment, False, Section.WordWrap, T);
   end;

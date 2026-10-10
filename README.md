@@ -25,7 +25,7 @@ GridView is a Lazarus grid component for displaying records, arrays, collections
 ## Authors
 
 Roman M. Mochalov (<checker@mail.ru>)
-Iluha Companets (<iluha2@e1.ru>)
+Iluha Companets (<iluha.companets@ya.ru>)
 
 
 ## License

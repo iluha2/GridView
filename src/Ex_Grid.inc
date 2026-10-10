@@ -1680,13 +1680,6 @@ type
     ShowFocusRect -        Показывать рамку фокуса.
     ShowHeader -           Показываеть заголовок.
 
-    SortLeftIndent -       Смещение картинки направления сортировки от
-                           правого края текста. Используется для настройки
-                           вывода картинки направления сортировки. Не следует
-                           без особой необходимости менять это значение (а
-                           также значение SortTopIndent).
-    SortTopIndent -        Смещение картинки направления сортировки
-                           относительно верхнего каря текста по вертикали.
     TextLeftIndent -       Смещение текста ячейки от левого края, в случае,
                            когда у ячейки нет картинки. Используется для
                            настройки вывода текста ячейки. Не следует без
@@ -2478,8 +2471,6 @@ type
     FCheckBoxes: Boolean;
     FCheckStyle: TGridCheckStyle;
     FCheckBuffer: TBitmap;
-    FSortLeftIndent: Integer;
-    FSortTopIndent: Integer;
     FSortBuffer: TBitmap;
     FPatternBitmap: TBitmap;
     FCancelOnExit: Boolean;
@@ -2614,8 +2605,6 @@ type
     procedure SetShowFocusRect(Value: Boolean);
     procedure SetShowGridHint(Value: Boolean);
     procedure SetShowHeader(Value: Boolean);
-    procedure SetSortLeftIndent(Value: Integer);
-    procedure SetSortTopIndent(Value: Integer);
     procedure SetTextLeftIndent(Value: Integer);
     procedure SetTextRightIndent(Value: Integer);
     procedure SetTextTopIndent(Value: Integer);
@@ -2936,8 +2925,6 @@ type
     property ShowFocusRect: Boolean read FShowFocusRect write SetShowFocusRect default True;
     property ShowGridHint: Boolean read FShowGridHint write SetShowGridHint default False;
     property ShowHeader: Boolean read FShowHeader write SetShowHeader default True;
-    property SortLeftIndent: Integer read FSortLeftIndent write SetSortLeftIndent default 4;
-    property SortTopIndent: Integer read FSortTopIndent write SetSortTopIndent default 0;
     property TextLeftIndent: Integer read FTextLeftIndent write SetTextLeftIndent default 5;
     property TextRightIndent: Integer read FTextRightIndent write SetTextRightIndent default 5;
     property TextTopIndent: Integer read FTextTopIndent write SetTextTopIndent default 0;
